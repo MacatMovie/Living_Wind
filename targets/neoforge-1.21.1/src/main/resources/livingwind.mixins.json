@@ -1,0 +1,26 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.macatmovie.livingwind.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ParticleEngineMixin",
+    "ParticleMixin",
+    "PrettyRainShrubMixin",
+    "AmbientSoundsWindCategoryMixin",
+    "DynamicSurroundingsWindMixin",
+    "EuphoriaUniformsMixin",
+    "EuphoriaAutoShaderMixin",
+    "FwaAnimationMixin",
+    "FwaChainMixin",
+    "FwaLanternMixin",
+    "FwaBellMixin",
+    "SupplementariesWindVaneMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "CreateWindmillBearingMixin"
+  ]
+}

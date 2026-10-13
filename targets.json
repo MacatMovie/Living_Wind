@@ -1,0 +1,12 @@
+{
+  "forge-1.20.1": {
+    "family": "forge-1.20.1",
+    "java": 17,
+    "gradle": "8.8"
+  },
+  "neoforge-1.21.1": {
+    "family": "neoforge-1.21.1",
+    "java": 21,
+    "gradle": "8.14.4"
+  }
+}

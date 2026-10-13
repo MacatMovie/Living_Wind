@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "SRS",
+    "RWR",
+    "SRS"
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:stone"
+    },
+    "R": {
+      "item": "minecraft:redstone_torch"
+    },
+    "W": {
+      "item": "livingwind:windmill"
+    }
+  },
+  "result": {
+    "item": "livingwind:redstone_windmill",
+    "count": 1
+  }
+}

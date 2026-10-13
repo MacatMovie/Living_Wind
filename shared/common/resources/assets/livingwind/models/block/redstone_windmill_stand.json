@@ -1,0 +1,279 @@
+{
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "render_type": "cutout",
+  "textures": {
+    "0": "livingwind:block/windmill_base",
+    "1": "livingwind:block/windmill_tail",
+    "2": "livingwind:block/windmill_wheel",
+    "4": "minecraft:block/oak_planks",
+    "5": "minecraft:block/smooth_stone",
+    "6": "livingwind:block/windmill_redstone",
+    "particle": "livingwind:block/windmill_redstone"
+  },
+  "elements": [
+    {
+      "from": [
+        6,
+        11,
+        6
+      ],
+      "to": [
+        10,
+        12,
+        10
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            15,
+            0,
+            16,
+            4
+          ],
+          "rotation": 90,
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            14,
+            0,
+            15,
+            4
+          ],
+          "rotation": 90,
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            13,
+            0,
+            14,
+            4
+          ],
+          "rotation": 90,
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            12,
+            0,
+            13,
+            4
+          ],
+          "rotation": 90,
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "from": [
+        5.5,
+        5,
+        5.5
+      ],
+      "to": [
+        10.5,
+        6,
+        10.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            15,
+            0,
+            16,
+            5
+          ],
+          "rotation": 90,
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            12,
+            0,
+            13,
+            5
+          ],
+          "rotation": 90,
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            13,
+            0,
+            14,
+            5
+          ],
+          "rotation": 90,
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            14,
+            0,
+            15,
+            5
+          ],
+          "rotation": 90,
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "from": [
+        8,
+        2,
+        2
+      ],
+      "to": [
+        8,
+        18,
+        14
+      ],
+      "rotation": {
+        "angle": -45,
+        "axis": "y",
+        "origin": [
+          8,
+          0,
+          8
+        ]
+      },
+      "faces": {
+        "east": {
+          "uv": [
+            0,
+            0,
+            12,
+            14
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            12,
+            14
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        2,
+        8
+      ],
+      "to": [
+        14,
+        18,
+        8
+      ],
+      "rotation": {
+        "angle": -45,
+        "axis": "y",
+        "origin": [
+          8,
+          0,
+          8
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            12,
+            14
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            12,
+            14
+          ],
+          "texture": "#0"
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        2,
+        16
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ],
+          "texture": "#5",
+          "cullface": "north"
+        },
+        "east": {
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ],
+          "texture": "#5",
+          "cullface": "east"
+        },
+        "south": {
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ],
+          "texture": "#5",
+          "cullface": "south"
+        },
+        "west": {
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ],
+          "texture": "#5",
+          "cullface": "west"
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#6"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#5",
+          "cullface": "down"
+        }
+      }
+    }
+  ]
+}

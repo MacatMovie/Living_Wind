@@ -1,0 +1,25 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.macatmovie.livingwind.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "livingwind.refmap.json",
+  "client": [
+    "ParticleEngineMixin",
+    "ParticleMixin",
+    "PrettyRainShrubMixin",
+    "AmbientSoundsWindCategoryMixin",
+    "DynamicSurroundingsWindMixin",
+    "FwaAnimationMixin",
+    "FwaChainMixin",
+    "FwaLanternMixin",
+    "FwaBellMixin",
+    "SupplementariesWindVaneMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "CreateWindmillBearingMixin"
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "parent": "minecraft:builtin/entity",
+  "display": {
+    "gui": {
+      "rotation": [
+        22,
+        225,
+        0
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        4,
+        95,
+        0
+      ],
+      "translation": [
+        0,
+        1.5,
+        0
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        4,
+        265,
+        0
+      ],
+      "translation": [
+        0,
+        1.5,
+        0
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        30,
+        225,
+        0
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        30,
+        135,
+        0
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        20,
+        225,
+        0
+      ]
+    }
+  },
+  "textures": {
+    "particle": "livingwind:block/windmill_base"
+  }
+}

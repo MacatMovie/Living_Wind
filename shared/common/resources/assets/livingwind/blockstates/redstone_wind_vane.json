@@ -1,0 +1,28 @@
+{
+  "variants": {
+    "direction=0": {
+      "model": "livingwind:block/redstone_wind_vane_base"
+    },
+    "direction=1": {
+      "model": "livingwind:block/redstone_wind_vane_base"
+    },
+    "direction=2": {
+      "model": "livingwind:block/redstone_wind_vane_base"
+    },
+    "direction=3": {
+      "model": "livingwind:block/redstone_wind_vane_base"
+    },
+    "direction=4": {
+      "model": "livingwind:block/redstone_wind_vane_base"
+    },
+    "direction=5": {
+      "model": "livingwind:block/redstone_wind_vane_base"
+    },
+    "direction=6": {
+      "model": "livingwind:block/redstone_wind_vane_base"
+    },
+    "direction=7": {
+      "model": "livingwind:block/redstone_wind_vane_base"
+    }
+  }
+}

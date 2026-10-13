@@ -1,0 +1,222 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "cutout",
+  "textures": {
+    "sn": "livingwind:block/wind_vane_base_s_n",
+    "we": "livingwind:block/wind_vane_base_w_e",
+    "slab": "minecraft:block/smooth_stone",
+    "top": "livingwind:block/redstone_wind_vane_top",
+    "particle": "livingwind:block/redstone_wind_vane_top"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        2,
+        16
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ],
+          "texture": "#slab"
+        },
+        "east": {
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ],
+          "texture": "#slab"
+        },
+        "south": {
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ],
+          "texture": "#slab"
+        },
+        "west": {
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ],
+          "texture": "#slab"
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#top"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#slab"
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        2,
+        8
+      ],
+      "to": [
+        16,
+        14,
+        8
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            2,
+            16,
+            15
+          ],
+          "texture": "#we"
+        },
+        "south": {
+          "uv": [
+            16,
+            2,
+            0,
+            15
+          ],
+          "texture": "#we"
+        }
+      }
+    },
+    {
+      "from": [
+        8,
+        2,
+        0
+      ],
+      "to": [
+        8,
+        14,
+        16
+      ],
+      "faces": {
+        "east": {
+          "uv": [
+            0,
+            2,
+            16,
+            14
+          ],
+          "texture": "#sn"
+        },
+        "west": {
+          "uv": [
+            16,
+            2,
+            0,
+            14
+          ],
+          "texture": "#sn"
+        }
+      }
+    },
+    {
+      "from": [
+        7,
+        5,
+        6.3
+      ],
+      "to": [
+        10,
+        8,
+        9.3
+      ],
+      "rotation": {
+        "angle": -45,
+        "axis": "y",
+        "origin": [
+          8,
+          6,
+          7.3
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            6,
+            8,
+            9,
+            11
+          ],
+          "texture": "#we"
+        },
+        "east": {
+          "uv": [
+            6,
+            8,
+            9,
+            11
+          ],
+          "texture": "#we"
+        },
+        "south": {
+          "uv": [
+            6,
+            8,
+            9,
+            11
+          ],
+          "texture": "#we"
+        },
+        "west": {
+          "uv": [
+            6,
+            8,
+            9,
+            11
+          ],
+          "texture": "#we"
+        },
+        "up": {
+          "uv": [
+            6,
+            8,
+            9,
+            11
+          ],
+          "texture": "#we"
+        },
+        "down": {
+          "uv": [
+            6,
+            8,
+            9,
+            11
+          ],
+          "texture": "#we"
+        }
+      }
+    }
+  ]
+}

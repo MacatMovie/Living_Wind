@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:block_marker",
+    "minecraft:elder_guardian",
+    "minecraft:explosion_emitter",
+    "minecraft:flash"
+  ]
+}

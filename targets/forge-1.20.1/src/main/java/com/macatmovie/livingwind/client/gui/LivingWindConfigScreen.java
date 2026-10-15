@@ -112,6 +112,8 @@ public final class LivingWindConfigScreen extends Screen {
         header("Compatibility");
         bool("Pretty Rain Wind", ClientWindConfig.PRETTY_RAIN_COMPAT.get(), ClientWindConfig.PRETTY_RAIN_COMPAT::set);
         number("Pretty Rain Wind Strength", ClientWindConfig.PRETTY_RAIN_WIND_MULTIPLIER.get(), ClientWindConfig.PRETTY_RAIN_WIND_MULTIPLIER::set, 0, 2);
+        bool("Particle Rain v4 Wind", ClientWindConfig.PARTICLE_RAIN_COMPAT.get(), ClientWindConfig.PARTICLE_RAIN_COMPAT::set);
+        number("Particle Rain v4 Strength", ClientWindConfig.PARTICLE_RAIN_WIND_MULTIPLIER.get(), ClientWindConfig.PARTICLE_RAIN_WIND_MULTIPLIER::set, 0, 2);
         enumFallingLeavesSource();
         bool("Particular Leaf Density Follows Wind", ClientWindConfig.PARTICULAR_FALLING_LEAVES_COMPAT.get(), ClientWindConfig.PARTICULAR_FALLING_LEAVES_COMPAT::set);
         number("Particular Min Leaf Density", ClientWindConfig.PARTICULAR_LEAF_MIN_DENSITY.get(), ClientWindConfig.PARTICULAR_LEAF_MIN_DENSITY::set, 0, 4);
@@ -120,6 +122,8 @@ public final class LivingWindConfigScreen extends Screen {
 
         header("Fancy World Animations (Optional)");
         bool("Supplementaries Wind Vane", ClientWindConfig.SUPPLEMENTARIES_WIND_VANE_COMPAT.get(), ClientWindConfig.SUPPLEMENTARIES_WIND_VANE_COMPAT::set);
+        bool("Swinging Lanterns Wind", ClientWindConfig.SWINGING_LANTERNS_COMPAT.get(), ClientWindConfig.SWINGING_LANTERNS_COMPAT::set);
+        number("Swinging Lanterns Wind Strength", ClientWindConfig.SWINGING_LANTERNS_WIND_MULTIPLIER.get(), ClientWindConfig.SWINGING_LANTERNS_WIND_MULTIPLIER::set, 0, 3);
         bool("FWA Wind-Driven Swings", ClientWindConfig.FWA_WIND_COMPAT.get(), ClientWindConfig.FWA_WIND_COMPAT::set);
         slider("FWA Wind Impact", ClientWindConfig.FWA_WIND_IMPACT.get(), ClientWindConfig.FWA_WIND_IMPACT::set, 0, 12);
         number("FWA Chain Wind", ClientWindConfig.FWA_CHAIN_INTENSITY.get(), ClientWindConfig.FWA_CHAIN_INTENSITY::set, 0, 3);
@@ -157,19 +161,9 @@ public final class LivingWindConfigScreen extends Screen {
     }
     private void slider(String label, double initial, Consumer<Double> setter, double min, double max) {
         double normalized = max <= min ? 0.0 : Math.max(0.0, Math.min(1.0, (initial - min) / (max - min)));
-        AbstractSliderButton slider = new AbstractSliderButton(0, 0, 180, 20, Component.literal(String.format(Locale.ROOT, "%.2f", initial)), normalized) {
-            @Override protected void updateMessage() {
-                double actual = min + (max - min) * value;
-                setMessage(Component.literal(String.format(Locale.ROOT, "%.2f", actual)));
-            }
-
-            @Override protected void applyValue() {
-                double actual = min + (max - min) * value;
-                actual = Math.round(actual * 100.0) / 100.0;
-                setter.accept(actual);
-                updateMessage();
-            }
-        };
+        // A named slider class avoids javac's duplicate synthetic-local error on
+        // Forge 1.20.1 while preserving the same UI and update behavior.
+        AbstractSliderButton slider = new ConfigSlider(initial, normalized, setter, min, max);
         rows.add(Row.value(Component.literal(label), slider, null));
         addRenderableWidget(slider);
     }
@@ -278,5 +272,30 @@ public final class LivingWindConfigScreen extends Screen {
     private int rowY(int i){return TOP+i*ROW_H-(int)Math.round(scroll);} private int rowWidth(){return Math.min(660,Math.max(280,width-50));} private double maxScroll(){return Math.max(0,contentHeight-(height-BOTTOM-TOP));} private double clamp(double v){return Math.max(0,Math.min(maxScroll(),v));}
     private static Component onOff(boolean v){return Component.translatable(v?"options.on":"options.off");}
     private static boolean partialDecimal(String v){return v.isEmpty()||v.equals("-")||v.equals(".")||v.equals("-.")||v.matches("-?(?:\\d+\\.?\\d*|\\.\\d*)");}
+    private static final class ConfigSlider extends AbstractSliderButton {
+        private final Consumer<Double> setter;
+        private final double min;
+        private final double max;
+
+        private ConfigSlider(double initial, double normalized, Consumer<Double> setter, double min, double max) {
+            super(0, 0, 180, 20, Component.literal(String.format(Locale.ROOT, "%.2f", initial)), normalized);
+            this.setter = setter;
+            this.min = min;
+            this.max = max;
+        }
+
+        @Override protected void updateMessage() {
+            double actual = min + (max - min) * value;
+            setMessage(Component.literal(String.format(Locale.ROOT, "%.2f", actual)));
+        }
+
+        @Override protected void applyValue() {
+            double actual = min + (max - min) * value;
+            actual = Math.round(actual * 100.0) / 100.0;
+            setter.accept(actual);
+            updateMessage();
+        }
+    }
+
     private static final class Row{final Component label;final AbstractWidget widget;final Runnable commit;final boolean header;Row(Component l,AbstractWidget w,Runnable c,boolean h){label=l;widget=w;commit=c;header=h;}static Row header(Component l){return new Row(l,null,null,true);}static Row value(Component l,AbstractWidget w,Runnable c){return new Row(l,w,c,false);}}
 }

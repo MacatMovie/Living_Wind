@@ -15,4 +15,12 @@ public interface WindParticleAccess {
     double livingwind$getVelocityX();
     double livingwind$getVelocityZ();
     void livingwind$setHorizontalVelocity(double x, double z);
+
+    // A few bytes per particle, not a global per-particle map: retain the most recent
+    // CONFIRMED sheltered position during brief cache misses (also safe with Async Particles).
+    int livingwind$getLastShelteredTick();
+    int livingwind$getLastShelteredX();
+    int livingwind$getLastShelteredY();
+    int livingwind$getLastShelteredZ();
+    void livingwind$rememberSheltered(int tick, int x, int y, int z);
 }

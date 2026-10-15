@@ -16,7 +16,13 @@ sourceSets {
     }
 }
 neoForge {
-    version = project.neo_version
+    // Compiles against the non-recompiled Minecraft artifacts rather than
+    // decompiling and recompiling the entire game for each new workspace.
+    // This affects only the development toolchain, not the final mod code.
+    enable {
+        version = project.neo_version
+        disableRecompilation = true
+    }
     parchment {
         mappingsVersion = project.parchment_mappings_version
         minecraftVersion = project.parchment_minecraft_version
@@ -48,6 +54,6 @@ sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 jar {
-    archiveFileName = "LivingWind-NeoForge-${minecraft_version}-v${mod_version}.jar"
+    archiveFileName = "LivingWind-NeoForge-${minecraft_version}-${mod_version}.jar"
 }
 idea { module { downloadSources = true; downloadJavadoc = true } }

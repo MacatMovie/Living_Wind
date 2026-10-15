@@ -23,6 +23,10 @@ public abstract class ParticleMixin implements WindParticleAccess {
     @Shadow protected double zd;
 
     @Unique private @Nullable ResourceLocation livingwind$particleType;
+    @Unique private int livingwind$lastShelteredTick = -1;
+    @Unique private int livingwind$lastShelteredX;
+    @Unique private int livingwind$lastShelteredY;
+    @Unique private int livingwind$lastShelteredZ;
 
     @Override
     public void livingwind$setParticleType(@Nullable ResourceLocation id) { livingwind$particleType = id; }
@@ -49,6 +53,19 @@ public abstract class ParticleMixin implements WindParticleAccess {
     public void livingwind$setHorizontalVelocity(double x, double z) {
         this.xd = x;
         this.zd = z;
+    }
+
+    @Override public int livingwind$getLastShelteredTick() { return livingwind$lastShelteredTick; }
+    @Override public int livingwind$getLastShelteredX() { return livingwind$lastShelteredX; }
+    @Override public int livingwind$getLastShelteredY() { return livingwind$lastShelteredY; }
+    @Override public int livingwind$getLastShelteredZ() { return livingwind$lastShelteredZ; }
+
+    @Override
+    public void livingwind$rememberSheltered(int tick, int x, int y, int z) {
+        livingwind$lastShelteredTick = tick;
+        livingwind$lastShelteredX = x;
+        livingwind$lastShelteredY = y;
+        livingwind$lastShelteredZ = z;
     }
 
     @Inject(method = "tick", at = @At("HEAD"))

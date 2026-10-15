@@ -4,6 +4,7 @@ import com.macatmovie.livingwind.client.ClientWindState;
 import com.macatmovie.livingwind.client.ParticleWindFilter;
 import com.macatmovie.livingwind.client.ParticleWaterProtection;
 import com.macatmovie.livingwind.client.WindShelter;
+import com.macatmovie.livingwind.client.ParticleShelterContinuity;
 import com.macatmovie.livingwind.config.ClientWindConfig;
 import com.macatmovie.livingwind.wind.WindMath;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -26,6 +27,26 @@ public final class AmbientPixelParticle extends TextureSheetParticle {
     private final float baseAlpha;
     private final float swayBias;
     private final float liftBias;
+
+    // Primitive-only per-particle continuity: native particles bypass the generic
+    // wind hook, so they need its confirmed-shelter grace rule themselves.
+    private int lastShelteredTick = -1;
+    private int lastShelteredX, lastShelteredY, lastShelteredZ;
+
+    private float nativeExposure() {
+        int now = WindShelter.shelterTick();
+        int bx = Mth.floor(this.x), by = Mth.floor(this.y), bz = Mth.floor(this.z);
+        float measured = WindShelter.trackedParticleExposureAt(this.x, this.y, this.z);
+        if (measured >= 0.0f && measured < 0.20f) {
+            lastShelteredTick = now;
+            lastShelteredX = bx; lastShelteredY = by; lastShelteredZ = bz;
+        }
+        // Missing position data must not create a player-centered windless boundary.
+        // The emitter already validates shelter before spawning; during flight, use
+        // the same short indoor grace and outdoor fallback as ordinary particles.
+        return ParticleShelterContinuity.resolve(measured, now, lastShelteredTick,
+            bx, by, bz, lastShelteredX, lastShelteredY, lastShelteredZ);
+    }
 
     private AmbientPixelParticle(
         ClientLevel level,
@@ -58,12 +79,13 @@ public final class AmbientPixelParticle extends TextureSheetParticle {
             Mth.clamp((float) blue, 0.0f, 1.0f)
         );
 
+        float exposure = nativeExposure();
         float wind = ParticleWaterProtection.isSubmerged(this.x, this.y, this.z)
-            ? 0.0f : ClientWindState.altitudeStrength() * WindShelter.exposureAt(this.x, this.y, this.z);
+            ? 0.0f : ClientWindState.altitudeStrength() * exposure;
         double responseMultiplier = ParticleWindFilter.ambientWindResponseMultiplier();
         double initialScale = (0.025 + Math.min(wind, 1.6f) * 0.020) * responseMultiplier;
-        this.xd = wind > 0.0f ? ClientWindState.altitudeWindX() * WindShelter.exposureAt(this.x, this.y, this.z) * initialScale * WindMath.visualDriftBoost(wind) : 0.0;
-        this.zd = wind > 0.0f ? ClientWindState.altitudeWindZ() * WindShelter.exposureAt(this.x, this.y, this.z) * initialScale * WindMath.visualDriftBoost(wind) : 0.0;
+        this.xd = wind > 0.0f ? ClientWindState.altitudeWindX() * exposure * initialScale * WindMath.visualDriftBoost(wind) : 0.0;
+        this.zd = wind > 0.0f ? ClientWindState.altitudeWindZ() * exposure * initialScale * WindMath.visualDriftBoost(wind) : 0.0;
         // A tiny initial lift helps the mote look picked up by air instead of launched like block debris.
         this.yd = 0.0045 + (this.random.nextDouble() - 0.5) * 0.006;
     }
@@ -80,8 +102,8 @@ public final class AmbientPixelParticle extends TextureSheetParticle {
         }
 
         boolean underwater = ParticleWaterProtection.isSubmerged(this.x, this.y, this.z);
-        float wind = underwater ? 0.0f : ClientWindState.altitudeStrength() * WindShelter.exposureAt(this.x, this.y, this.z);
-        float turbulence = underwater ? 0.0f : ClientWindState.turbulence();
+        float wind = underwater ? 0.0f : ClientWindState.altitudeStrength() * nativeExposure();
+        float turbulence = underwater || wind <= 0.001f ? 0.0f : ClientWindState.turbulence();
         float cappedWind = Math.min(wind, 1.6f);
 
         // Continuously follow the wind rather than receiving one launch impulse. This makes a mote
@@ -109,7 +131,7 @@ public final class AmbientPixelParticle extends TextureSheetParticle {
         double steering = 0.055 + cappedWind * 0.025 + turbulence * 0.018;
         this.xd += (targetX - this.xd) * steering;
         this.zd += (targetZ - this.zd) * steering;
-        if (underwater) { this.xd *= 0.82; this.zd *= 0.82; }
+        if (underwater || wind <= 0.001f) { this.xd *= 0.65; this.zd *= 0.65; }
 
         // Slight positive lift plus two slow waves makes the mote feel suspended/picked up by moving
         // air. Strong wind lifts a little more, but the effect remains much smaller than horizontal drift.

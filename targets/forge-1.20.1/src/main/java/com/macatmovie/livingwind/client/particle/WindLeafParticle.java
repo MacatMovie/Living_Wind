@@ -2,6 +2,7 @@ package com.macatmovie.livingwind.client.particle;
 
 import com.macatmovie.livingwind.client.ClientWindState;
 import com.macatmovie.livingwind.client.WindShelter;
+import com.macatmovie.livingwind.client.ParticleShelterContinuity;
 import com.macatmovie.livingwind.client.ParticleWaterProtection;
 import com.macatmovie.livingwind.config.ClientWindConfig;
 import com.macatmovie.livingwind.wind.WindMath;
@@ -37,6 +38,26 @@ public final class WindLeafParticle extends TextureSheetParticle {
     private float prevRollAngle;
     private int groundTicks;
 
+    // Primitive-only per-particle continuity: native particles bypass the generic
+    // wind hook, so they need its confirmed-shelter grace rule themselves.
+    private int lastShelteredTick = -1;
+    private int lastShelteredX, lastShelteredY, lastShelteredZ;
+
+    private float nativeExposure() {
+        int now = WindShelter.shelterTick();
+        int bx = Mth.floor(this.x), by = Mth.floor(this.y), bz = Mth.floor(this.z);
+        float measured = WindShelter.trackedParticleExposureAt(this.x, this.y, this.z);
+        if (measured >= 0.0f && measured < 0.20f) {
+            lastShelteredTick = now;
+            lastShelteredX = bx; lastShelteredY = by; lastShelteredZ = bz;
+        }
+        // Missing position data must not create a player-centered windless boundary.
+        // The emitter already validates shelter before spawning; during flight, use
+        // the same short indoor grace and outdoor fallback as ordinary particles.
+        return ParticleShelterContinuity.resolve(measured, now, lastShelteredTick,
+            bx, by, bz, lastShelteredX, lastShelteredY, lastShelteredZ);
+    }
+
     private WindLeafParticle(ClientLevel level, double x, double y, double z,
                              double red, double green, double blue, SpriteSet spriteSet, boolean grassFragment) {
         super(level, x, y, z);
@@ -59,14 +80,15 @@ public final class WindLeafParticle extends TextureSheetParticle {
         this.pitchAngle = random.nextFloat() * Mth.TWO_PI;
         this.yawAngle = random.nextFloat() * Mth.TWO_PI;
         this.rollAngle = random.nextFloat() * Mth.TWO_PI;
+        float exposure = nativeExposure();
         float w = ParticleWaterProtection.isSubmerged(this.x, this.y, this.z)
-            ? 0.0f : ClientWindState.altitudeStrength() * WindShelter.exposureAt(this.x, this.y, this.z);
+            ? 0.0f : ClientWindState.altitudeStrength() * exposure;
         // Dedicated foliage fragments travel 30% farther with the wind; grass fragments keep their old feel.
         // Apply the boost here as well as to the steering target so newly emitted leaves do not start slower.
         double foliageWindBoost = grassFragment ? 1.0 : 1.30;
         double initialDriftBoost = WindMath.visualDriftBoost(w) * foliageWindBoost;
-        this.xd = w > 0.0f ? ClientWindState.altitudeWindX() * WindShelter.exposureAt(this.x, this.y, this.z) * (0.085 + w * 0.025) * initialDriftBoost : 0.0;
-        this.zd = w > 0.0f ? ClientWindState.altitudeWindZ() * WindShelter.exposureAt(this.x, this.y, this.z) * (0.085 + w * 0.025) * initialDriftBoost : 0.0;
+        this.xd = w > 0.0f ? ClientWindState.altitudeWindX() * exposure * (0.085 + w * 0.025) * initialDriftBoost : 0.0;
+        this.zd = w > 0.0f ? ClientWindState.altitudeWindZ() * exposure * (0.085 + w * 0.025) * initialDriftBoost : 0.0;
         this.yd = (random.nextDouble() - 0.5) * 0.025;
     }
 
@@ -81,15 +103,17 @@ public final class WindLeafParticle extends TextureSheetParticle {
         this.prevRollAngle = rollAngle;
         boolean underwater = ParticleWaterProtection.isSubmerged(this.x, this.y, this.z);
         float observedWind = underwater ? 0.0f
-            : Mth.clamp(ClientWindState.altitudeStrength() * WindShelter.exposureAt(this.x, this.y, this.z), 0f, 2.5f);
+            : Mth.clamp(ClientWindState.altitudeStrength() * nativeExposure(), 0f, 2.5f);
         float wind = Math.min(observedWind, 1.8f);
-        float turbulence = underwater ? 0.0f : ClientWindState.turbulence();
+        float turbulence = underwater || wind <= 0.001f ? 0.0f : ClientWindState.turbulence();
         // This runtime multiplier also applies to existing player configs saved with windResponse=1.0.
         double power = ClientWindConfig.LEAF_PARTICLE_WIND_RESPONSE.get() * windAffinity * (grassFragment ? 1.0 : 1.30);
         // Stronger high-end drift without changing the server weather or gust distributions.
         // 2.0 wind -> 1.60x motion; calm wind stays almost unchanged.
         double highWindBoost = WindMath.visualDriftBoost(observedWind);
-        double targetSpeed = underwater ? 0.0 : (0.052 + 0.11 * wind) * power * highWindBoost;
+        // The nonzero .052 baseline is only for moving air. At zero local wind
+        // (indoors, caves, underwater), the steering target must be exactly zero.
+        double targetSpeed = wind <= 0.001f ? 0.0 : (0.052 + 0.11 * wind) * power * highWindBoost;
         double angle = Math.toRadians(ClientWindState.directionDegrees());
         double dx = -Math.sin(angle), dz = Math.cos(angle);
         double perpendicularX = -dz, perpendicularZ = dx;
@@ -100,7 +124,7 @@ public final class WindLeafParticle extends TextureSheetParticle {
         double tz = (dz + perpendicularZ * meander) * targetSpeed * speedPulse;
         this.xd += (tx - xd) * (0.045 + wind * 0.026);
         this.zd += (tz - zd) * (0.045 + wind * 0.026);
-        if (underwater) { this.xd *= 0.82; this.zd *= 0.82; }
+        if (underwater || wind <= 0.001f) { this.xd *= 0.65; this.zd *= 0.65; }
 
         // Gravity plus drifting lift: calm leaves settle, gusts briefly suspend and loft them.
         double eddy = Math.sin(age * 0.088 + phase) * 0.008 + Math.sin(age * 0.037 + phase2) * 0.006;

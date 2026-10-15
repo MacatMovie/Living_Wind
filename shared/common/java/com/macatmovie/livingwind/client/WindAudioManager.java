@@ -8,9 +8,11 @@ import java.util.Locale;
 import java.util.Random;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -23,6 +25,11 @@ import net.minecraft.world.level.biome.Biome;
  */
 public final class WindAudioManager {
     private static final int CROSSFADE_TICKS = 50;
+    // Minecraft can discard playing sounds during resource/audio reloads without
+    // ticking our sound instances to completion. Check the engine occasionally,
+    // not every tick, and allow new sounds time to enter the playback queue.
+    private static final int PLAYBACK_CHECK_INTERVAL_TICKS = 40;
+    private static final int PLAYBACK_START_GRACE_TICKS = 20;
     // At the default slider value (1.0), moderate/strong winds approach the volume
     // that previously required slider 3.0. windVolumeCurve() quiets calm breezes
     // before this gain reaches sound instances; all beds and accents share it.
@@ -106,6 +113,9 @@ public final class WindAudioManager {
         }
         tickCount++;
         liveAccents.removeIf(WindSoundInstance::isStopped);
+        if (tickCount % PLAYBACK_CHECK_INTERVAL_TICKS == 0) {
+            reconcilePlayback(Minecraft.getInstance());
+        }
 
         boolean playOwn = ClientWindConfig.WIND_AUDIO_ENABLED.get()
             && ClientWindConfig.WIND_AUDIO_MODE.get() != ClientWindConfig.WindAudioMode.AMBIENT_SOUNDS
@@ -181,6 +191,41 @@ public final class WindAudioManager {
     }
 
     /**
+     * Heal sound-engine reloads (shader/resource-pack changes, device resets).
+     * Sound instances don't necessarily receive another tick after the engine
+     * drops them, so isStopped() alone is insufficient. This is deliberately
+     * limited to one check per two seconds, and never forces a replay of accents:
+     * the existing gust/leaves scheduling remains in charge of those sounds.
+     */
+    private static void reconcilePlayback(Minecraft mc) {
+        // When Minecraft's ambient or master volume is muted, missing sounds are
+        // intentional; don't repeatedly attempt to restart muted ambience.
+        if (mc.options.getSoundSourceVolume(SoundSource.MASTER) <= 0.0f
+                || mc.options.getSoundSourceVolume(SoundSource.AMBIENT) <= 0.0f) return;
+
+        SoundManager manager = mc.getSoundManager();
+        for (Track track : TRACKS.values()) {
+            if (playbackLost(track.current, manager)) track.current = null;
+            if (playbackLost(track.next, manager)) track.next = null;
+            // Keep the still-playing crossfade partner rather than adding
+            // another sound on top of an already active replacement clip.
+            if (track.current == null && track.next != null) {
+                track.current = track.next;
+                track.next = null;
+            }
+        }
+        // Interrupted one-shot accents are never replayed early. Only forget
+        // their abandoned handles so they cannot accumulate after sound reloads.
+        liveAccents.removeIf(sound -> playbackLost(sound, manager));
+    }
+
+    private static boolean playbackLost(WindSoundInstance sound, SoundManager manager) {
+        return sound != null && !sound.isStopped()
+            && tickCount - sound.playbackStartTick() >= PLAYBACK_START_GRACE_TICKS
+            && !manager.isActive(sound);
+    }
+
+    /**
      * Smooth three-stage sound gain: very quiet calm winds, an increasingly present
      * breeze, then full wind/storm loudness. No extra wind simulation or sampling.
      *
@@ -252,7 +297,7 @@ public final class WindAudioManager {
         else if (type.equals("gust")) seconds = selection < 2 ? 4.0f : 6.04f;
         else seconds = selection == 0 ? 6.08f : 11.88f;
 
-        WindSoundInstance sound = new WindSoundInstance(event, pitch(), seconds, 12);
+        WindSoundInstance sound = new WindSoundInstance(event, pitch(), seconds, 12, tickCount);
         if (type.equals("leaves") && leafSoundPosition != null) sound.positionAt(leafSoundPosition);
         sound.setGain(volume);
         float indoorVolume = Mth.lerp(1.0f - ClientWindState.exposure(),
@@ -297,7 +342,7 @@ public final class WindAudioManager {
         event = bed.event(next);
         track.lastEvent = event;
 
-        WindSoundInstance sound = new WindSoundInstance(event, pitch(), seconds, CROSSFADE_TICKS);
+        WindSoundInstance sound = new WindSoundInstance(event, pitch(), seconds, CROSSFADE_TICKS, tickCount);
         Minecraft.getInstance().getSoundManager().play(sound);
         return sound;
     }

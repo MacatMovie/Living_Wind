@@ -92,15 +92,37 @@ function Collect-TargetJars([string]$Name) {
         return 0
     }
 
-    $count = 0
-    Get-ChildItem $libs -Filter '*.jar' | Where-Object {
-        $_.Name -notmatch 'sources|dev|shadow|javadoc'
-    } | ForEach-Object {
-        Copy-Item $_.FullName (Join-Path $DistDir $_.Name) -Force
-        Write-Host "Collected: $($_.Name)" -ForegroundColor DarkGray
-        $count++
+    # Use the project's canonical version in release filenames and the in-game mod metadata.
+    # This also prevents stale, unprefixed JARs from being copied by Collect-Dist.bat.
+    $properties = Get-Content (Join-Path $dir 'gradle.properties')
+    $versionLine = $properties | Where-Object { $_ -match '^mod_version\s*=' } | Select-Object -First 1
+    $mcLine = $properties | Where-Object { $_ -match '^minecraft_version\s*=' } | Select-Object -First 1
+    if (-not $versionLine -or -not $mcLine) { throw "Missing mod_version or minecraft_version for $Name" }
+    $modVersion = ($versionLine -split '=', 2)[1].Trim()
+    $mcVersion = ($mcLine -split '=', 2)[1].Trim()
+    $releaseVersion = if ($modVersion.StartsWith('v')) { $modVersion } else { "v$modVersion" }
+    $unprefixedVersion = $releaseVersion.Substring(1)
+    $loaderName = if ($Name -eq 'forge-1.20.1') { 'Forge' } else { 'NeoForge' }
+    $namePrefix = "LivingWind-$loaderName-$mcVersion"
+    $releaseName = "$namePrefix-$releaseVersion.jar"
+    $oldName = "$namePrefix-$unprefixedVersion.jar"
+
+    # Some existing build directories may contain a JAR from before the v-prefix fix.
+    # Choose the newest matching output and copy only the correctly named release JAR.
+    $jar = Get-ChildItem $libs -File -Filter '*.jar' | Where-Object {
+        $_.Name -eq $releaseName -or $_.Name -eq $oldName
+    } | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+
+    if (-not $jar) {
+        Write-Host "No release JAR found for $Name (expected $releaseName)" -ForegroundColor Yellow
+        return 0
     }
-    return $count
+
+    Copy-Item $jar.FullName (Join-Path $DistDir $releaseName) -Force
+    $staleOutput = Join-Path $DistDir $oldName
+    if (Test-Path $staleOutput) { Remove-Item $staleOutput -Force }
+    Write-Host "Collected: $releaseName" -ForegroundColor DarkGray
+    return 1
 }
 
 function Build-Target([string]$Name) {

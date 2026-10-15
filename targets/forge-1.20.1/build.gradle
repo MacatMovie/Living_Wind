@@ -18,7 +18,14 @@ sourceSets {
 }
 
 legacyForge {
-    version = "${minecraft_version}-${forge_version}"
+    // NeoFormRuntime's full Minecraft decompile/recompile pipeline is unnecessary
+    // for release JAR builds. Skipping it also avoids the observed JDK 21 C2
+    // compiler crash while rebuilding Minecraft 1.20.1's 5,452 sources.
+    // Supported by ModDevGradle's legacyforge plugin (2.0.124+).
+    enable {
+        forgeVersion = "${minecraft_version}-${forge_version}"
+        disableRecompilation = true
+    }
     parchment {
         mappingsVersion = project.parchment_mappings_version
         minecraftVersion = project.parchment_minecraft_version
@@ -63,7 +70,7 @@ legacyForge.ideSyncTask generateModMetadata
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 
 jar {
-    archiveFileName = "LivingWind-Forge-${minecraft_version}-v${mod_version}.jar"
+    archiveFileName = "LivingWind-Forge-${minecraft_version}-${mod_version}.jar"
     manifest.attributes(["MixinConfigs": "livingwind.mixins.json"])
 }
 

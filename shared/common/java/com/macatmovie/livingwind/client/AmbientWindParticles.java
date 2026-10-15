@@ -45,9 +45,6 @@ public final class AmbientWindParticles {
                 ? randomSurfacePosition(level, origin, radius, random)
                 : randomNearbyPosition(level, origin, radius, random);
             if (pos == null) continue;
-            // Skip sheltered emitters but never suppress outdoor emitters based on player position.
-            if (WindShelter.exposureAt(pos) < 0.20f) continue;
-
             BlockState state = level.getBlockState(pos);
             if (state.isAir()) continue;
 
@@ -69,6 +66,14 @@ public final class AmbientWindParticles {
             float chance = kind.baseChance * density * (0.02f + windActivity * 2.98f);
             if (random.nextFloat() > chance) continue;
 
+            double[] spawn = spawnOnFace(pos, face, random);
+            // Check the actual emission position before performing any potentially
+            // expensive biome/texture color calculation. Unknown shelter is not
+            // evidence of outside wind; underwater ambient motes never spawn.
+            float exposure = WindShelter.nativeEmitterExposureAt(level, spawn[0], spawn[1], spawn[2]);
+            if (exposure < 0.20f) continue;
+            if (ParticleWaterProtection.isSubmergedAtEmitter(level, spawn[0], spawn[1], spawn[2])) continue;
+
             int color = kind == EmitterKind.LEAF
                 ? WindFoliageColorCache.leafColor(state, level, pos, random,
                     ClientWindConfig.LEAF_TEXTURE_COLORS.get())
@@ -77,8 +82,6 @@ public final class AmbientWindParticles {
             double red = Mth.clamp(((color >> 16) & 0xFF) / 255.0f * brightness, 0.0f, 1.0f);
             double green = Mth.clamp(((color >> 8) & 0xFF) / 255.0f * brightness, 0.0f, 1.0f);
             double blue = Mth.clamp((color & 0xFF) / 255.0f * brightness, 0.0f, 1.0f);
-
-            double[] spawn = spawnOnFace(pos, face, random);
             level.addParticle(ModParticles.AMBIENT_PIXEL.get(), spawn[0], spawn[1], spawn[2], red, green, blue);
         }
     }

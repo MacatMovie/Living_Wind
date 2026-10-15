@@ -12,16 +12,18 @@ final class WindSoundInstance extends AbstractTickableSoundInstance {
     private final String eventName;
     private final int durationTicks;
     private final int fadeTicks;
+    private final long playbackStartTick;
     private int ageTicks;
     private int fadeStopAt = Integer.MAX_VALUE;
     private float requestedGain;
     private float shelterMultiplier = 1.0f;
     private float smoothedGain;
 
-    WindSoundInstance(String event, float pitch, float seconds, int fadeTicks) {
+    WindSoundInstance(String event, float pitch, float seconds, int fadeTicks, long playbackStartTick) {
         super(SoundEvent.createVariableRangeEvent(LivingWind.id(event)),
             SoundSource.AMBIENT, SoundInstance.createUnseededRandom());
         this.eventName = event;
+        this.playbackStartTick = playbackStartTick;
         this.pitch = pitch;
         this.durationTicks = Math.max(20, Math.round(seconds * 20.0f / pitch));
         this.fadeTicks = Math.max(1, fadeTicks);
@@ -65,6 +67,10 @@ final class WindSoundInstance extends AbstractTickableSoundInstance {
 
     int remainingTicks() {
         return durationTicks - ageTicks;
+    }
+
+    long playbackStartTick() {
+        return playbackStartTick;
     }
 
     String debugEventName() {

@@ -42,6 +42,8 @@
   "livingwind.config.ambientWindResponseMultiplier": "Ambient Wind Response",
   "livingwind.config.prettyRainCompat": "Pretty Rain Wind Compatibility",
   "livingwind.config.prettyRainWindMultiplier": "Pretty Rain Wind Strength",
+  "livingwind.config.particleRainCompat": "Particle Rain v4 Wind Compatibility",
+  "livingwind.config.particleRainWindMultiplier": "Particle Rain v4 Wind Strength",
   "livingwind.config.openSection": "%s...",
   "livingwind.config.particleFilter.edit": "Edit Particle Filter...",
   "livingwind.config.particleFilter.title": "Particle Filter",
@@ -120,5 +122,8 @@
   "block.livingwind.redstone_windmill": "Redstone Windmill",
   "livingwind.config.fallingLeavesSource": "Falling Leaves Source",
   "livingwind.config.dynamicSurroundingsWindMode": "Dynamic Surroundings Wind Audio",
-  "livingwind.config.dynamicSurroundingsWindMode.tooltip": "Choose Living Wind Only (default), Dynamic Surroundings Only, or Both. Only Dynamic Surroundings wind loops are affected; other sounds remain enabled."
+  "livingwind.config.dynamicSurroundingsWindMode.tooltip": "Choose Living Wind Only (default), Dynamic Surroundings Only, or Both. Only Dynamic Surroundings wind loops are affected; other sounds remain enabled.",
+  "livingwind.config.section.swingingLanterns": "Swinging Lanterns (Optional)",
+  "livingwind.config.swingingLanternsEnabled": "Sync Swinging Lanterns With Wind",
+  "livingwind.config.swingingLanternsMultiplier": "Swinging Lanterns Wind Strength"
 }

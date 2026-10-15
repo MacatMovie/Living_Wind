@@ -136,13 +136,19 @@ public final class WindLeafSpawner {
             return;
         }
 
+        // A very sparse, fixed-rate still-air trickle in decorated rooms and caves.
+        // It is independent of outdoor wind: increasing wind from 0 to 2 does NOT
+        // increase enclosed foliage emission. Submerged emitters never produce
+        // airborne leaves. At most one sheltered particle is attempted per 6 sec.
+        if (ticks % 120 == 0) spawnOne(level, center, radius, random, true);
+
         spawnCredit = Math.min(4.0f, spawnCredit + currentRate);
         int attempts = 0;
         while (spawnCredit >= 1.0f && attempts++ < 4) {
             spawnCredit -= 1.0f;
             // If every nearby source is on cooldown, *discard* that unit of budget.
             // Retrying it later would create a delayed burst from the first ready flower.
-            spawnOne(level, center, radius, random);
+            spawnOne(level, center, radius, random, false);
         }
     }
 
@@ -314,7 +320,8 @@ public final class WindLeafSpawner {
         };
     }
 
-    private static void spawnOne(ClientLevel level, BlockPos center, int radius, RandomSource random) {
+    private static void spawnOne(ClientLevel level, BlockPos center, int radius,
+                                 RandomSource random, boolean sheltered) {
         float wc = availableWeight(Kind.CANOPY);
         float wp = availableWeight(Kind.PLANT);
         float wg = availableWeight(Kind.GRASS);
@@ -324,16 +331,16 @@ public final class WindLeafSpawner {
         Kind first = roll < wc ? Kind.CANOPY : roll < wc + wp ? Kind.PLANT : Kind.GRASS;
         // Fallback to other categories when the selected category has no ready source.
         // Never fall back to the same source a second time during this budget attempt.
-        if (trySpawn(level, center, radius, first, random)) return;
+        if (trySpawn(level, center, radius, first, random, sheltered)) return;
         Kind second = first == Kind.CANOPY
                 ? (random.nextFloat() * (wp + wg) < wp ? Kind.PLANT : Kind.GRASS)
                 : first == Kind.PLANT
                 ? (random.nextFloat() * (wc + wg) < wc ? Kind.CANOPY : Kind.GRASS)
                 : (random.nextFloat() * (wc + wp) < wc ? Kind.CANOPY : Kind.PLANT);
-        if (trySpawn(level, center, radius, second, random)) return;
+        if (trySpawn(level, center, radius, second, random, sheltered)) return;
         Kind third = first != Kind.CANOPY && second != Kind.CANOPY ? Kind.CANOPY
                 : first != Kind.PLANT && second != Kind.PLANT ? Kind.PLANT : Kind.GRASS;
-        trySpawn(level, center, radius, third, random);
+        trySpawn(level, center, radius, third, random, sheltered);
     }
 
     private static int getCursor(Kind kind) {
@@ -355,7 +362,7 @@ public final class WindLeafSpawner {
     }
 
     private static boolean trySpawn(ClientLevel level, BlockPos center, int radius,
-                                    Kind kind, RandomSource random) {
+                                    Kind kind, RandomSource random, boolean sheltered) {
         if (kind == Kind.CANOPY && !ParticleWindFilter.shouldSpawnNativeLeaves()) return false;
         ArrayList<Emitter> found = sources(kind);
         int count = found.size();
@@ -389,21 +396,6 @@ public final class WindLeafSpawner {
                 face = exposedFace(level, source, random);
             }
             if (face == null) continue;
-            if (WindShelter.exposureAt(emissionPos.relative(face)) < 0.20f) continue;
-
-            // Advance fairness cursor; no source can monopolize the next emission.
-            setCursor(kind, (index + 1) % count);
-            emitter.nextEmissionTick = ticks + switch (kind) {
-                case CANOPY -> 12 + random.nextInt(19);  // 0.7–1.7/s per leaf block
-                case PLANT -> 45 + random.nextInt(46);   // 0.2–0.45/s per flower or tall plant
-                case GRASS -> 20 + random.nextInt(25);   // 0.45–1/s per groundcover block
-                default -> 50;
-            };
-            int color = emitterColor(level, emissionPos, level.getBlockState(emissionPos), kind, random);
-            float shade = 0.84f + random.nextFloat() * 0.22f;
-            double red = Mth.clamp(((color >> 16) & 255) / 255f * shade, 0.06f, 1f);
-            double green = Mth.clamp(((color >> 8) & 255) / 255f * shade, 0.06f, 1f);
-            double blue = Mth.clamp((color & 255) / 255f * shade, 0.06f, 1f);
             double x = emissionPos.getX() + 0.5 + face.getStepX() * 0.58;
             double y = emissionPos.getY() + 0.5 + face.getStepY() * 0.58;
             double z = emissionPos.getZ() + 0.5 + face.getStepZ() * 0.58;
@@ -412,6 +404,30 @@ public final class WindLeafSpawner {
             if (face.getStepX() != 0) { y += a; z += b; }
             else if (face.getStepY() != 0) { x += a; z += b; }
             else { x += a; y += b; }
+
+            // Query the particle's ACTUAL spawn position, not the center of the
+            // source block. Unknown cells (-1) must not be treated as outdoors.
+            // This reuses the existing protected shelter cache/queue and budget.
+            float exposure = WindShelter.nativeEmitterExposureAt(level, x, y, z);
+            if (exposure < 0.0f || (exposure < 0.20f) != sheltered) continue;
+            // Only final emission candidates perform a real-world fluid check.
+            // The ordinary worker-safe water lookup can initially miss newly
+            // submerged blocks, so it isn't safe as an emitter admission test.
+            if (ParticleWaterProtection.isSubmergedAtEmitter(level, x, y, z)) continue;
+
+            // Advance fairness cursor and cooldown only for real emissions.
+            setCursor(kind, (index + 1) % count);
+            emitter.nextEmissionTick = ticks + switch (kind) {
+                case CANOPY -> 12 + random.nextInt(19);
+                case PLANT -> 45 + random.nextInt(46);
+                case GRASS -> 20 + random.nextInt(25);
+                default -> 50;
+            };
+            int color = emitterColor(level, emissionPos, level.getBlockState(emissionPos), kind, random);
+            float shade = 0.84f + random.nextFloat() * 0.22f;
+            double red = Mth.clamp(((color >> 16) & 255) / 255f * shade, 0.06f, 1f);
+            double green = Mth.clamp(((color >> 8) & 255) / 255f * shade, 0.06f, 1f);
+            double blue = Mth.clamp((color & 255) / 255f * shade, 0.06f, 1f);
             level.addParticle(kind == Kind.GRASS ? ModParticles.WIND_GRASS.get() : ModParticles.WIND_LEAF.get(),
                     x, y, z, red, green, blue);
             return true;

@@ -72,6 +72,7 @@ public final class WindDebugHud {
             lines.add(String.format(Locale.ROOT, "Particular leaves density: x%.2f", ParticleWindFilter.particularLeafSpawnMultiplier()));
             lines.add(String.format(Locale.ROOT, "Ambient lift / sway: x%.2f / x%.2f", ClientWindConfig.AMBIENT_LIFT_MULTIPLIER.get(), ClientWindConfig.AMBIENT_SWAY_MULTIPLIER.get()));
             lines.add(String.format(Locale.ROOT, "Pretty Rain wind: %s  x%.2f", yesNo(ClientWindConfig.PRETTY_RAIN_COMPAT.get()), ClientWindConfig.PRETTY_RAIN_WIND_MULTIPLIER.get()));
+            lines.add(String.format(Locale.ROOT, "Particle Rain wind: %s  x%.2f", yesNo(ClientWindConfig.PARTICLE_RAIN_COMPAT.get()), ClientWindConfig.PARTICLE_RAIN_WIND_MULTIPLIER.get()));
             lines.add("Ambient samples/tick: " + ClientWindConfig.AMBIENT_SAMPLES_PER_TICK.get());
             lines.add("Wind foliage: " + (ClientWindConfig.LEAF_PARTICLES_ENABLED.get() ? "ON" : "OFF"));
             lines.add(String.format(Locale.ROOT, "  Sources: canopy %d / plants %d / grass %d",

@@ -36,6 +36,8 @@ public final class ParticleWindFilter {
     private static volatile boolean enabled = true;
     private static volatile float force = 0.12f;
     private static volatile boolean prettyRainCompat = true;
+    private static volatile boolean particleRainCompat = true;
+    private static volatile float particleRainWindMultiplier = 0.55f;
     private static volatile float prettyRainWindMultiplier = 0.55f;
     private static final ResourceLocation PARTICULAR_LEAVES_MARKER = new ResourceLocation("particular", "oak_leaf");
     private static volatile ClientWindConfig.FallingLeavesSource fallingLeavesSource = ClientWindConfig.FallingLeavesSource.LIVING_WIND;
@@ -59,6 +61,8 @@ public final class ParticleWindFilter {
         force = ClientWindConfig.PARTICLE_WIND_FORCE.get().floatValue();
         mode = ClientWindConfig.PARTICLE_FILTER_MODE.get();
         prettyRainCompat = ClientWindConfig.PRETTY_RAIN_COMPAT.get();
+        particleRainCompat = ClientWindConfig.PARTICLE_RAIN_COMPAT.get();
+        particleRainWindMultiplier = ClientWindConfig.PARTICLE_RAIN_WIND_MULTIPLIER.get().floatValue();
         prettyRainWindMultiplier = ClientWindConfig.PRETTY_RAIN_WIND_MULTIPLIER.get().floatValue();
         fallingLeavesSource = ClientWindConfig.FALLING_LEAVES_SOURCE.get();
         // Avoid repeated registry lookups while sampling canopy emitters each tick.
@@ -111,6 +115,10 @@ public final class ParticleWindFilter {
         // registry or directly add particle instances, so an ID blacklist alone
         // cannot catch them. Uses a class-name cache; no optional mod is loaded.
         if (BuiltinParticleClassBlacklist.contains(particle)) return false;
+        // Official Particle Rain 4.x drives its weather particles through its own wind manager.
+        // Never apply a second generic push, whether the optional integration is on or off.
+        // Most of its v4 effects are directly constructed, so their particle IDs are unavailable.
+        if (particle != null && particle.getClass().getName().startsWith("pigcart.particlerain.particle.")) return false;
         // ParticleEngine#createParticle normally supplies an ID via our mixin. However,
         // Minecraft creates some hit/breaking block fragments as TerrainParticle directly,
         // bypassing that method. Treat those untyped fragments as minecraft:block so the
@@ -203,12 +211,36 @@ public final class ParticleWindFilter {
         return ambientSwayMultiplier;
     }
 
+    /**
+     * Official Particle Rain 4.x uses *cumulative* wind acceleration, not Pretty Rain's
+     * direct per-tick horizontal velocity. Feed its WindManager a small force vector
+     * matching the newer integration's physical units; never reuse the 0.55 velocity.
+     * Called from Particle Rain's optional getWind hook, including async particle workers.
+     */
+    public static boolean drivesOfficialParticleRain() {
+        return enabled && particleRainCompat && ClientWindState.hasServerState();
+    }
+
+    public static org.joml.Vector3f officialParticleRainWind(double x, double y, double z) {
+        // The same cache-only shelter and water lookups used by the generic particle path.
+        if (ParticleWaterProtection.isSubmerged(x, y, z)) return new org.joml.Vector3f();
+        final float exposure = WindShelter.weatherExposureAt(x, y, z);
+        // Particle Rain v4's built-in getWind peaks around 0.06 at default settings.
+        // It is integrated over particle lifetime by the mod's own WindManager.
+        final float scale = 0.03f * (particleRainWindMultiplier / 0.55f) * exposure;
+        return new org.joml.Vector3f(
+            ClientWindState.altitudeWindX() * scale,
+            0.0f,
+            ClientWindState.altitudeWindZ() * scale
+        );
+    }
+
     public static double prettyRainVelocityX(double x, double y, double z) {
-        return cardinalSafe(ClientWindState.altitudeWindX() * WindShelter.exposureAt(x, y, z) * prettyRainWindMultiplier, ClientWindState.directionDegrees(), true);
+        return cardinalSafe(ClientWindState.altitudeWindX() * WindShelter.weatherExposureAt(x, y, z) * prettyRainWindMultiplier, ClientWindState.directionDegrees(), true);
     }
 
     public static double prettyRainVelocityZ(double x, double y, double z) {
-        return cardinalSafe(ClientWindState.altitudeWindZ() * WindShelter.exposureAt(x, y, z) * prettyRainWindMultiplier, ClientWindState.directionDegrees(), false);
+        return cardinalSafe(ClientWindState.altitudeWindZ() * WindShelter.weatherExposureAt(x, y, z) * prettyRainWindMultiplier, ClientWindState.directionDegrees(), false);
     }
 
     private static double cardinalSafe(double velocity, float direction, boolean xAxis) {
@@ -223,7 +255,8 @@ public final class ParticleWindFilter {
     public static float offsetX(@Nullable ResourceLocation id, @Nullable Particle particle) {
         if (!shouldAffect(id, particle) || ClientWindState.altitudeStrength() < 0.001f
                 || isSubmerged(particle)) return 0.0f;
-        return ClientWindState.altitudeWindX() * exposure(particle) * force
+        float localExposure = exposure(particle);
+        return ClientWindState.altitudeWindX() * localExposure * force
             * response(id) * customResponse(id) * highWindVisualMultiplier();
     }
 
@@ -246,10 +279,24 @@ public final class ParticleWindFilter {
      */
     private static float exposure(@Nullable Particle particle) {
         if (!(particle instanceof WindParticleAccess access)) return 1.0f;
-        return WindShelter.exposureAt(
-            access.livingwind$getPositionX(),
-            access.livingwind$getPositionY(),
-            access.livingwind$getPositionZ());
+        final double x = access.livingwind$getPositionX();
+        final double y = access.livingwind$getPositionY();
+        final double z = access.livingwind$getPositionZ();
+        // A cache MISS is not evidence of wind. Keep a particle's last CONFIRMED
+        // sheltered state through a tiny gap as it crosses exact-block cache cells.
+        // Direct measurements of full outdoor exposure always take effect immediately.
+        final float measured = WindShelter.trackedParticleExposureAt(x, y, z);
+        final int now = WindShelter.shelterTick();
+        final int bx = Mth.floor(x), by = Mth.floor(y), bz = Mth.floor(z);
+        if (measured >= 0.0f && measured < 0.20f) {
+            access.livingwind$rememberSheltered(now, bx, by, bz);
+        }
+        return ParticleShelterContinuity.resolve(
+            measured, now, access.livingwind$getLastShelteredTick(),
+            bx, by, bz,
+            access.livingwind$getLastShelteredX(),
+            access.livingwind$getLastShelteredY(),
+            access.livingwind$getLastShelteredZ());
     }
 
     private static float highWindVisualMultiplier() {

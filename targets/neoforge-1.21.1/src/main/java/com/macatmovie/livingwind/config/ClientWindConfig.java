@@ -36,6 +36,8 @@ public final class ClientWindConfig {
     public static final ModConfigSpec.IntValue LEAF_PARTICLE_RADIUS;
     public static final ModConfigSpec.DoubleValue LEAF_PARTICLE_WIND_RESPONSE;
     public static final ModConfigSpec.BooleanValue PRETTY_RAIN_COMPAT;
+    public static final ModConfigSpec.BooleanValue PARTICLE_RAIN_COMPAT;
+    public static final ModConfigSpec.DoubleValue PARTICLE_RAIN_WIND_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue PRETTY_RAIN_WIND_MULTIPLIER;
     public static final ModConfigSpec.EnumValue<FallingLeavesSource> FALLING_LEAVES_SOURCE;
     public static final ModConfigSpec.BooleanValue PARTICULAR_FALLING_LEAVES_COMPAT;
@@ -52,6 +54,8 @@ public final class ClientWindConfig {
     public static final ModConfigSpec.DoubleValue SHELTER_EFFECTIVENESS;
     public static final ModConfigSpec.DoubleValue INDOOR_AUDIO_ATTENUATION;
     public static final ModConfigSpec.BooleanValue SHELTER_LOW_COST;
+    public static final ModConfigSpec.BooleanValue SWINGING_LANTERNS_COMPAT;
+    public static final ModConfigSpec.DoubleValue SWINGING_LANTERNS_WIND_MULTIPLIER;
     public static final ModConfigSpec.BooleanValue FWA_WIND_COMPAT;
     public static final ModConfigSpec.BooleanValue SUPPLEMENTARIES_WIND_VANE_COMPAT;
     public static final ModConfigSpec.DoubleValue FWA_WIND_IMPACT;
@@ -238,6 +242,20 @@ public final class ClientWindConfig {
             )
             .translation("livingwind.config.prettyRainWindMultiplier")
             .defineInRange("prettyRainWindMultiplier", 0.55, 0.0, 2.0);
+        PARTICLE_RAIN_COMPAT = b.comment(
+                "Use Living Wind's direction and strength in the official Particle Rain 4.x wind system.",
+                "Controls rain, snow, dust and other weather particles; Particle Rain retains its own physics.",
+                "Requires Particle Rain 4.x and has no effect when it is absent. Independent of Pretty Rain."
+            )
+            .translation("livingwind.config.particleRainCompat")
+            .define("particleRainWind", true);
+        PARTICLE_RAIN_WIND_MULTIPLIER = b.comment(
+                "Strength of Living Wind sent into the official Particle Rain 4.x wind simulation.",
+                "The default (0.55) is calibrated for Particle Rain's cumulative wind physics.",
+                "Adjust the tilt and drift without changing Particle Rain's particle density or gravity."
+            )
+            .translation("livingwind.config.particleRainWindMultiplier")
+            .defineInRange("particleRainWindMultiplier", 0.55, 0.0, 2.0);
         FALLING_LEAVES_SOURCE = b.comment(
                 "Choose which mod generates falling tree-leaf particles when Particular is installed.",
                 "LIVING_WIND (default): only Living Wind. PARTICULAR: only Particular. BOTH: both.",
@@ -360,6 +378,17 @@ public final class ClientWindConfig {
         FWA_BELL_INTENSITY = b.comment("Strength of wind-driven idle bell rocking (does not affect bell ringing).")
             .translation("livingwind.config.fwaBellIntensity")
             .defineInRange("bellIntensity", 1.0, 0.0, 3.0);
+        b.pop();
+
+        b.comment("Optional Swinging Lanterns 2.0.4 integration; its physics, collisions and Create motion remain native.")
+            .translation("livingwind.config.section.swingingLanterns")
+            .push("swingingLanterns");
+        SWINGING_LANTERNS_COMPAT = b.comment("Use Living Wind direction and strength to drive Swinging Lanterns' existing wind input. Requires Swinging Lanterns; no extra forces are applied to its physics solver.")
+            .translation("livingwind.config.swingingLanternsEnabled")
+            .define("enabled", true);
+        SWINGING_LANTERNS_WIND_MULTIPLIER = b.comment("Multiplier for Living Wind's sway and downwind lean of Swinging Lanterns. Light winds give gentle swings; stronger winds tilt lanterns downwind. Set to 0 for calm wind, or turn integration off for stock behavior.")
+            .translation("livingwind.config.swingingLanternsMultiplier")
+            .defineInRange("windMultiplier", 1.0, 0.0, 3.0);
         b.pop();
 
         b.comment("Optional Supplementaries wind vane animation compatibility.")

@@ -1,8 +1,12 @@
 package com.macatmovie.livingwind.client;
 
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -14,18 +18,34 @@ import net.minecraft.tags.BlockTags;
 /**
  * Tiny, bounded, demand-driven shelter grid. Particle threads only read published numbers and
  * enqueue missing zones; all level/chunk/collision queries run in ClientWindEvents on the client thread.
- * A 2-block cell avoids sharing one exposure value across most single-block walls and windows.
+ * Exact block cells avoid sampling outside a one-block-thick wall or across a low roof.
+ * Nearby particles have a separate priority queue/cache to prevent distant particle storms
+ * from starving the cells a player actually sees. Both caches are bounded and worker-safe.
  */
 public final class WindShelter {
     private static final int MAX_ZONES = 768;
     private static final int MAX_REQUESTS = 384;
     private static final int MAX_AGE_TICKS = 55;
+    // Newly seen enclosed rooms should not wait behind hundreds of outside particle requests.
+    // Synchronous direct work is allowed ONLY on Minecraft's client thread and is tightly capped.
+    private static final int MAX_DIRECT_QUERIES_PER_TICK = 4;
+    // Local cells are protected from the heavy turnover of distant smoke/rain particles.
+    // Priority is based on position, NOT on the player's shelter state; outdoor particles
+    // just outside a house still receive their own accurate outdoor survey.
+    private static final int LOCAL_RADIUS_XZ = 7;
+    private static final int LOCAL_RADIUS_Y = 5;
+    private static final int MAX_LOCAL_ZONES = 512;
+    private static final int MAX_LOCAL_REQUESTS = 256;
+    private static final int LOCAL_TRIM_INTERVAL = 20;
     // Stationary block animations must not inherit the particle cache's aggressive
     // expiration and eviction behavior. A wind gust produces many particle requests.
     private static final int MAX_STATIC_ZONES = 256;
     private static final int STATIC_REFRESH_TICKS = 40;
     private static final int STATIC_IDLE_TICKS = 160;
     private static final ConcurrentHashMap<Long, Entry> CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Long, Entry> LOCAL_CACHE = new ConcurrentHashMap<>();
+    private static final Set<Long> LOCAL_PENDING = ConcurrentHashMap.newKeySet();
+    private static final ConcurrentLinkedQueue<Long> LOCAL_REQUESTS = new ConcurrentLinkedQueue<>();
     private static final Set<Long> PENDING = ConcurrentHashMap.newKeySet();
     private static final ConcurrentLinkedQueue<Long> REQUESTS = new ConcurrentLinkedQueue<>();
     private static final ConcurrentHashMap<Long, StaticEntry> STATIC_CACHE = new ConcurrentHashMap<>();
@@ -35,9 +55,23 @@ public final class WindShelter {
     private static volatile float effectiveness = 1.0f;
     private static volatile boolean lowCost;
     private static volatile int tick;
-    private static ClientLevel currentLevel;
+    private static volatile ClientLevel currentLevel;
+    private static volatile int observerX, observerY, observerZ;
+    private static volatile boolean observerReady;
+    private static int directQueries;
 
-    private record Entry(float exposure, int tick) {}
+    private static final class Entry {
+        final float exposure;
+        final int tick;
+        // Writes are throttled; only needed to protect frequently sampled local cells
+        // when the bounded priority cache must evict older measurements.
+        volatile int lastUsedTick;
+        Entry(float exposure, int tick) {
+            this.exposure = exposure;
+            this.tick = tick;
+            this.lastUsedTick = tick;
+        }
+    }
 
     private static final class StaticEntry {
         volatile float exposure = 1.0f;
@@ -52,17 +86,128 @@ public final class WindShelter {
         lowCost = lowQuality;
     }
 
-    /** Safe from the render thread and from async particle workers; never reads the world. */
+    /** Client-tick-only observer update; async particles read only published coordinates. */
+    public static void setObserverPosition(double x, double y, double z) {
+        observerX = Mth.floor(x);
+        observerY = Mth.floor(y);
+        observerZ = Mth.floor(z);
+        observerReady = true;
+    }
+
+    private static boolean isNearObserver(int x, int y, int z) {
+        return observerReady && Math.abs(x - observerX) <= LOCAL_RADIUS_XZ
+            && Math.abs(y - observerY) <= LOCAL_RADIUS_Y
+            && Math.abs(z - observerZ) <= LOCAL_RADIUS_XZ;
+    }
+
+    private static boolean isFresh(Entry entry, int now) {
+        return entry != null && now >= entry.tick && now - entry.tick <= MAX_AGE_TICKS;
+    }
+
+    private static void touch(Entry entry, int now) {
+        if (now - entry.lastUsedTick >= 8) entry.lastUsedTick = now;
+    }
+
+    /** Normal particles get priority access to the protected nearby cache. */
     public static float exposureAt(double x, double y, double z) {
+        return exposureAtInternal(x, y, z, true, false);
+    }
+
+    /**
+     * High-volume weather effects (Particle Rain / Pretty Rain) read any measurements
+     * already published but only enqueue misses into the background cache. Rain must
+     * not evict the nearby torch-smoke positions or consume the small immediate-survey
+     * budget on the render thread. Outside unknown cells still receive outdoor wind.
+     * This method is worker-safe, just like the normal particle lookup.
+     */
+    public static float weatherExposureAt(double x, double y, double z) {
+        return exposureAtInternal(x, y, z, false, false);
+    }
+
+    /**
+     * Like exposureAt, but returns -1 when no usable measurement exists yet. The regular
+     * particle movement hook uses this to preserve a particle's briefly known sheltered
+     * state instead of interpreting a cache miss as positive outdoor evidence. Other
+     * consumers retain their existing 1.0 (outdoor) fallback.
+     */
+    public static float trackedParticleExposureAt(double x, double y, double z) {
+        return exposureAtInternal(x, y, z, true, true);
+    }
+
+    /**
+     * Admission lookup for our own emitters, called only from their client tick.
+     * A missing cache reading beneath a roof is NOT outdoor evidence. Fully
+     * sky-exposed positions can, however, be admitted immediately without
+     * waiting for a queue that might be busy with hundreds of rain particles.
+     * This is one cheap sky check only on a candidate with no cached survey;
+     * it never changes the shared particle-cache budgets or room algorithm.
+     */
+    public static float nativeEmitterExposureAt(ClientLevel level, double x, double y, double z) {
+        float exposure = trackedParticleExposureAt(x, y, z);
+        if (exposure >= 0.0f) return exposure;
+        BlockPos at = BlockPos.containing(x, y, z);
+        if (!level.isOutsideBuildHeight(at) && level.hasChunkAt(at)
+            && level.dimensionType().hasSkyLight() && level.canSeeSky(at)) {
+            // A sky-visible emitter is definitively outdoors. Publish that already
+            // verified result so its newly spawned particle can read it even when
+            // the background shelter queue is saturated. No extra world queries.
+            CACHE.putIfAbsent(at.asLong(), new Entry(1.0f, tick));
+            return 1.0f;
+        }
+        return -1.0f;
+    }
+
+    /** Game tick counter freezes while the singleplayer world is paused. */
+    public static int shelterTick() { return tick; }
+
+    /** Safe on the client thread and Async Particles workers; worker misses never query blocks. */
+    private static float exposureAtInternal(double x, double y, double z,
+                                            boolean prioritizeNearby, boolean markUnknown) {
         if (!enabled || effectiveness <= 0.0f) return 1.0f;
-        long key = key(x, y, z);
-        Entry entry = CACHE.get(key);
-        int now = tick;
-        if (entry != null && now - entry.tick <= MAX_AGE_TICKS) return adjust(entry.exposure);
-        // Avoid issuing unbounded requests if a mod spawns massive numbers of particles.
-        if (PENDING.size() < MAX_REQUESTS && PENDING.add(key)) REQUESTS.offer(key);
-        // Never accidentally suppress particles outside a house just because the camera is inside.
-        return entry != null ? adjust(entry.exposure) : 1.0f;
+        final int bx = Mth.floor(x), by = Mth.floor(y), bz = Mth.floor(z);
+        final long key = BlockPos.asLong(bx, by, bz);
+        final int now = tick;
+        final boolean priority = prioritizeNearby && isNearObserver(bx, by, bz);
+
+        Entry local = LOCAL_CACHE.get(key);
+        Entry background = CACHE.get(key);
+        Entry entry = isFresh(local, now) ? local
+            : isFresh(background, now) ? background
+            : local != null ? local : background;
+        if (isFresh(entry, now)) {
+            touch(entry, now);
+            return adjust(entry.exposure);
+        }
+
+        // Client-thread misses get a small direct budget. Workers NEVER inspect chunks.
+        ClientLevel level = currentLevel;
+        if (prioritizeNearby && level != null && Minecraft.getInstance().isSameThread()
+            && directQueries < MAX_DIRECT_QUERIES_PER_TICK) {
+            directQueries++;
+            BlockPos pos = BlockPos.of(key);
+            if (!level.isOutsideBuildHeight(pos) && level.hasChunkAt(pos)) {
+                float measured = survey(level, pos, lowCost);
+                (priority ? LOCAL_CACHE : CACHE).put(key, new Entry(measured, now));
+                return adjust(measured);
+            }
+        }
+
+        if (priority) {
+            // Prioritized visible cells must not wait behind 384 distant requests.
+            if (!LOCAL_PENDING.contains(key) && LOCAL_PENDING.size() < MAX_LOCAL_REQUESTS
+                && LOCAL_PENDING.add(key)) LOCAL_REQUESTS.offer(key);
+        } else if (!PENDING.contains(key) && PENDING.size() < MAX_REQUESTS
+            && PENDING.add(key)) {
+            REQUESTS.offer(key);
+        }
+        // Stale-but-known exposure is safer than snapping a sheltered particle to
+        // full outdoor wind during a short refresh delay. Newly unknown cells still
+        // fail open until a survey arrives, preserving outdoor effects.
+        if (entry != null && now >= entry.tick && now - entry.tick <= MAX_AGE_TICKS * 2) {
+            touch(entry, now);
+            return adjust(entry.exposure);
+        }
+        return markUnknown ? -1.0f : 1.0f;
     }
 
     public static float exposureAt(BlockPos pos) {
@@ -100,18 +245,28 @@ public final class WindShelter {
 
     public static float playerExposure(ClientLevel level, BlockPos pos) {
         if (!enabled || effectiveness <= 0.0f) return 1.0f;
-        return adjust(survey(level, pos, lowCost));
+        // Player exposure already requires a synchronous survey for audio. Publish that
+        // measurement for particles too, instead of making them request it separately.
+        float measured = survey(level, pos, lowCost);
+        LOCAL_CACHE.put(pos.asLong(), new Entry(measured, tick));
+        return adjust(measured);
     }
 
     private static float adjust(float value) { return 1.0f - (1.0f - value) * effectiveness; }
 
-    /** Call once per client tick, before particle simulation. */
+    /**
+     * Call once per ACTIVE client tick, before particle simulation. The caller must
+     * not advance gameTick while the integrated server is paused: background client
+     * tick events may still run, but particles do not move, so their measurements
+     * must not expire just because the user is sitting in the ESC menu.
+     */
     public static void tick(ClientLevel level, int gameTick) {
         if (currentLevel != level) {
             clear();
             currentLevel = level;
         }
         tick = gameTick;
+        directQueries = 0;
         if (!enabled) return;
         // Dedicated tiny budget for exact-block FWA checks. This does not consume
         // the particle shelter budget, and never runs on particle/render workers.
@@ -127,15 +282,39 @@ public final class WindShelter {
             entry.exposure = survey(level, pos, lowCost);
             entry.measuredTick = gameTick;
         }
-        int budget = lowCost ? 2 : 6;
+        // Near-camera positions use their own queue and retain measured shelter
+        // independently of outside particle churn. Avoid additional per-particle
+        // world access; all surveys remain bounded to the client tick.
+        int localBudget = lowCost ? 4 : 12;
+        for (int i = 0; i < localBudget; i++) {
+            Long key = LOCAL_REQUESTS.poll();
+            if (key == null) break;
+            BlockPos at = BlockPos.of(key);
+            try {
+                if (level.isOutsideBuildHeight(at) || !level.hasChunkAt(at)) continue;
+                // When the player moves, old requests are not promoted into the hot cache.
+                if (!isNearObserver(at.getX(), at.getY(), at.getZ())) continue;
+                LOCAL_CACHE.put(key, new Entry(survey(level, at, lowCost), gameTick));
+            } finally {
+                LOCAL_PENDING.remove(key);
+            }
+        }
+        int budget = lowCost ? 1 : 3;
         for (int i = 0; i < budget; i++) {
             Long key = REQUESTS.poll();
             if (key == null) break;
-            PENDING.remove(key);
-            BlockPos cell = BlockPos.of(key);
-            BlockPos center = new BlockPos(cell.getX() * 2 + 1, cell.getY() * 2 + 1, cell.getZ() * 2 + 1);
-            if (level.isOutsideBuildHeight(center) || !level.hasChunkAt(center)) continue;
-            CACHE.put(key, new Entry(survey(level, center, lowCost), gameTick));
+            BlockPos at = BlockPos.of(key);
+            try {
+                if (level.isOutsideBuildHeight(at) || !level.hasChunkAt(at)) continue;
+                CACHE.put(key, new Entry(survey(level, at, lowCost), gameTick));
+            } finally {
+                PENDING.remove(key);
+            }
+        }
+        // Local cache is bounded separately so distant requests can't evict the
+        // house/torch cells. Recency-based trimming favors actively sampled cells.
+        if (gameTick % LOCAL_TRIM_INTERVAL == 0 || LOCAL_CACHE.size() > MAX_LOCAL_ZONES + 256) {
+            trimLocal(gameTick);
         }
         // Inactive cells expire. A hard cap also bounds memory even with exotic particle engines.
         if (gameTick % 80 == 0 || CACHE.size() > MAX_ZONES) {
@@ -151,16 +330,34 @@ public final class WindShelter {
         }
     }
 
+    private static void trimLocal(int gameTick) {
+        // Removal is on the client thread and at most once per 20 ticks normally.
+        // Worker lookups are lock-free and only update a volatile access timestamp.
+        LOCAL_CACHE.entrySet().removeIf(e -> gameTick - e.getValue().lastUsedTick > MAX_AGE_TICKS * 3);
+        int excess = LOCAL_CACHE.size() - MAX_LOCAL_ZONES;
+        if (excess <= 0) return;
+        ArrayList<Map.Entry<Long, Entry>> sorted = new ArrayList<>(LOCAL_CACHE.entrySet());
+        sorted.sort(Comparator.comparingInt(e -> e.getValue().lastUsedTick));
+        for (Map.Entry<Long, Entry> e : sorted) {
+            if (excess <= 0) break;
+            if (LOCAL_CACHE.remove(e.getKey(), e.getValue())) excess--;
+        }
+    }
+
     public static void clear() {
         CACHE.clear(); PENDING.clear(); REQUESTS.clear();
+        LOCAL_CACHE.clear(); LOCAL_PENDING.clear(); LOCAL_REQUESTS.clear();
         STATIC_CACHE.clear(); STATIC_PENDING.clear(); STATIC_REQUESTS.clear();
-        currentLevel = null; tick = 0;
+        currentLevel = null; tick = 0; directQueries = 0;
+        observerReady = false;
     }
 
     private static long key(double x, double y, double z) {
-        return BlockPos.asLong(Mth.floor(x) >> 1, Mth.floor(y) >> 1, Mth.floor(z) >> 1);
+        return BlockPos.asLong(Mth.floor(x), Mth.floor(y), Mth.floor(z));
     }
 
+    // The lightweight four-ray shelter survey uses exact-block sampling to avoid
+    // incorrectly treating positions across a one-block wall as the same cell.
     /**
      * Sky plus horizontal openings, so a roof alone does not create indoor stillness.
      * Full collision blocks (including solid glass) stop airflow; no path tracing or chunk loading.

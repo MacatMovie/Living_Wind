@@ -18,7 +18,10 @@
     "SwingingLanternsPhysicsWindLimitMixin",
     "SwingingLanternsExposureAccess",
     "FwaBellMixin",
-    "SupplementariesWindVaneMixin"
+    "SupplementariesWindVaneMixin",
+    "InteractiveFoliageWindMixin",
+    "InteractiveFoliageSwayShaderMixin",
+    "InteractiveFoliageLegacyShaderMixin"
   ],
   "injectors": {
     "defaultRequire": 1

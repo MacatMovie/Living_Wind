@@ -11,6 +11,8 @@ public final class WindVaneBlockEntity extends BlockEntity {
     private float rotationVelocity;
     private double lastRenderTick = Double.NaN;
     private boolean initialized;
+    private float lastSubLevelReference;
+    private boolean subLevelReferenceValid;
 
     public WindVaneBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.WIND_VANE.get(), pos, state);
@@ -22,6 +24,15 @@ public final class WindVaneBlockEntity extends BlockEntity {
     public void setRotationDegrees(float angle) { rotationDegrees = angle; }
     public double getLastRenderTick() { return lastRenderTick; }
     public void setLastRenderTick(double tick) { lastRenderTick = tick; }
+    /** Last local heading of a fixed world compass reference (0=S).
+     * Helps the head counter-rotate instantly when the craft itself turns. */
+    public float getLastSubLevelReference() { return lastSubLevelReference; }
+    public boolean hasSubLevelReference() { return subLevelReferenceValid; }
+    public void recordSubLevelReference(float reference) {
+        lastSubLevelReference = reference;
+        subLevelReferenceValid = true;
+    }
+    public void clearSubLevelReference() { subLevelReferenceValid = false; }
     public boolean isInitialized() { return initialized; }
     public void setInitialized(boolean value) { initialized = value; }
 }

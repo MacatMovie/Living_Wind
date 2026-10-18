@@ -1,6 +1,7 @@
 package com.macatmovie.livingwind.client.windmill;
 
 import com.macatmovie.livingwind.block.entity.WindmillBlockEntity;
+import com.macatmovie.livingwind.compat.InstrumentSpatialContext;
 import com.macatmovie.livingwind.client.ClientWindState;
 import com.macatmovie.livingwind.client.WindShelter;
 import com.macatmovie.livingwind.wind.WindMath;
@@ -15,11 +16,28 @@ public final class WindmillMotion {
         mill.setLastRenderTick(tick);
         if (!ClientWindState.hasServerState()) return;
 
-        float exposure = WindShelter.exposureForStaticAnimation(mill.getBlockPos());
-        float strength = Mth.clamp(ClientWindState.altitudeStrength() * exposure, 0.0f, 2.0f);
+        var frame = InstrumentSpatialContext.at(mill.getLevel(), mill.getBlockPos(), (float) (tick % 1.0));
+        // Counter-rotate the directional head with the parent craft, rather than
+        // waiting for its wind spring to catch up to a turning airship.
+        if (frame.moving()) {
+            float reference = frame.localBearing(0.0f);
+            if (mill.hasSubLevelReference()) {
+                float turn = WindMath.shortestDeltaDegrees(mill.getLastSubLevelReference(), reference);
+                mill.setYaw(WindMath.normalizeDegrees(mill.getYaw() - turn));
+            }
+            mill.recordSubLevelReference(reference);
+        } else {
+            mill.clearSubLevelReference();
+        }
+
+        float exposure = frame.moving() ? WindShelter.exposureAt(frame.worldPosition())
+                                        : WindShelter.exposureForStaticAnimation(frame.worldPosition());
+        float strength = Mth.clamp((frame.moving() ? ClientWindState.strengthAtAltitude(frame.worldPosition().getY(),
+                mill.getLevel().dimension() == net.minecraft.world.level.Level.OVERWORLD)
+                : ClientWindState.altitudeStrength()) * exposure, 0.0f, 2.0f);
         // The user-facing windmill should point its head along the wind travel direction,
         // not into the source. This flips the previous heading by exactly 180 degrees.
-        float targetYaw = WindMath.normalizeDegrees(90.0f - ClientWindState.directionDegrees());
+        float targetYaw = WindMath.normalizeDegrees(90.0f - frame.localBearing(ClientWindState.directionDegrees()));
         long seed = mill.getBlockPos().asLong();
         double phase = ((seed ^ (seed >>> 17)) & 1023L) * (Math.PI * 2.0 / 1024);
         if (strength > 0.025f) {

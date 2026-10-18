@@ -70,7 +70,7 @@ legacyForge.ideSyncTask generateModMetadata
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 
 jar {
-    archiveFileName = "LivingWind-Forge-${minecraft_version}-${mod_version}.jar"
+    archiveFileName = "LivingWind-Forge-${minecraft_version}-v${mod_version}.jar"
     manifest.attributes(["MixinConfigs": "livingwind.mixins.json"])
 }
 

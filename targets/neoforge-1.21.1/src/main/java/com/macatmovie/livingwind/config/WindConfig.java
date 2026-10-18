@@ -28,6 +28,10 @@ public final class WindConfig {
     public static final ModConfigSpec.DoubleValue CREATE_WINDMILL_MAX_CHANGE_PER_UPDATE;
     public static final ModConfigSpec.IntValue CREATE_WINDMILL_UPDATE_TICKS;
 
+    public static final ModConfigSpec.BooleanValue AERONAUTICS_WIND_ENABLED;
+    public static final ModConfigSpec.DoubleValue AERONAUTICS_WIND_MULTIPLIER;
+    public static final ModConfigSpec.BooleanValue HIGH_SEAS_WIND_ENABLED;
+
     public enum NetherWindMode { DISABLED, REDUCED_GUSTY, NORMAL }
     public enum EndWindMode { DISABLED, VERY_WEAK, NORMAL }
     public static final ModConfigSpec.EnumValue<NetherWindMode> NETHER_WIND_MODE;
@@ -164,6 +168,28 @@ public final class WindConfig {
         CREATE_WINDMILL_UPDATE_TICKS = b.comment("Minimum tick interval between kinetic network speed checks per bearing. 40 ticks = 2 seconds.")
             .translation("livingwind.config.createWindmillUpdateTicks")
             .defineInRange("updateTicks", 40, 20, 200);
+        b.pop();
+
+        b.comment("Optional Sable / Create Aeronautics vehicle wind physics. Server-authoritative; has no effect without Sable installed.")
+            .translation("livingwind.config.section.aeronautics")
+            .push("aeronautics");
+        AERONAUTICS_WIND_ENABLED = b.comment("Let wind push assembled Sable contraptions with Aeronautics balloon envelopes or Create sail blocks. Disabled automatically when Sable is absent or AeroWeather supplies physics.")
+            .translation("livingwind.config.aeronauticsWindEnabled")
+            .define("enabled", true);
+        AERONAUTICS_WIND_MULTIPLIER = b.comment("Wind force multiplier on eligible airships/sail-bearing contraptions. 1.0x is the balanced, playtested baseline (formerly 0.30x); 0 disables the force.")
+            .translation("livingwind.config.aeronauticsWindMultiplier")
+            .defineInRange("forceMultiplier", 1.0, 0.0, 5.0);
+        b.pop();
+
+        b.comment("Optional Create: High Seas wind integration. Replaces its wind queries with Living Wind, leaving sail physics to High Seas. Requires Create: High Seas.")
+            .translation("livingwind.config.section.highSeas")
+            .push("highSeas");
+        HIGH_SEAS_WIND_ENABLED = b.comment(
+                "When High Seas is installed, feed its sails, wind vane, and wind visuals from Living Wind's synchronized weather instead of High Seas' procedural wind.",
+                "Turn off to restore High Seas' original wind simulation and behavior."
+            )
+            .translation("livingwind.config.highSeasWindEnabled")
+            .define("enabled", true);
         b.pop();
 
         b.comment("Low-frequency server-to-client wind synchronization.")

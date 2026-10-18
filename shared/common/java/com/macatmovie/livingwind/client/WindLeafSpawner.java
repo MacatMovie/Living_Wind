@@ -153,7 +153,8 @@ public final class WindLeafSpawner {
     }
 
     private static Kind classify(ClientLevel level, BlockPos pos, BlockState state) {
-        if (state.is(WindBlockTags.LEAF_EMITTERS) || state.is(BlockTags.LEAVES))
+        if (state.is(WindBlockTags.LEAF_EMITTERS) || state.is(BlockTags.LEAVES)
+                || LeafParticleTypes.hasOverride(state))
             return ParticleWindFilter.shouldSpawnNativeLeaves() ? Kind.CANOPY : Kind.NONE;
         if (state.is(WindBlockTags.GRASS_EMITTERS)) return Kind.GRASS;
         if (state.is(BlockTags.FLOWERS) || state.getMapColor(level, pos) == MapColor.PLANT) return Kind.PLANT;
@@ -428,8 +429,16 @@ public final class WindLeafSpawner {
             double red = Mth.clamp(((color >> 16) & 255) / 255f * shade, 0.06f, 1f);
             double green = Mth.clamp(((color >> 8) & 255) / 255f * shade, 0.06f, 1f);
             double blue = Mth.clamp((color & 255) / 255f * shade, 0.06f, 1f);
-            level.addParticle(kind == Kind.GRASS ? ModParticles.WIND_GRASS.get() : ModParticles.WIND_LEAF.get(),
-                    x, y, z, red, green, blue);
+            if (kind == Kind.CANOPY && LeafParticleTypes.resolve(foliage) == LeafParticleTypes.Type.CONIFER) {
+                // Evergreen needle shedding is a gentler visual accent. Consume the
+                // existing bounded particle slot instead of reallocating it to other sources.
+                if (random.nextFloat() < ClientWindConfig.CONIFER_SPAWN_MULTIPLIER.get()) {
+                    level.addParticle(ModParticles.WIND_NEEDLES.get(), x, y, z, red, green, blue);
+                }
+            } else {
+                level.addParticle(kind == Kind.GRASS ? ModParticles.WIND_GRASS.get() : ModParticles.WIND_LEAF.get(),
+                        x, y, z, red, green, blue);
+            }
             return true;
         }
         // A saturated or unreachable group is not retried from the same first few entries.

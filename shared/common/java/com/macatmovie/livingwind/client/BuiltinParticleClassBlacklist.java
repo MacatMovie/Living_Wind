@@ -46,7 +46,14 @@ public final class BuiltinParticleClassBlacklist {
     private static final ClassValue<Boolean> IMMUNE_BY_CLASS = new ClassValue<>() {
         @Override
         protected Boolean computeValue(Class<?> type) {
-            return IMMUNE_CLASSES.contains(type.getName());
+            // What Are They Up To? (WATUT) constructs its chat/GUI, idle, and item
+            // display particles directly and uses its own CustomParticleEngine rather
+            // than a registry ParticleType. Their positions are anchored to players
+            // each tick, so a generic wind move() offset makes the displays jitter.
+            // Match only WATUT's dedicated particle package; no optional-mod API,
+            // dependency, or per-tick reflection is necessary.
+            String name = type.getName();
+            return name.startsWith("com.corosus.watut.particle.") || IMMUNE_CLASSES.contains(name);
         }
     };
 

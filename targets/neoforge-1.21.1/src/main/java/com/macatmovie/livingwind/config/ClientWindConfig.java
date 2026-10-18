@@ -1,6 +1,7 @@
 package com.macatmovie.livingwind.config;
 
 import java.util.List;
+import com.macatmovie.livingwind.client.LeafParticleTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
@@ -33,6 +34,8 @@ public final class ClientWindConfig {
     public static final ModConfigSpec.BooleanValue LEAF_PARTICLES_ENABLED;
     public static final ModConfigSpec.DoubleValue LEAF_PARTICLE_DENSITY;
     public static final ModConfigSpec.BooleanValue LEAF_TEXTURE_COLORS;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> LEAF_TYPE_OVERRIDES;
+    public static final ModConfigSpec.DoubleValue CONIFER_SPAWN_MULTIPLIER;
     public static final ModConfigSpec.IntValue LEAF_PARTICLE_RADIUS;
     public static final ModConfigSpec.DoubleValue LEAF_PARTICLE_WIND_RESPONSE;
     public static final ModConfigSpec.BooleanValue PRETTY_RAIN_COMPAT;
@@ -58,6 +61,7 @@ public final class ClientWindConfig {
     public static final ModConfigSpec.DoubleValue SWINGING_LANTERNS_WIND_MULTIPLIER;
     public static final ModConfigSpec.BooleanValue FWA_WIND_COMPAT;
     public static final ModConfigSpec.BooleanValue SUPPLEMENTARIES_WIND_VANE_COMPAT;
+    public static final ModConfigSpec.BooleanValue INTERACTIVE_FOLIAGE_WIND_COMPAT;
     public static final ModConfigSpec.DoubleValue FWA_WIND_IMPACT;
     public static final ModConfigSpec.DoubleValue FWA_CHAIN_INTENSITY;
     public static final ModConfigSpec.DoubleValue FWA_LANTERN_INTENSITY;
@@ -217,6 +221,20 @@ public final class ClientWindConfig {
             )
             .translation("livingwind.config.windLeavesTextureColors")
             .define("textureDerivedColors", true);
+        LEAF_TYPE_OVERRIDES = b.comment(
+                "Custom per-block leaf particle types: modid:block=CONIFER or modid:block=BROADLEAF.",
+                "Overrides take priority over block tags (including Vanilla Backport tags) and built-in species defaults.",
+                "Leave this list empty to use the automatically detected categories."
+            )
+            .translation("livingwind.config.windLeavesTypes")
+            .defineListAllowEmpty("leafTypeOverrides", List.of(),
+                () -> "minecraft:spruce_leaves=CONIFER", LeafParticleTypes::validEntry);
+        CONIFER_SPAWN_MULTIPLIER = b.comment(
+                "Needle emission chance relative to normal broadleaf particles. 0.85 means 85% as many; 0 disables needles.",
+                "Applies only to Living Wind's native canopy particles; particle motion and shared spawn budget remain unchanged."
+            )
+            .translation("livingwind.config.windLeavesConiferDensity")
+            .defineInRange("coniferSpawnMultiplier", 0.85, 0.0, 1.0);
         LEAF_PARTICLE_RADIUS = b.comment("Radius of the lightweight foliage/plant-source sampling area in blocks.")
             .translation("livingwind.config.windLeavesRadius")
             .defineInRange("radius", 22, 8, 48);
@@ -389,6 +407,14 @@ public final class ClientWindConfig {
         SWINGING_LANTERNS_WIND_MULTIPLIER = b.comment("Multiplier for Living Wind's sway and downwind lean of Swinging Lanterns. Light winds give gentle swings; stronger winds tilt lanterns downwind. Set to 0 for calm wind, or turn integration off for stock behavior.")
             .translation("livingwind.config.swingingLanternsMultiplier")
             .defineInRange("windMultiplier", 1.0, 0.0, 3.0);
+        b.pop();
+
+        b.comment("Optional Interactive Foliage 2.2.0 GPU grass-sway integration.")
+            .translation("livingwind.config.section.interactiveFoliage")
+            .push("interactiveFoliage");
+        INTERACTIVE_FOLIAGE_WIND_COMPAT = b.comment("Use Living Wind direction and strength for Interactive Foliage's grass waving. Enable Weather Wind in Interactive Foliage. Its entity interactions are unchanged.")
+            .translation("livingwind.config.interactiveFoliageWind")
+            .define("enabled", true);
         b.pop();
 
         b.comment("Optional Supplementaries wind vane animation compatibility.")

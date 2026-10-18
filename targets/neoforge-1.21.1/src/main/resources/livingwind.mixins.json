@@ -19,12 +19,18 @@
     "SwingingLanternsPhysicsWindLimitMixin",
     "SwingingLanternsExposureAccess",
     "FwaBellMixin",
-    "SupplementariesWindVaneMixin"
+    "SupplementariesWindVaneMixin",
+    "HighSeasWindVaneSmoothingMixin",
+    "InteractiveFoliageWindMixin",
+    "InteractiveFoliageSwayShaderMixin",
+    "InteractiveFoliageLegacyShaderMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   },
   "mixins": [
-    "CreateWindmillBearingMixin"
+    "CreateWindmillBearingMixin",
+    "HighSeasWindManagerMixin",
+    "SableBlockChangeMixin"
   ]
 }

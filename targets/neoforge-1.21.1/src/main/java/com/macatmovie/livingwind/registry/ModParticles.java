@@ -18,6 +18,9 @@ public final class ModParticles {
     public static final DeferredHolder<ParticleType<?>, SimpleParticleType> WIND_LEAF =
         PARTICLES.register("wind_leaf", () -> new SimpleParticleType(false));
 
+    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> WIND_NEEDLES =
+        PARTICLES.register("wind_needles", () -> new SimpleParticleType(false));
+
     public static final DeferredHolder<ParticleType<?>, SimpleParticleType> WIND_GRASS =
         PARTICLES.register("wind_grass", () -> new SimpleParticleType(false));
 

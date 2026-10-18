@@ -92,8 +92,8 @@ function Collect-TargetJars([string]$Name) {
         return 0
     }
 
-    # Use the project's canonical version in release filenames and the in-game mod metadata.
-    # This also prevents stale, unprefixed JARs from being copied by Collect-Dist.bat.
+    # Metadata gets a strict numeric mod_version; the output JAR filename adds a 'v'.
+    # The collector keeps the user-facing prefixed naming convention in dist.
     $properties = Get-Content (Join-Path $dir 'gradle.properties')
     $versionLine = $properties | Where-Object { $_ -match '^mod_version\s*=' } | Select-Object -First 1
     $mcLine = $properties | Where-Object { $_ -match '^minecraft_version\s*=' } | Select-Object -First 1

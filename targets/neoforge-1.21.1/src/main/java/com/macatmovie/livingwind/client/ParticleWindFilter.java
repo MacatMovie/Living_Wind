@@ -21,6 +21,7 @@ import org.jetbrains.annotations.Nullable;
 public final class ParticleWindFilter {
     private static final ResourceLocation AMBIENT_PIXEL_ID = LivingWind.id("ambient_pixel");
     private static final ResourceLocation WIND_LEAF_ID = LivingWind.id("wind_leaf");
+    private static final ResourceLocation WIND_NEEDLES_ID = LivingWind.id("wind_needles");
     private static final ResourceLocation WIND_GRASS_ID = LivingWind.id("wind_grass");
     private static final ResourceLocation VANILLA_BLOCK_FRAGMENT_ID = ResourceLocation.fromNamespaceAndPath("minecraft", "block");
     private static final TagKey<net.minecraft.core.particles.ParticleType<?>> WIND_IMMUNE_TAG =
@@ -129,7 +130,10 @@ public final class ParticleWindFilter {
         // Living Wind's own mote continuously steers itself; applying this generic hook as well
         // would double the force. Pretty Rain rain/sand have dedicated velocity compatibility,
         // while its rolling shrub/tumbleweed keeps its own speed and only borrows wind direction.
-        if (AMBIENT_PIXEL_ID.equals(id) || WIND_LEAF_ID.equals(id) || WIND_GRASS_ID.equals(id) || usesPrettyRainVelocityCompat(id) || usesPrettyRainDirectionOnlyCompat(id)) return false;
+        // Every native foliage particle steers itself, including the new
+        // conifer needles. Generic wind here would add a SECOND full-strength
+        // push on top of the specially tuned needle movement.
+        if (AMBIENT_PIXEL_ID.equals(id) || WIND_LEAF_ID.equals(id) || WIND_NEEDLES_ID.equals(id) || WIND_GRASS_ID.equals(id) || usesPrettyRainVelocityCompat(id) || usesPrettyRainDirectionOnlyCompat(id)) return false;
         return passesConfiguredFilter(id);
     }
 

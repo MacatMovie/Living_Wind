@@ -107,8 +107,10 @@ public final class LivingWindConfigurationSectionScreen extends ConfigurationScr
         Consumer<Double> target
     ) {
         if (("volume".equals(key) && context.keylist().contains("windAudio"))
-                || ("windImpact".equals(key) && context.keylist().contains("fancyWorldAnimations"))) {
-            final double maxVolume = "windImpact".equals(key) ? 12.0 : 3.0;
+                || ("windImpact".equals(key) && context.keylist().contains("fancyWorldAnimations"))
+                || ("forceMultiplier".equals(key) && context.keylist().contains("aeronautics"))) {
+            final double maxVolume = "windImpact".equals(key) ? 12.0
+                    : "forceMultiplier".equals(key) ? 5.0 : 3.0;
             double actualInitial = Math.max(0.0, Math.min(maxVolume, source.get()));
             double initial = actualInitial / maxVolume;
             AbstractSliderButton slider = new AbstractSliderButton(0, 0, 150, 20, Component.literal(String.format(Locale.ROOT, "%.2f", actualInitial)), initial) {
@@ -144,6 +146,18 @@ public final class LivingWindConfigurationSectionScreen extends ConfigurationScr
         ModConfigSpec.ListValueSpec spec,
         ModConfigSpec.ConfigValue<List<T>> list
     ) {
+        if ("leafTypeOverrides".equals(key) && context.keylist().contains("windLeaves")) {
+            Component name = getTranslationComponent(key);
+            Button open = Button.builder(Component.literal("Edit Leaf Particle Types..."), button ->
+                minecraft.setScreen(new LeafTypeMappingScreen(this,
+                    ClientWindConfig.LEAF_TYPE_OVERRIDES.get(), values -> {
+                        ClientWindConfig.LEAF_TYPE_OVERRIDES.set(values);
+                        ClientWindConfig.LEAF_TYPE_OVERRIDES.save();
+                    }))
+            ).tooltip(net.minecraft.client.gui.components.Tooltip.create(getTooltipComponent(key, null)))
+             .build();
+            return new Element(name, getTooltipComponent(key, null), open, false);
+        }
         if ("filter".equals(key) && context.keylist().contains("particleWind")) {
             Component name = getTranslationComponent(key);
             Button open = Button.builder(

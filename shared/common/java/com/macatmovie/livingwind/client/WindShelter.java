@@ -395,6 +395,40 @@ public final class WindShelter {
         if (visible == 4) return 0.95f;
         float lateral = open / 4.0f;
         // Fully sealed house ~0, covered porch / cave entrance partial, uncovered sky 1.
-        return Mth.clamp(lateral * (0.72f + visible * 0.06f), 0.0f, 0.95f);
+        float exposure = Mth.clamp(lateral * (0.72f + visible * 0.06f), 0.0f, 0.95f);
+        // Leaves block Minecraft's regular canSeeSky check, even though a canopy
+        // is porous rather than a house roof. Only check ambiguous low-exposure
+        // cells, and only during this already budgeted shelter survey. A non-leaf
+        // collision block encountered overhead vetoes the canopy exception, so
+        // actual ceilings, caves and houses remain sheltered.
+        if (exposure < 0.60f && openLeafCanopyAbove(level, at, cheap ? 9 : 16)) {
+            exposure = 0.60f;
+        }
+        return exposure;
+    }
+
+    /**
+     * Detect an open, leaf-only canopy directly above a shaded particle cell.
+     * No extra cache, requests, or per-particle world access: this runs solely
+     * inside the existing bounded client-thread shelter survey.
+     */
+    private static boolean openLeafCanopyAbove(ClientLevel level, BlockPos at, int maxRise) {
+        BlockPos.MutableBlockPos probe = at.mutable();
+        boolean passedLeaves = false;
+        for (int dy = 1; dy <= maxRise; dy++) {
+            probe.move(Direction.UP);
+            if (level.isOutsideBuildHeight(probe) || !level.hasChunkAt(probe)) return false;
+            BlockState state = level.getBlockState(probe);
+            if (state.is(BlockTags.LEAVES)) {
+                passedLeaves = true;
+                continue;
+            }
+            // Do not let trees above a solid house roof turn indoor shelter off.
+            if (!state.getCollisionShape(level, probe).isEmpty()) return false;
+            // Only a leaf canopy with actual open sky beyond it is an exception;
+            // decorative indoor leaves beneath a roof do not count.
+            if (passedLeaves && level.canSeeSky(probe)) return true;
+        }
+        return false;
     }
 }

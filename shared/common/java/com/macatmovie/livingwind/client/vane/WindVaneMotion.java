@@ -1,6 +1,7 @@
 package com.macatmovie.livingwind.client.vane;
 
 import com.macatmovie.livingwind.block.entity.WindVaneBlockEntity;
+import com.macatmovie.livingwind.compat.InstrumentSpatialContext;
 import com.macatmovie.livingwind.client.ClientWindState;
 import com.macatmovie.livingwind.client.WindShelter;
 import com.macatmovie.livingwind.wind.WindMath;
@@ -17,8 +18,26 @@ public final class WindVaneMotion {
         vane.setLastRenderTick(frameTick);
         if (!ClientWindState.hasServerState()) return vane.getRotationDegrees();
 
-        float exposure = WindShelter.exposureForStaticAnimation(vane.getBlockPos());
-        float strength = Math.max(0.0f, ClientWindState.altitudeStrength() * exposure);
+        var frame = InstrumentSpatialContext.at(vane.getLevel(), vane.getBlockPos(), (float) (frameTick % 1.0));
+        // A swiveling vane retains its WORLD heading as the parent ship rotates.
+        // Compensate that frame change immediately; the damped spring still governs
+        // actual wind changes and its gentle natural sway.
+        if (frame.moving()) {
+            float reference = frame.localBearing(0.0f);
+            if (vane.hasSubLevelReference()) {
+                float turn = WindMath.shortestDeltaDegrees(vane.getLastSubLevelReference(), reference);
+                vane.setRotationDegrees(WindMath.normalizeDegrees(vane.getRotationDegrees() + turn));
+            }
+            vane.recordSubLevelReference(reference);
+        } else {
+            vane.clearSubLevelReference();
+        }
+
+        float exposure = frame.moving() ? WindShelter.exposureAt(frame.worldPosition())
+                                        : WindShelter.exposureForStaticAnimation(frame.worldPosition());
+        float strength = Math.max(0.0f, (frame.moving() ? ClientWindState.strengthAtAltitude(frame.worldPosition().getY(),
+                vane.getLevel().dimension() == net.minecraft.world.level.Level.OVERWORLD)
+                : ClientWindState.altitudeStrength()) * exposure);
         if (strength <= 0.025f) {
             // A sheltered or completely calm vane holds its last heading and stops wobbling.
             vane.setRotationVelocity(0.0f);
@@ -27,7 +46,7 @@ public final class WindVaneMotion {
 
         // Wind directions in Living Wind represent the direction the air flows TO.
         // Preserve the orientation confirmed in-game for the single-plane bird arrow.
-        float base = WindMath.normalizeDegrees(ClientWindState.directionDegrees() + 180.0f);
+        float base = WindMath.normalizeDegrees(frame.localBearing(ClientWindState.directionDegrees()) + 180.0f);
         float windScale = Mth.clamp(strength / 2.0f, 0.0f, 1.0f);
 
         // Small, deterministic swaying of a physical weather vane. The phase depends on its

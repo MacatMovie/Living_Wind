@@ -16,7 +16,10 @@ public final class WindNetworking {
         registrar.playToClient(
             WindSyncPayload.TYPE,
             WindSyncPayload.STREAM_CODEC,
-            (payload, context) -> ClientWindState.accept(payload)
+            (payload, context) -> {
+                ClientWindState.accept(payload);
+                ClientWindState.setHighSeasWindEnabled(payload.highSeasWindEnabled());
+            }
         );
     }
 

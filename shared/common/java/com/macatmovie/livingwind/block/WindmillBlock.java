@@ -1,6 +1,7 @@
 package com.macatmovie.livingwind.block;
 
 import com.macatmovie.livingwind.api.WindApi;
+import com.macatmovie.livingwind.compat.InstrumentSpatialContext;
 import com.macatmovie.livingwind.block.entity.WindmillBlockEntity;
 import com.macatmovie.livingwind.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -75,7 +76,8 @@ public final class WindmillBlock extends Block implements EntityBlock {
         if (!(world instanceof ServerLevel level)) return;
         // Individual positions are staggered to avoid thousands of simultaneous checks.
         if (Math.floorMod(level.getGameTime() + (long)pos.hashCode(), 10L) != 0L) return;
-        float strength = WindApi.getAt(level, pos).strength() * shelter(level, pos);
+        BlockPos actualPosition = InstrumentSpatialContext.at(level, pos, 0.0f).worldPosition();
+        float strength = WindApi.getAt(level, actualPosition).strength() * shelter(level, actualPosition);
         float raw = Mth.clamp(strength / 2.0f, 0.0f, 1.0f) * 15.0f;
         int oldPower = state.getValue(POWER);
         int newPower = Mth.clamp(Math.round(raw), 0, 15);

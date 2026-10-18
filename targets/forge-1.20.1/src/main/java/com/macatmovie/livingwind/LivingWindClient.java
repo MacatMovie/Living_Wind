@@ -51,6 +51,7 @@ public final class LivingWindClient {
     public static void registerParticleProviders(RegisterParticleProvidersEvent event) {
         event.registerSpriteSet(ModParticles.AMBIENT_PIXEL.get(), AmbientPixelParticle.Provider::new);
         event.registerSpriteSet(ModParticles.WIND_LEAF.get(), WindLeafParticle.Provider::new);
+        event.registerSpriteSet(ModParticles.WIND_NEEDLES.get(), WindLeafParticle.NeedlesProvider::new);
         event.registerSpriteSet(ModParticles.WIND_GRASS.get(), WindLeafParticle.GrassProvider::new);
     }
 }

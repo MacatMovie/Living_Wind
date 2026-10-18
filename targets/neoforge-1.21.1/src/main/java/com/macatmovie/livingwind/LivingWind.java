@@ -33,6 +33,10 @@ public final class LivingWind {
         NeoForge.EVENT_BUS.addListener(ServerWindEvents::onLevelTick);
         NeoForge.EVENT_BUS.addListener(ServerWindEvents::onPlayerLogin);
         NeoForge.EVENT_BUS.addListener(ServerWindEvents::onPlayerChangedDimension);
+        // Register after the regular wind tick so the Sable snapshot sees the
+        // just-updated wind state on each server tick.
+        com.macatmovie.livingwind.server.SableWindIntegration.start(modBus);
+        com.macatmovie.livingwind.compat.SableInstrumentSetup.server();
     }
 
     public static ResourceLocation id(String path) {

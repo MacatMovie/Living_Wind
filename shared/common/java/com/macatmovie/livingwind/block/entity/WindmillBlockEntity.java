@@ -13,6 +13,8 @@ public final class WindmillBlockEntity extends BlockEntity {
     private float rotorSpeed;
     private double lastRenderTick = Double.NaN;
     private boolean initialized;
+    private float lastSubLevelReference;
+    private boolean subLevelReferenceValid;
 
     public WindmillBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.WINDMILL.get(), pos, state);
@@ -27,6 +29,15 @@ public final class WindmillBlockEntity extends BlockEntity {
     public void setRotorSpeed(float v) { rotorSpeed = v; }
     public double getLastRenderTick() { return lastRenderTick; }
     public void setLastRenderTick(double v) { lastRenderTick = v; }
+    /** Last local heading of a fixed world compass reference (0=S).
+     * Helps the head counter-rotate instantly when the craft itself turns. */
+    public float getLastSubLevelReference() { return lastSubLevelReference; }
+    public boolean hasSubLevelReference() { return subLevelReferenceValid; }
+    public void recordSubLevelReference(float reference) {
+        lastSubLevelReference = reference;
+        subLevelReferenceValid = true;
+    }
+    public void clearSubLevelReference() { subLevelReferenceValid = false; }
     public boolean isInitialized() { return initialized; }
     public void setInitialized(boolean v) { initialized = v; }
 }

@@ -131,7 +131,11 @@ public final class AmbientPixelParticle extends TextureSheetParticle {
         double steering = 0.055 + cappedWind * 0.025 + turbulence * 0.018;
         this.xd += (targetX - this.xd) * steering;
         this.zd += (targetZ - this.zd) * steering;
-        if (underwater || wind <= 0.001f) { this.xd *= 0.65; this.zd *= 0.65; }
+        // Do not instantly freeze motes as they drift into shelter. The wind
+        // target is already zero there, so this just eases out their existing
+        // momentum. Submerged particles retain the old stronger damping.
+        if (underwater) { this.xd *= 0.65; this.zd *= 0.65; }
+        else if (wind <= 0.001f) { this.xd *= 0.88; this.zd *= 0.88; }
 
         // Slight positive lift plus two slow waves makes the mote feel suspended/picked up by moving
         // air. Strong wind lifts a little more, but the effect remains much smaller than horizontal drift.
@@ -140,7 +144,12 @@ public final class AmbientPixelParticle extends TextureSheetParticle {
             + Math.sin(this.age * 0.061 + this.phaseB) * 0.0016;
         double windLift = (0.0038 + cappedWind * 0.0036 + turbulence * 0.0015)
             * this.liftBias * liftMultiplier;
-        double targetY = underwater ? 0.0 : windLift + bob;
+        // Previously even fully sheltered motes received positive baseline
+        // lift, causing them to hang motionless in midair until they expired.
+        // Calm/sheltered air gradually replaces that lift with gentle settling;
+        // exposed motes at >= 0.35 wind retain their previous vertical motion.
+        double stillAir = underwater ? 0.0 : 1.0 - Mth.clamp(wind / 0.35f, 0.0f, 1.0f);
+        double targetY = underwater ? 0.0 : (windLift + bob) * (1.0 - stillAir) - 0.023 * stillAir;
         this.yd += (targetY - this.yd) * 0.105;
 
         this.move(this.xd, this.yd, this.zd);

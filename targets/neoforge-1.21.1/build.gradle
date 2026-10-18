@@ -3,6 +3,22 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.147'
     id 'idea'
 }
+// Optional Sable physics integration: compile against its API only, never bundle it.
+// Maven coordinates match the Sable API used by AeroWeather's tested integration.
+repositories {
+    exclusiveContent {
+        forRepository {
+            maven { name = 'ModrinthSable'; url = 'https://api.modrinth.com/maven' }
+        }
+        filter { includeGroup 'maven.modrinth' }
+    }
+    maven { name = 'SableCompanion'; url = 'https://maven.ryanhcode.dev/releases' }
+}
+dependencies {
+    compileOnly 'maven.modrinth:sable:U678xqle'
+    compileOnly 'dev.ryanhcode.sable-companion:sable-companion-common-1.21.1:1.6.0'
+}
+
 version = mod_version
 group = mod_group_id
 base { archivesName = "LivingWind-NeoForge-${minecraft_version}" }
@@ -54,6 +70,6 @@ sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 jar {
-    archiveFileName = "LivingWind-NeoForge-${minecraft_version}-${mod_version}.jar"
+    archiveFileName = "LivingWind-NeoForge-${minecraft_version}-v${mod_version}.jar"
 }
 idea { module { downloadSources = true; downloadJavadoc = true } }

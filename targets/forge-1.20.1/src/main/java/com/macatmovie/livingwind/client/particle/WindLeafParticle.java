@@ -22,7 +22,19 @@ import org.joml.Vector3f;
 
 /** A native Minecraft sheet particle, with continuously steered drifting and a 3-axis tumble. */
 public final class WindLeafParticle extends TextureSheetParticle {
+    // Needle clusters have less wind-catching surface than a broad leaf. Keep all
+    // ordinary broadleaf and grass fragment motion unmodified.
+    // Needles keep a smaller wind-catching surface than broad leaves, but still need
+    // enough downwind travel to read clearly during strong gusts. They now use 40% of
+    // broadleaf drift, faster descent, reduced meander, and quicker but tighter tumbling.
+    private static final double NEEDLE_WIND_DRIFT = 0.40;
+    private static final double NEEDLE_LIFT = 0.14;
+    private static final double NEEDLE_FALL_ACCELERATION = -0.0200;
+    private static final double NEEDLE_EDDY = 0.12;
+    private static final double NEEDLE_GROUND_HOP = 0.30;
+
     private final boolean grassFragment;
+    private final boolean coniferNeedles;
     private final float phase;
     private final float phase2;
     private final float wobble;
@@ -59,9 +71,11 @@ public final class WindLeafParticle extends TextureSheetParticle {
     }
 
     private WindLeafParticle(ClientLevel level, double x, double y, double z,
-                             double red, double green, double blue, SpriteSet spriteSet, boolean grassFragment) {
+                             double red, double green, double blue, SpriteSet spriteSet,
+                             boolean grassFragment, boolean coniferNeedles) {
         super(level, x, y, z);
         this.grassFragment = grassFragment;
+        this.coniferNeedles = coniferNeedles;
         this.pickSprite(spriteSet);
         this.quadSize = grassFragment ? 0.065f + random.nextFloat() * 0.045f : 0.105f + random.nextFloat() * 0.055f;
         this.lifetime = grassFragment ? 65 + random.nextInt(85) : 95 + random.nextInt(100);
@@ -85,7 +99,8 @@ public final class WindLeafParticle extends TextureSheetParticle {
             ? 0.0f : ClientWindState.altitudeStrength() * exposure;
         // Dedicated foliage fragments travel 30% farther with the wind; grass fragments keep their old feel.
         // Apply the boost here as well as to the steering target so newly emitted leaves do not start slower.
-        double foliageWindBoost = grassFragment ? 1.0 : 1.30;
+        double foliageWindBoost = (grassFragment ? 1.0 : 1.30)
+            * (coniferNeedles ? NEEDLE_WIND_DRIFT : 1.0);
         double initialDriftBoost = WindMath.visualDriftBoost(w) * foliageWindBoost;
         this.xd = w > 0.0f ? ClientWindState.altitudeWindX() * exposure * (0.085 + w * 0.025) * initialDriftBoost : 0.0;
         this.zd = w > 0.0f ? ClientWindState.altitudeWindZ() * exposure * (0.085 + w * 0.025) * initialDriftBoost : 0.0;
@@ -107,7 +122,8 @@ public final class WindLeafParticle extends TextureSheetParticle {
         float wind = Math.min(observedWind, 1.8f);
         float turbulence = underwater || wind <= 0.001f ? 0.0f : ClientWindState.turbulence();
         // This runtime multiplier also applies to existing player configs saved with windResponse=1.0.
-        double power = ClientWindConfig.LEAF_PARTICLE_WIND_RESPONSE.get() * windAffinity * (grassFragment ? 1.0 : 1.30);
+        double power = ClientWindConfig.LEAF_PARTICLE_WIND_RESPONSE.get() * windAffinity
+            * (grassFragment ? 1.0 : 1.30) * (coniferNeedles ? NEEDLE_WIND_DRIFT : 1.0);
         // Stronger high-end drift without changing the server weather or gust distributions.
         // 2.0 wind -> 1.60x motion; calm wind stays almost unchanged.
         double highWindBoost = WindMath.visualDriftBoost(observedWind);
@@ -117,19 +133,29 @@ public final class WindLeafParticle extends TextureSheetParticle {
         double angle = Math.toRadians(ClientWindState.directionDegrees());
         double dx = -Math.sin(angle), dz = Math.cos(angle);
         double perpendicularX = -dz, perpendicularZ = dx;
-        double meander = Math.sin(age * 0.075 + phase) * 0.13 + Math.sin(age * 0.031 + phase2) * 0.065;
-        meander *= wobble * (0.45 + turbulence * 0.60);
+        double meander = Math.sin(age * (coniferNeedles ? 0.12 : 0.075) + phase) * 0.13
+            + Math.sin(age * (coniferNeedles ? 0.055 : 0.031) + phase2) * 0.065;
+        meander *= wobble * (0.45 + turbulence * 0.60) * (coniferNeedles ? 0.45 : 1.0);
         double speedPulse = 0.93 + 0.12 * Math.sin(age * 0.05 + phase2);
         double tx = (dx + perpendicularX * meander) * targetSpeed * speedPulse;
         double tz = (dz + perpendicularZ * meander) * targetSpeed * speedPulse;
         this.xd += (tx - xd) * (0.045 + wind * 0.026);
         this.zd += (tz - zd) * (0.045 + wind * 0.026);
-        if (underwater || wind <= 0.001f) { this.xd *= 0.65; this.zd *= 0.65; }
+        // Airborne leaves must retain a little horizontal inertia when entering
+        // sheltered air, instead of appearing to hit an invisible wall. This
+        // adds no indoor wind force; the target velocity is still zero. Keep
+        // underwater damping untouched.
+        if (underwater) { this.xd *= 0.65; this.zd *= 0.65; }
+        else if (wind <= 0.001f) { this.xd *= 0.88; this.zd *= 0.88; }
 
         // Gravity plus drifting lift: calm leaves settle, gusts briefly suspend and loft them.
         double eddy = Math.sin(age * 0.088 + phase) * 0.008 + Math.sin(age * 0.037 + phase2) * 0.006;
+        if (coniferNeedles) eddy *= NEEDLE_EDDY;
         double lift = underwater ? 0.0 : Math.max(0, wind - 0.37) * 0.012 * (0.5 + turbulence);
-        this.yd += ((grassFragment ? -0.0100 : -0.0071) + lift + eddy - yd * 0.018) * 0.10;
+        if (coniferNeedles) lift *= NEEDLE_LIFT;
+        double falling = grassFragment ? -0.0100
+            : coniferNeedles ? NEEDLE_FALL_ACCELERATION : -0.0071;
+        this.yd += (falling + lift + eddy - yd * 0.018) * 0.10;
         this.yd = Mth.clamp(this.yd, -0.125, 0.10);
         this.move(this.xd, this.yd, this.zd);
 
@@ -137,19 +163,25 @@ public final class WindLeafParticle extends TextureSheetParticle {
             groundTicks++;
             this.xd *= 0.71;
             this.zd *= 0.71;
-            if (wind > 0.24f && random.nextFloat() < (0.025f + wind * 0.045f)) {
-                this.yd = 0.027 + random.nextDouble() * 0.045 + wind * 0.014;
-                this.xd += dx * 0.025 * wind;
-                this.zd += dz * 0.025 * wind;
+            if (wind > 0.24f && random.nextFloat() < (0.025f + wind * 0.045f)
+                    * (coniferNeedles ? NEEDLE_GROUND_HOP : 1.0)) {
+                this.yd = (0.027 + random.nextDouble() * 0.045 + wind * 0.014)
+                    * (coniferNeedles ? NEEDLE_GROUND_HOP : 1.0);
+                this.xd += dx * 0.025 * wind * (coniferNeedles ? NEEDLE_WIND_DRIFT : 1.0);
+                this.zd += dz * 0.025 * wind * (coniferNeedles ? NEEDLE_WIND_DRIFT : 1.0);
                 groundTicks = 0;
             }
             if (groundTicks > 28 + random.nextInt(15)) this.remove();
         } else groundTicks = 0;
 
         // Three independently changing axes give a turning, tumbling silhouette rather than a
-        // perfectly camera-facing speck. Angular speed gently increases with wind speed.
-        float motionSpin = (0.68f + wind * 0.58f) * (float)(0.7 + 0.3 * turbulence);
-        pitchAngle += spinX * motionSpin + (float)Math.sin(age * 0.06 + phase) * 0.017;
+        // perfectly camera-facing speck. Needles now tumble faster, but with a tighter sway so
+        // they feel heavier and less floaty than broad leaves.
+        float motionSpin = ((coniferNeedles ? 0.94f : 0.68f)
+            + wind * 0.58f * (coniferNeedles ? 0.40f : 1.0f))
+            * (float)(0.7 + 0.3 * turbulence);
+        pitchAngle += spinX * motionSpin + (float)Math.sin(age * (coniferNeedles ? 0.12 : 0.06) + phase)
+            * (coniferNeedles ? 0.009f : 0.017f);
         yawAngle += spinY * motionSpin;
         rollAngle += spinZ * motionSpin;
 
@@ -198,7 +230,17 @@ public final class WindLeafParticle extends TextureSheetParticle {
         public GrassProvider(SpriteSet sprites) { this.sprites = sprites; }
         @Override public Particle createParticle(SimpleParticleType type, ClientLevel level,
                 double x, double y, double z, double xs, double ys, double zs) {
-            return new WindLeafParticle(level, x, y, z, xs, ys, zs, sprites, true);
+            return new WindLeafParticle(level, x, y, z, xs, ys, zs, sprites, true, false);
+        }
+    }
+
+    /** Same sprite rendering as broadleaf particles, but heavier-feeling needle motion. */
+    public static final class NeedlesProvider implements ParticleProvider<SimpleParticleType> {
+        private final SpriteSet sprites;
+        public NeedlesProvider(SpriteSet sprites) { this.sprites = sprites; }
+        @Override public Particle createParticle(SimpleParticleType type, ClientLevel level,
+                double x, double y, double z, double xs, double ys, double zs) {
+            return new WindLeafParticle(level, x, y, z, xs, ys, zs, sprites, false, true);
         }
     }
 
@@ -207,7 +249,7 @@ public final class WindLeafParticle extends TextureSheetParticle {
         public Provider(SpriteSet sprites) { this.sprites = sprites; }
         @Override public Particle createParticle(SimpleParticleType type, ClientLevel level,
                 double x, double y, double z, double xs, double ys, double zs) {
-            return new WindLeafParticle(level, x, y, z, xs, ys, zs, sprites, false);
+            return new WindLeafParticle(level, x, y, z, xs, ys, zs, sprites, false, false);
         }
     }
 }

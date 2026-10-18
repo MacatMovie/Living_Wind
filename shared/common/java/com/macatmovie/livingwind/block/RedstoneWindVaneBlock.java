@@ -1,6 +1,7 @@
 package com.macatmovie.livingwind.block;
 
 import com.macatmovie.livingwind.api.WindApi;
+import com.macatmovie.livingwind.compat.InstrumentSpatialContext;
 import com.macatmovie.livingwind.block.entity.WindVaneBlockEntity;
 import com.macatmovie.livingwind.registry.ModBlockEntities;
 import com.macatmovie.livingwind.wind.WindMath;
@@ -88,11 +89,12 @@ public final class RedstoneWindVaneBlock extends Block implements EntityBlock {
         if (!(world instanceof ServerLevel level) || !(state.getBlock() instanceof RedstoneWindVaneBlock)) return;
         // Check direction 2x per second, not every tick or frame; no extra networking needed.
         if (level.getGameTime() % 10L != 0L) return;
-        var wind = WindApi.getAt(level, pos);
-        if (wind.strength() <= 0.025f || shelterExposure(level, pos) <= 0.05f) return;
+        var frame = InstrumentSpatialContext.at(level, pos, 0.0f);
+        var wind = WindApi.getAt(level, frame.worldPosition());
+        if (wind.strength() <= 0.025f || shelterExposure(level, frame.worldPosition()) <= 0.05f) return;
 
         // Living Wind's direction means wind TO; indicator points the same direction as its flow.
-        float bearing = WindMath.normalizeDegrees(wind.directionDegrees());
+        float bearing = frame.localBearing(wind.directionDegrees());
         int old = state.getValue(DIRECTION);
         int next = (Mth.floor((bearing + 22.5f) / 45.0f) & 7);
         if (next == old) return;

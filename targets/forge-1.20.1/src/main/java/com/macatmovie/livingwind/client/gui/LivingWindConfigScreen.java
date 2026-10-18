@@ -97,6 +97,12 @@ public final class LivingWindConfigScreen extends Screen {
         header("Windblown Leaves");
         bool("Enable Windblown Leaves", ClientWindConfig.LEAF_PARTICLES_ENABLED.get(), ClientWindConfig.LEAF_PARTICLES_ENABLED::set);
         bool("Texture-Derived Colors", ClientWindConfig.LEAF_TEXTURE_COLORS.get(), ClientWindConfig.LEAF_TEXTURE_COLORS::set);
+        nav("Leaf Particle Types (by Block)", () -> minecraft.setScreen(new LeafTypeMappingScreen(this,
+            ClientWindConfig.LEAF_TYPE_OVERRIDES.get(), values -> {
+                ClientWindConfig.LEAF_TYPE_OVERRIDES.set(values);
+                ClientWindConfig.LEAF_TYPE_OVERRIDES.save();
+            })));
+        number("Conifer Needle Density", ClientWindConfig.CONIFER_SPAWN_MULTIPLIER.get(), ClientWindConfig.CONIFER_SPAWN_MULTIPLIER::set, 0, 1);
         number("Leaf Density", ClientWindConfig.LEAF_PARTICLE_DENSITY.get(), ClientWindConfig.LEAF_PARTICLE_DENSITY::set, 0, 4);
         integer("Leaf Sampling Radius", ClientWindConfig.LEAF_PARTICLE_RADIUS.get(), ClientWindConfig.LEAF_PARTICLE_RADIUS::set, 8, 48);
         number("Leaf Wind Response", ClientWindConfig.LEAF_PARTICLE_WIND_RESPONSE.get(), ClientWindConfig.LEAF_PARTICLE_WIND_RESPONSE::set, 0, 3);

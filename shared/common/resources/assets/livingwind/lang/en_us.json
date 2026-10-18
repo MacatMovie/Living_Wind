@@ -125,5 +125,16 @@
   "livingwind.config.dynamicSurroundingsWindMode.tooltip": "Choose Living Wind Only (default), Dynamic Surroundings Only, or Both. Only Dynamic Surroundings wind loops are affected; other sounds remain enabled.",
   "livingwind.config.section.swingingLanterns": "Swinging Lanterns (Optional)",
   "livingwind.config.swingingLanternsEnabled": "Sync Swinging Lanterns With Wind",
-  "livingwind.config.swingingLanternsMultiplier": "Swinging Lanterns Wind Strength"
+  "livingwind.config.swingingLanternsMultiplier": "Swinging Lanterns Wind Strength",
+  "livingwind.config.section.aeronautics": "Create: Aeronautics Physics",
+  "livingwind.config.aeronauticsWindEnabled": "Wind Push on Contraptions",
+  "livingwind.config.aeronauticsWindMultiplier": "Contraption Wind Force Multiplier",
+  "livingwind.sable.force.name": "Living Wind",
+  "livingwind.sable.force.description": "Wind force acting on sails and balloon envelopes.",
+  "livingwind.config.section.highSeas": "Create: High Seas (Optional)",
+  "livingwind.config.highSeasWindEnabled": "Use Living Wind for High Seas Sails and Wind Vane",
+  "livingwind.config.section.interactiveFoliage": "Interactive Foliage (Optional)",
+  "livingwind.config.interactiveFoliageWind": "Sync Grass Sway With Living Wind",
+  "livingwind.config.windLeavesTypes": "Leaf Particle Types (by Block)",
+  "livingwind.config.windLeavesConiferDensity": "Conifer Needle Density"
 }

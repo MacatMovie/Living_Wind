@@ -9,6 +9,7 @@
     "ParticleMixin",
     "PrettyRainShrubMixin",
     "OfficialParticleRainWindMixin",
+    "AdvancedChimneysSmokeMixin",
     "AmbientSoundsWindCategoryMixin",
     "DynamicSurroundingsWindMixin",
     "FwaAnimationMixin",

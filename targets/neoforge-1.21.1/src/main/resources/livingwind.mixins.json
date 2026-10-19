@@ -8,6 +8,7 @@
     "ParticleMixin",
     "PrettyRainShrubMixin",
     "OfficialParticleRainWindMixin",
+    "AdvancedChimneysSmokeMixin",
     "AmbientSoundsWindCategoryMixin",
     "DynamicSurroundingsWindMixin",
     "EuphoriaUniformsMixin",

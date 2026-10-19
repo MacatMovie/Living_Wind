@@ -40,6 +40,7 @@ public final class ClientWindConfig {
     public static final ModConfigSpec.DoubleValue LEAF_PARTICLE_WIND_RESPONSE;
     public static final ModConfigSpec.BooleanValue PRETTY_RAIN_COMPAT;
     public static final ModConfigSpec.BooleanValue PARTICLE_RAIN_COMPAT;
+    public static final ModConfigSpec.BooleanValue ADVANCED_CHIMNEYS_WIND_COMPAT;
     public static final ModConfigSpec.DoubleValue PARTICLE_RAIN_WIND_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue PRETTY_RAIN_WIND_MULTIPLIER;
     public static final ModConfigSpec.EnumValue<FallingLeavesSource> FALLING_LEAVES_SOURCE;
@@ -267,6 +268,13 @@ public final class ClientWindConfig {
             )
             .translation("livingwind.config.particleRainCompat")
             .define("particleRainWind", true);
+        ADVANCED_CHIMNEYS_WIND_COMPAT = b.comment(
+                "Replace only Advanced Chimneys' outdoor smoke wind with Living Wind direction and strength.",
+                "Keeps the mod's original pipes, vents, pumps, chimney movement, collision and buoyancy.",
+                "The compatibility code is inactive when Advanced Chimneys is not installed."
+            )
+            .translation("livingwind.config.advancedChimneysWindCompat")
+            .define("advancedChimneysOutdoorSmokeWind", true);
         PARTICLE_RAIN_WIND_MULTIPLIER = b.comment(
                 "Strength of Living Wind sent into the official Particle Rain 4.x wind simulation.",
                 "The default (0.55) is calibrated for Particle Rain's cumulative wind physics.",

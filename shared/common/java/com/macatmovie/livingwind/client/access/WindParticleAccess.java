@@ -23,4 +23,9 @@ public interface WindParticleAccess {
     int livingwind$getLastShelteredY();
     int livingwind$getLastShelteredZ();
     void livingwind$rememberSheltered(int tick, int x, int y, int z);
+
+    // Reuse the identical exposure for X and Z of a single particle.move() call.
+    // Position-aware so a second move after collision gets its own measurement.
+    float livingwind$cachedExposure(int tick, double x, double y, double z);
+    void livingwind$storeExposure(int tick, double x, double y, double z, float exposure);
 }

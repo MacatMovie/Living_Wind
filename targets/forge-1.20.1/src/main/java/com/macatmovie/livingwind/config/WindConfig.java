@@ -27,6 +27,7 @@ public final class WindConfig {
     public static final ForgeConfigSpec.DoubleValue CREATE_WINDMILL_MIN_RPM_CHANGE;
     public static final ForgeConfigSpec.DoubleValue CREATE_WINDMILL_MAX_CHANGE_PER_UPDATE;
     public static final ForgeConfigSpec.IntValue CREATE_WINDMILL_UPDATE_TICKS;
+    public static final ForgeConfigSpec.BooleanValue SMALL_SHIPS_WIND_ENABLED;
 
     public enum NetherWindMode { DISABLED, REDUCED_GUSTY, NORMAL }
     public enum EndWindMode { DISABLED, VERY_WEAK, NORMAL }
@@ -164,6 +165,14 @@ public final class WindConfig {
         CREATE_WINDMILL_UPDATE_TICKS = b.comment("Minimum tick interval between kinetic network speed checks per bearing. 40 ticks = 2 seconds.")
             .translation("livingwind.config.createWindmillUpdateTicks")
             .defineInRange("updateTicks", 40, 20, 200);
+        b.pop();
+
+        b.comment("Optional Small Ships 2.0 wind integration. The ships retain their sailing physics and use Living Wind's direction/strength instead of independently generated wind.")
+            .translation("livingwind.config.section.smallShips")
+            .push("smallShips");
+        SMALL_SHIPS_WIND_ENABLED = b.comment("Use Living Wind as Small Ships' wind source when Small Ships is installed. Disable to restore its independent wind simulation.")
+            .translation("livingwind.config.smallShipsWindEnabled")
+            .define("enabled", true);
         b.pop();
 
         b.comment("Low-frequency server-to-client wind synchronization.")

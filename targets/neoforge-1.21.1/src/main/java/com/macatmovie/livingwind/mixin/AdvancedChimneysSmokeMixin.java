@@ -22,7 +22,6 @@ public abstract class AdvancedChimneysSmokeMixin {
     @Unique private boolean livingwind$hasSmoothedWind;
     @Unique private double livingwind$smoothedWindX;
     @Unique private double livingwind$smoothedWindZ;
-    @Unique private float livingwind$lastKnownExposure = -1.0f;
 
     /**
      * IMPORTANT: modify ACTUAL movement arguments, not just particle.xd/zd.
@@ -39,21 +38,11 @@ public abstract class AdvancedChimneysSmokeMixin {
         // Advanced Chimneys owns all motion while smoke is inside a vent/pipe.
         if (insideChimney || !AdvancedChimneysSmokeWind.active()) {
             livingwind$hasSmoothedWind = false;
-            livingwind$lastKnownExposure = -1.0f;
             return;
         }
 
         WindParticleAccess particle = (WindParticleAccess) this;
         float exposure = AdvancedChimneysSmokeWind.exposure(particle);
-        if (exposure >= 0.0f) {
-            livingwind$lastKnownExposure = exposure;
-        } else {
-            // Worker-thread cache misses must not read world blocks. Keep the
-            // last confirmed local exposure; for freshly spawned smoke, use the
-            // already-published player exposure until its own cell is surveyed.
-            exposure = livingwind$lastKnownExposure >= 0.0f
-                ? livingwind$lastKnownExposure : AdvancedChimneysSmokeWind.initialExposure();
-        }
 
         double desiredX = AdvancedChimneysSmokeWind.targetX(exposure);
         double desiredZ = AdvancedChimneysSmokeWind.targetZ(exposure);

@@ -55,7 +55,8 @@ public record WindSyncPayload(
     public static WindSyncPayload from(WindSnapshot s) {
         int flags = (s.windyPeriod() ? 1 : 0) | (s.stormFront() ? 2 : 0)
             | (WindConfig.CREATE_WINDMILLS_ENABLED.get() ? 4 : 0)
-            | (WindConfig.HIGH_SEAS_WIND_ENABLED.get() ? 8 : 0);
+            | (WindConfig.HIGH_SEAS_WIND_ENABLED.get() ? 8 : 0)
+            | (WindConfig.SMALL_SHIPS_WIND_ENABLED.get() ? 16 : 0);
         return new WindSyncPayload(
             s.strength(), s.directionDegrees(), s.turbulence(), s.directionInstability(),
             s.gustStrength(), flags, s.gameTime(),
@@ -70,6 +71,7 @@ public record WindSyncPayload(
     public boolean windyPeriod() { return (flags & 1) != 0; }
     public boolean stormFront() { return (flags & 2) != 0; }
     public boolean createWindmillsEnabled() { return (flags & 4) != 0; }
+    public boolean smallShipsWindEnabled() { return (flags & 16) != 0; }
     /** Server-authoritative toggle, carried in existing flags without changing the packet wire format. */
     public boolean highSeasWindEnabled() { return (flags & 8) != 0; }
 

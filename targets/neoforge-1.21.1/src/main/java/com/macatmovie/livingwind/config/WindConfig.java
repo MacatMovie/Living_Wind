@@ -27,6 +27,7 @@ public final class WindConfig {
     public static final ModConfigSpec.DoubleValue CREATE_WINDMILL_MIN_RPM_CHANGE;
     public static final ModConfigSpec.DoubleValue CREATE_WINDMILL_MAX_CHANGE_PER_UPDATE;
     public static final ModConfigSpec.IntValue CREATE_WINDMILL_UPDATE_TICKS;
+    public static final ModConfigSpec.BooleanValue SMALL_SHIPS_WIND_ENABLED;
 
     public static final ModConfigSpec.BooleanValue AERONAUTICS_WIND_ENABLED;
     public static final ModConfigSpec.DoubleValue AERONAUTICS_WIND_MULTIPLIER;
@@ -173,7 +174,7 @@ public final class WindConfig {
         b.comment("Optional Sable / Create Aeronautics vehicle wind physics. Server-authoritative; has no effect without Sable installed.")
             .translation("livingwind.config.section.aeronautics")
             .push("aeronautics");
-        AERONAUTICS_WIND_ENABLED = b.comment("Let wind push assembled Sable contraptions with Aeronautics balloon envelopes or Create sail blocks. Disabled automatically when Sable is absent or AeroWeather supplies physics.")
+        AERONAUTICS_WIND_ENABLED = b.comment("Let wind push assembled Sable contraptions with Aeronautics envelopes, Create sails, or tagged balloon blocks (including Coasters: Simulated). Disabled automatically when Sable is absent or AeroWeather supplies physics.")
             .translation("livingwind.config.aeronauticsWindEnabled")
             .define("enabled", true);
         AERONAUTICS_WIND_MULTIPLIER = b.comment("Wind force multiplier on eligible airships/sail-bearing contraptions. 1.0x is the balanced, playtested baseline (formerly 0.30x); 0 disables the force.")
@@ -189,6 +190,14 @@ public final class WindConfig {
                 "Turn off to restore High Seas' original wind simulation and behavior."
             )
             .translation("livingwind.config.highSeasWindEnabled")
+            .define("enabled", true);
+        b.pop();
+
+        b.comment("Optional Small Ships 2.0 wind integration. The ships retain their sailing physics and use Living Wind's direction/strength instead of independently generated wind.")
+            .translation("livingwind.config.section.smallShips")
+            .push("smallShips");
+        SMALL_SHIPS_WIND_ENABLED = b.comment("Use Living Wind as Small Ships' wind source when Small Ships is installed. Disable to restore its independent wind simulation.")
+            .translation("livingwind.config.smallShipsWindEnabled")
             .define("enabled", true);
         b.pop();
 

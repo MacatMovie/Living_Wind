@@ -22,13 +22,19 @@ import net.minecraft.network.chat.Component;
 public final class LivingWindConfigScreen extends Screen {
     private static final int TOP = 32, BOTTOM = 36, ROW_H = 26;
     private final Screen parent;
+    private final String page;
     private final List<Row> rows = new ArrayList<>();
     private double scroll;
     private int contentHeight;
 
     public LivingWindConfigScreen(Screen parent) {
+        this(parent, "main");
+    }
+
+    private LivingWindConfigScreen(Screen parent, String page) {
         super(Component.literal("Living Wind Configuration"));
         this.parent = parent;
+        this.page = page;
     }
 
     @Override protected void init() { rebuild(); }
@@ -54,7 +60,7 @@ public final class LivingWindConfigScreen extends Screen {
         bool("Gust Clusters", WindConfig.GUST_CLUSTERS_ENABLED.get(), WindConfig.GUST_CLUSTERS_ENABLED::set);
         number("Gust Cluster Chance Multiplier", WindConfig.GUST_CLUSTER_CHANCE_MULTIPLIER.get(), WindConfig.GUST_CLUSTER_CHANCE_MULTIPLIER::set, 0, 3);
 
-        header("Create Windmills (Optional)");
+        header("Create Windmills");
         bool("Wind-Driven Create Windmills", WindConfig.CREATE_WINDMILLS_ENABLED.get(), WindConfig.CREATE_WINDMILLS_ENABLED::set);
         number("Create Minimum Speed Multiplier", WindConfig.CREATE_WINDMILL_MIN_MULTIPLIER.get(), WindConfig.CREATE_WINDMILL_MIN_MULTIPLIER::set, 0.01, 2.0);
         number("Create Maximum Speed Multiplier", WindConfig.CREATE_WINDMILL_MAX_MULTIPLIER.get(), WindConfig.CREATE_WINDMILL_MAX_MULTIPLIER::set, 0.50, 4.0);
@@ -62,6 +68,9 @@ public final class LivingWindConfigScreen extends Screen {
         number("Create Min RPM Difference", WindConfig.CREATE_WINDMILL_MIN_RPM_CHANGE.get(), WindConfig.CREATE_WINDMILL_MIN_RPM_CHANGE::set, 0.25, 8.0);
         number("Create Max RPM Change per Update", WindConfig.CREATE_WINDMILL_MAX_CHANGE_PER_UPDATE.get(), WindConfig.CREATE_WINDMILL_MAX_CHANGE_PER_UPDATE::set, 0.50, 32.0);
         integer("Create Refresh Interval (Ticks)", WindConfig.CREATE_WINDMILL_UPDATE_TICKS.get(), WindConfig.CREATE_WINDMILL_UPDATE_TICKS::set, 20, 200);
+
+        header("Small Ships 2.0");
+        bool("Use Living Wind for Small Ships", WindConfig.SMALL_SHIPS_WIND_ENABLED.get(), WindConfig.SMALL_SHIPS_WIND_ENABLED::set);
 
         header("Dimension Wind");
         enumNetherWindMode();
@@ -94,6 +103,12 @@ public final class LivingWindConfigScreen extends Screen {
         integer("Minimum Lifetime Ticks", ClientWindConfig.AMBIENT_LIFETIME_MIN_TICKS.get(), ClientWindConfig.AMBIENT_LIFETIME_MIN_TICKS::set, 20, 600);
         integer("Maximum Lifetime Ticks", ClientWindConfig.AMBIENT_LIFETIME_MAX_TICKS.get(), ClientWindConfig.AMBIENT_LIFETIME_MAX_TICKS::set, 20, 600);
 
+        header("Wind Streaks");
+        bool("Enable Wind Streaks", ClientWindConfig.WIND_STREAKS_ENABLED.get(), ClientWindConfig.WIND_STREAKS_ENABLED::set);
+        number("Streak Density", ClientWindConfig.WIND_STREAKS_DENSITY.get(), ClientWindConfig.WIND_STREAKS_DENSITY::set, 0, 4);
+        number("Minimum Wind Strength", ClientWindConfig.WIND_STREAKS_MIN_STRENGTH.get(), ClientWindConfig.WIND_STREAKS_MIN_STRENGTH::set, 0, 2.5);
+        integer("Maximum Active Streaks", ClientWindConfig.WIND_STREAKS_MAX_ACTIVE.get(), ClientWindConfig.WIND_STREAKS_MAX_ACTIVE::set, 0, 80);
+
         header("Windblown Leaves");
         bool("Enable Windblown Leaves", ClientWindConfig.LEAF_PARTICLES_ENABLED.get(), ClientWindConfig.LEAF_PARTICLES_ENABLED::set);
         bool("Texture-Derived Colors", ClientWindConfig.LEAF_TEXTURE_COLORS.get(), ClientWindConfig.LEAF_TEXTURE_COLORS::set);
@@ -115,26 +130,36 @@ public final class LivingWindConfigScreen extends Screen {
         enumAudioMode();
         enumDynamicSurroundingsAudioMode();
 
-        header("Compatibility");
+        header("Pretty Rain");
         bool("Pretty Rain Wind", ClientWindConfig.PRETTY_RAIN_COMPAT.get(), ClientWindConfig.PRETTY_RAIN_COMPAT::set);
         number("Pretty Rain Wind Strength", ClientWindConfig.PRETTY_RAIN_WIND_MULTIPLIER.get(), ClientWindConfig.PRETTY_RAIN_WIND_MULTIPLIER::set, 0, 2);
+        header("Particle Rain");
         bool("Particle Rain v4 Wind", ClientWindConfig.PARTICLE_RAIN_COMPAT.get(), ClientWindConfig.PARTICLE_RAIN_COMPAT::set);
         number("Particle Rain v4 Strength", ClientWindConfig.PARTICLE_RAIN_WIND_MULTIPLIER.get(), ClientWindConfig.PARTICLE_RAIN_WIND_MULTIPLIER::set, 0, 2);
+        header("Particular");
         enumFallingLeavesSource();
         bool("Particular Leaf Density Follows Wind", ClientWindConfig.PARTICULAR_FALLING_LEAVES_COMPAT.get(), ClientWindConfig.PARTICULAR_FALLING_LEAVES_COMPAT::set);
         number("Particular Min Leaf Density", ClientWindConfig.PARTICULAR_LEAF_MIN_DENSITY.get(), ClientWindConfig.PARTICULAR_LEAF_MIN_DENSITY::set, 0, 4);
         number("Particular Max Leaf Density", ClientWindConfig.PARTICULAR_LEAF_MAX_DENSITY.get(), ClientWindConfig.PARTICULAR_LEAF_MAX_DENSITY::set, 0, 8);
         number("Particular Full-Wind Strength", ClientWindConfig.PARTICULAR_LEAF_FULL_WIND_STRENGTH.get(), ClientWindConfig.PARTICULAR_LEAF_FULL_WIND_STRENGTH::set, .1, 3);
 
-        header("Fancy World Animations (Optional)");
+        header("Advanced Chimneys");
+        bool("Outdoor Smoke Wind", ClientWindConfig.ADVANCED_CHIMNEYS_WIND_COMPAT.get(), ClientWindConfig.ADVANCED_CHIMNEYS_WIND_COMPAT::set);
+        header("Supplementaries");
         bool("Supplementaries Wind Vane", ClientWindConfig.SUPPLEMENTARIES_WIND_VANE_COMPAT.get(), ClientWindConfig.SUPPLEMENTARIES_WIND_VANE_COMPAT::set);
+        header("Swinging Lanterns");
         bool("Swinging Lanterns Wind", ClientWindConfig.SWINGING_LANTERNS_COMPAT.get(), ClientWindConfig.SWINGING_LANTERNS_COMPAT::set);
         number("Swinging Lanterns Wind Strength", ClientWindConfig.SWINGING_LANTERNS_WIND_MULTIPLIER.get(), ClientWindConfig.SWINGING_LANTERNS_WIND_MULTIPLIER::set, 0, 3);
+        header("Fancy World Animations");
         bool("FWA Wind-Driven Swings", ClientWindConfig.FWA_WIND_COMPAT.get(), ClientWindConfig.FWA_WIND_COMPAT::set);
         slider("FWA Wind Impact", ClientWindConfig.FWA_WIND_IMPACT.get(), ClientWindConfig.FWA_WIND_IMPACT::set, 0, 12);
         number("FWA Chain Wind", ClientWindConfig.FWA_CHAIN_INTENSITY.get(), ClientWindConfig.FWA_CHAIN_INTENSITY::set, 0, 3);
         number("FWA Lantern Wind", ClientWindConfig.FWA_LANTERN_INTENSITY.get(), ClientWindConfig.FWA_LANTERN_INTENSITY::set, 0, 3);
         number("FWA Bell Wind", ClientWindConfig.FWA_BELL_INTENSITY.get(), ClientWindConfig.FWA_BELL_INTENSITY::set, 0, 3);
+
+
+        header("Interactive Foliage");
+        bool("Interactive Foliage Wind", ClientWindConfig.INTERACTIVE_FOLIAGE_WIND_COMPAT.get(), ClientWindConfig.INTERACTIVE_FOLIAGE_WIND_COMPAT::set);
 
         header("Exposure & Debug");
         bool("Reduce Wind Indoors", ClientWindConfig.REDUCE_WIND_INDOORS.get(), ClientWindConfig.REDUCE_WIND_INDOORS::set);
@@ -143,6 +168,29 @@ public final class LivingWindConfigScreen extends Screen {
         bool("Low-Cost Shelter Checks", ClientWindConfig.SHELTER_LOW_COST.get(), ClientWindConfig.SHELTER_LOW_COST::set);
         enumDebugHudMode();
 
+        // Organize compatibility controls into individual pages without changing config paths.
+        final java.util.Set<String> integrations = java.util.Set.of(
+            "Pretty Rain", "Particle Rain", "Particular", "Advanced Chimneys",
+            "Supplementaries", "Swinging Lanterns", "Fancy World Animations",
+            "Interactive Foliage");
+        String section = "";
+        java.util.List<Row> hidden = new ArrayList<>();
+        for (Row row : rows) {
+            if (row.header) section = row.label.getString();
+            boolean isIntegration = integrations.contains(section);
+            boolean keep = "main".equals(page) ? !isIntegration :
+                "compatibility".equals(page) ? false : page.equals(section);
+            if (!keep) hidden.add(row);
+        }
+        for (Row row : hidden) { rows.remove(row); if (row.widget != null) removeWidget(row.widget); }
+        if ("main".equals(page)) {
+            nav("Compatibility", () -> { commitAndSave(); minecraft.setScreen(new LivingWindConfigScreen(this, "compatibility")); });
+        } else if ("compatibility".equals(page)) {
+            header("Compatibility");
+            for (String integration : new String[] {"Pretty Rain", "Particle Rain", "Advanced Chimneys", "Particular", "Fancy World Animations", "Swinging Lanterns", "Interactive Foliage", "Supplementaries"}) {
+                nav(integration, () -> minecraft.setScreen(new LivingWindConfigScreen(this, integration)));
+            }
+        }
         contentHeight = rows.size() * ROW_H;
         scroll = clamp(scroll);
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> saveAndClose()).bounds(width / 2 - 75, height - 28, 150, 20).build());
@@ -269,8 +317,9 @@ public final class LivingWindConfigScreen extends Screen {
         Button b=Button.builder(Component.literal("Edit..."), x->action.run()).bounds(0,0,180,20).build(); rows.add(Row.value(Component.literal(label),b,null)); addRenderableWidget(b);
     }
 
-    private void saveAndClose(){ for(Row r:rows) if(r.commit!=null) r.commit.run(); ParticleWindFilter.refresh(); ClientWindConfig.WIND_AUDIO_VOLUME.save(); WindConfig.NETHER_WIND_MODE.save(); minecraft.setScreen(parent); }
-    @Override public void onClose(){ minecraft.setScreen(parent); }
+    private void commitAndSave(){ for(Row r:rows) if(r.commit!=null) r.commit.run(); ParticleWindFilter.refresh(); ClientWindConfig.WIND_AUDIO_VOLUME.save(); WindConfig.NETHER_WIND_MODE.save(); }
+    private void saveAndClose(){ commitAndSave(); minecraft.setScreen(parent); }
+    @Override public void onClose(){ commitAndSave(); minecraft.setScreen(parent); }
     @Override public boolean mouseScrolled(double mx,double my,double delta){ if(my>=TOP&&my<height-BOTTOM&&maxScroll()>0){scroll=clamp(scroll-delta*ROW_H);updatePositions();return true;} return super.mouseScrolled(mx,my,delta); }
     @Override public void render(GuiGraphics g,int mx,int my,float pt){ renderBackground(g); for(int i=0;i<rows.size();i++){Row r=rows.get(i);int y=rowY(i);if(y+ROW_H<=TOP||y>=height-BOTTOM)continue;if(r.header)g.drawCenteredString(font,r.label,width/2,y+8,0xFFFF55);else g.drawString(font,r.label,width/2-rowWidth()/2+8,y+8,0xFFFFFF,false);} super.render(g,mx,my,pt); g.drawCenteredString(font,title,width/2,14,0xFFFFFF); drawBar(g); }
     private void updatePositions(){int rw=rowWidth(), left=width/2-rw/2, cw=Math.min(210,Math.max(130,rw/3)), cx=left+rw-cw-8, bottom=height-BOTTOM;for(int i=0;i<rows.size();i++){Row r=rows.get(i);if(r.widget==null)continue;int y=rowY(i);r.widget.setX(cx);r.widget.setY(y+2);r.widget.setWidth(cw);boolean vis=y>=TOP&&y+ROW_H<=bottom;r.widget.visible=vis;r.widget.active=vis;}}

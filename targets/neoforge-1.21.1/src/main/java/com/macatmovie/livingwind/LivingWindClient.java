@@ -7,6 +7,7 @@ import com.macatmovie.livingwind.client.WindFoliageColorCache;
 import com.macatmovie.livingwind.client.WindDebugHud;
 import com.macatmovie.livingwind.client.gui.LivingWindConfigurationSectionScreen;
 import com.macatmovie.livingwind.client.particle.AmbientPixelParticle;
+import com.macatmovie.livingwind.client.particle.WindStreakParticle;
 import com.macatmovie.livingwind.client.particle.WindLeafParticle;
 import com.macatmovie.livingwind.registry.ModParticles;
 import com.macatmovie.livingwind.registry.ModBlockEntities;
@@ -55,6 +56,7 @@ public final class LivingWindClient {
 
     private static void registerParticleProviders(RegisterParticleProvidersEvent event) {
         event.registerSpriteSet(ModParticles.AMBIENT_PIXEL.get(), AmbientPixelParticle.Provider::new);
+        event.registerSpriteSet(ModParticles.WIND_STREAK.get(), WindStreakParticle.Provider::new);
         event.registerSpriteSet(ModParticles.WIND_LEAF.get(), WindLeafParticle.Provider::new);
         event.registerSpriteSet(ModParticles.WIND_NEEDLES.get(), WindLeafParticle.NeedlesProvider::new);
         event.registerSpriteSet(ModParticles.WIND_GRASS.get(), WindLeafParticle.GrassProvider::new);

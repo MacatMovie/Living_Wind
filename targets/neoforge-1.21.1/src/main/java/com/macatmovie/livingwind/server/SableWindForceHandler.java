@@ -53,6 +53,10 @@ public final class SableWindForceHandler implements SubLevelObserver {
             ResourceLocation.fromNamespaceAndPath("aeronautics", "envelope"));
     private static final TagKey<Block> SAILS = TagKey.create(Registries.BLOCK,
             ResourceLocation.fromNamespaceAndPath("create", "windmill_sails"));
+    // Separate Sable balloon sublevels (e.g. Create: Coasters Simulated). Data-driven
+    // so addons can opt in with their own balloon blocks without a hard dependency.
+    private static final TagKey<Block> BALLOONS = TagKey.create(Registries.BLOCK,
+            ResourceLocation.fromNamespaceAndPath("livingwind", "sable_balloon_wind_catchers"));
 
     // Wind pressure was calibrated on Sable contraptions. Map Living Wind's
     // 0..2 strength into the 0..100 reference range before squaring the wind.
@@ -119,7 +123,8 @@ public final class SableWindForceHandler implements SubLevelObserver {
 
         if (oldState.isAir() == newState.isAir()
                 && oldState.is(ENVELOPES) == newState.is(ENVELOPES)
-                && oldState.is(SAILS) == newState.is(SAILS)) return;
+                && oldState.is(SAILS) == newState.is(SAILS)
+                && oldState.is(BALLOONS) == newState.is(BALLOONS)) return;
 
         ServerSubLevelContainer container = SubLevelContainer.getContainer(level);
         if (container == null) return;
@@ -259,8 +264,12 @@ public final class SableWindForceHandler implements SubLevelObserver {
                     if (state.isAir()) continue;
                     total++;
                     boolean envelope = state.is(ENVELOPES);
-                    if (envelope || state.is(SAILS)) {
-                        if (envelope) envelopeCount++;
+                    boolean balloon = state.is(BALLOONS);
+                    if (envelope || balloon || state.is(SAILS)) {
+                        // Both envelope and tethered balloon blocks should be
+                        // wind-eligible when marine sail physics is installed.
+                        // Sail-only contraptions remain excluded.
+                        if (envelope || balloon) envelopeCount++;
                         catchers++;
                         xSum += x + 0.5;
                         ySum += y + 0.5;

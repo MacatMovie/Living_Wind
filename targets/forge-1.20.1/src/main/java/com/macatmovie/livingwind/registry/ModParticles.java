@@ -24,6 +24,9 @@ public final class ModParticles {
     public static final RegistryObject<SimpleParticleType> WIND_GRASS =
         PARTICLES.register("wind_grass", () -> new SimpleParticleType(false));
 
+    public static final RegistryObject<SimpleParticleType> WIND_STREAK =
+        PARTICLES.register("wind_streak", () -> new SimpleParticleType(false));
+
     private ModParticles() {}
 
     public static void register(IEventBus modBus) {

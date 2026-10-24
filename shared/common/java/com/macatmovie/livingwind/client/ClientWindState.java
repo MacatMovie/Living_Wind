@@ -27,6 +27,7 @@ public final class ClientWindState {
     private static volatile boolean stormFront;
     private static volatile boolean createWindmillsEnabled;
     private static volatile boolean highSeasWindEnabled;
+    private static volatile boolean smallShipsWindEnabled;
     private static volatile boolean hasServerState;
 
     private ClientWindState() {}
@@ -40,6 +41,7 @@ public final class ClientWindState {
         windyPeriod = payload.windyPeriod();
         stormFront = payload.stormFront();
         createWindmillsEnabled = payload.createWindmillsEnabled();
+        smallShipsWindEnabled = payload.smallShipsWindEnabled();
 
         altitudeScalingEnabled = payload.altitudeScalingEnabled();
         altitudeMinY = payload.altitudeMinY();
@@ -66,7 +68,7 @@ public final class ClientWindState {
         turbulence = directionInstability = gustStrength = 0.0f;
         exposure = 1.0f;
         altitudeMultiplier = 1.0f;
-        windyPeriod = stormFront = createWindmillsEnabled = highSeasWindEnabled = false;
+        windyPeriod = stormFront = createWindmillsEnabled = highSeasWindEnabled = smallShipsWindEnabled = false;
         hasServerState = false;
     }
 
@@ -97,6 +99,7 @@ public final class ClientWindState {
     public static boolean createWindmillsEnabled() { return hasServerState && createWindmillsEnabled; }
     public static boolean hasServerState() { return hasServerState; }
     public static boolean highSeasWindEnabled() { return hasServerState && highSeasWindEnabled; }
+    public static boolean smallShipsWindEnabled() { return hasServerState && smallShipsWindEnabled; }
     // Maintained as a platform-neutral no-op in Forge. NeoForge's synced flag is
     // consumed through a small method in its platform-specific networking code.
     public static void setHighSeasWindEnabled(boolean enabled) { highSeasWindEnabled = enabled; }

@@ -42,15 +42,21 @@ public final class WindNetworking {
         context.setPacketHandled(true);
     }
 
+    private static WindSnapshot withLocalWeather(ServerPlayer player, WindSnapshot snapshot) {
+        if (net.minecraftforge.fml.ModList.get().isLoaded("simpleclouds")) {
+            return com.macatmovie.livingwind.compat.SimpleCloudsWindCompat.atPlayer(player, snapshot);
+        }
+        return snapshot;
+    }
+
     public static void sendToLevel(ServerLevel level, WindSnapshot snapshot) {
-        WindSyncPayload payload = WindSyncPayload.from(snapshot);
         for (ServerPlayer player : level.players()) {
-            sendToPlayer(player, payload);
+            sendToPlayer(player, snapshot);
         }
     }
 
     public static void sendToPlayer(ServerPlayer player, WindSnapshot snapshot) {
-        sendToPlayer(player, WindSyncPayload.from(snapshot));
+        sendToPlayer(player, WindSyncPayload.from(withLocalWeather(player, snapshot)));
     }
 
     private static void sendToPlayer(ServerPlayer player, WindSyncPayload payload) {

@@ -31,6 +31,10 @@ public final class ClientWindConfig {
     public static final ModConfigSpec.DoubleValue AMBIENT_SWAY_MULTIPLIER;
     public static final ModConfigSpec.IntValue AMBIENT_LIFETIME_MIN_TICKS;
     public static final ModConfigSpec.IntValue AMBIENT_LIFETIME_MAX_TICKS;
+    public static final ModConfigSpec.BooleanValue WIND_STREAKS_ENABLED;
+    public static final ModConfigSpec.DoubleValue WIND_STREAKS_DENSITY;
+    public static final ModConfigSpec.DoubleValue WIND_STREAKS_MIN_STRENGTH;
+    public static final ModConfigSpec.IntValue WIND_STREAKS_MAX_ACTIVE;
     public static final ModConfigSpec.BooleanValue LEAF_PARTICLES_ENABLED;
     public static final ModConfigSpec.DoubleValue LEAF_PARTICLE_DENSITY;
     public static final ModConfigSpec.BooleanValue LEAF_TEXTURE_COLORS;
@@ -206,6 +210,24 @@ public final class ClientWindConfig {
             .defineInRange("maximumLifetimeTicks", 180, 20, 600);
         b.pop();
 
+        // A self-contained native rendering effect, independent of mod compatibility.
+        b.comment("Subtle Breath-of-the-Wild-inspired visual wind lines; fully client-side.")
+            .translation("livingwind.config.section.windStreaks")
+            .push("windStreaks");
+        WIND_STREAKS_ENABLED = b.comment("Draw soft, slightly curved wind streaks without any entities or trail particles.")
+            .translation("livingwind.config.windStreaksEnabled")
+            .define("enabled", true);
+        WIND_STREAKS_DENSITY = b.comment("Wind streak spawn density. 0 disables spawns without disabling other wind effects.")
+            .translation("livingwind.config.windStreaksDensity")
+            .defineInRange("density", 1.0, 0.0, 4.0);
+        WIND_STREAKS_MIN_STRENGTH = b.comment("Minimum local wind strength before wind streaks start appearing.")
+            .translation("livingwind.config.windStreaksMinStrength")
+            .defineInRange("minimumWindStrength", 0.40, 0.0, 2.5);
+        WIND_STREAKS_MAX_ACTIVE = b.comment("Hard limit on simultaneously active native wind streaks (8 vertices each).")
+            .translation("livingwind.config.windStreaksMaxActive")
+            .defineInRange("maxActive", 24, 0, 80);
+        b.pop();
+
         b.comment("Canopy-born, visibly tumbling native Minecraft leaf particles.")
             .translation("livingwind.config.section.windLeaves")
             .push("windLeaves");
@@ -244,9 +266,10 @@ public final class ClientWindConfig {
             .defineInRange("windResponse", 1.0, 0.0, 3.0);
         b.pop();
 
-        b.comment("Optional compatibility with other visual weather/effects mods.")
+        b.comment("Optional integrations with other mods.")
             .translation("livingwind.config.section.compatibility")
             .push("compatibility");
+        b.comment("Pretty Rain integration.").push("prettyRain");
         PRETTY_RAIN_COMPAT = b.comment(
                 "Make Pretty Rain's rain and desert dust use Living Wind's synchronized direction and strength.",
                 "Rolling shrubs/tumbleweeds use Living Wind direction only and keep Pretty Rain's own speed.",
@@ -261,6 +284,8 @@ public final class ClientWindConfig {
             )
             .translation("livingwind.config.prettyRainWindMultiplier")
             .defineInRange("prettyRainWindMultiplier", 0.55, 0.0, 2.0);
+        b.pop();
+        b.comment("Particle Rain integration.").push("particleRain");
         PARTICLE_RAIN_COMPAT = b.comment(
                 "Use Living Wind's direction and strength in the official Particle Rain 4.x wind system.",
                 "Controls rain, snow, dust and other weather particles; Particle Rain retains its own physics.",
@@ -268,13 +293,6 @@ public final class ClientWindConfig {
             )
             .translation("livingwind.config.particleRainCompat")
             .define("particleRainWind", true);
-        ADVANCED_CHIMNEYS_WIND_COMPAT = b.comment(
-                "Replace only Advanced Chimneys' outdoor smoke wind with Living Wind direction and strength.",
-                "Keeps the mod's original pipes, vents, pumps, chimney movement, collision and buoyancy.",
-                "The compatibility code is inactive when Advanced Chimneys is not installed."
-            )
-            .translation("livingwind.config.advancedChimneysWindCompat")
-            .define("advancedChimneysOutdoorSmokeWind", true);
         PARTICLE_RAIN_WIND_MULTIPLIER = b.comment(
                 "Strength of Living Wind sent into the official Particle Rain 4.x wind simulation.",
                 "The default (0.55) is calibrated for Particle Rain's cumulative wind physics.",
@@ -282,6 +300,17 @@ public final class ClientWindConfig {
             )
             .translation("livingwind.config.particleRainWindMultiplier")
             .defineInRange("particleRainWindMultiplier", 0.55, 0.0, 2.0);
+        b.pop();
+        b.comment("Advanced Chimneys integration.").push("advancedChimneys");
+        ADVANCED_CHIMNEYS_WIND_COMPAT = b.comment(
+                "Replace only Advanced Chimneys' outdoor smoke wind with Living Wind direction and strength.",
+                "Keeps the mod's original pipes, vents, pumps, chimney movement, collision and buoyancy.",
+                "The compatibility code is inactive when Advanced Chimneys is not installed."
+            )
+            .translation("livingwind.config.advancedChimneysWindCompat")
+            .define("advancedChimneysOutdoorSmokeWind", true);
+        b.pop();
+        b.comment("Particular integration.").push("particular");
         FALLING_LEAVES_SOURCE = b.comment(
                 "Choose which mod generates falling tree-leaf particles when Particular is installed.",
                 "LIVING_WIND (default): only Living Wind. PARTICULAR: only Particular. BOTH: both.",
@@ -312,6 +341,78 @@ public final class ClientWindConfig {
             )
             .translation("livingwind.config.particularLeavesFullWind")
             .defineInRange("particularLeavesFullWindStrength", 1.20, 0.10, 3.0);
+        b.pop();
+        b.comment("Experimental Complementary Reimagined + Euphoria 1.10 shader bridge.")
+            .translation("livingwind.config.section.shaderBridge")
+            .push("shaderBridge");
+        SHADER_AUTO_PATCH = b.comment(
+                "Automatically patch existing compatible Euphoria shader ZIPs and folders at startup.",
+                "Keeps original shader backups in config/livingwind/shader-backups.",
+                "The original Complementary shader ZIP is never patched. Restart after changing this option."
+            )
+            .translation("livingwind.config.shaderAutoPatch")
+            .define("autoPatchEuphoriaShaders", true);
+        SHADER_BRIDGE_ENABLED = b.comment(
+                "Publish synchronized Living Wind strength, direction, gusts and animation time to Euphoria shaders.",
+                "With compatible Euphoria shader packs, Living Wind patches the foliage code automatically."
+            )
+            .translation("livingwind.config.shaderBridgeEnabled")
+            .define("enabled", true);
+        SHADER_WAVING_MULTIPLIER = b.comment(
+                "Amplitude multiplier for the optional Living Wind shader waving integration.",
+                "Set to 0 to make the shader calm when Living Wind is connected."
+            )
+            .translation("livingwind.config.shaderWavingMultiplier")
+            .defineInRange("wavingMultiplier", 1.0, 0.0, 3.0);
+        b.pop();
+
+        b.comment("Fancy World Animations wind-responsive chains, lanterns and bells.")
+            .translation("livingwind.config.section.fwa")
+            .push("fancyWorldAnimations");
+        FWA_WIND_COMPAT = b.comment("Link FWA swing animations to Living Wind strength, direction, gusts and shelter. Requires Fancy World Animations.")
+            .translation("livingwind.config.fwaEnabled")
+            .define("enabled", true);
+        FWA_WIND_IMPACT = b.comment("Overall impact of Living Wind on Fancy World Animations swinging objects. 0 = original FWA motion; 6 = visibly stronger wind-driven swings. Individual chain, lantern and bell intensities are additional multipliers.")
+            .translation("livingwind.config.fwaWindImpact")
+            .defineInRange("windImpact", 6.0, 0.0, 12.0);
+        FWA_CHAIN_INTENSITY = b.comment("Strength of wind-driven chain movement; zero keeps chains mostly still while Living Wind is active.")
+            .translation("livingwind.config.fwaChainIntensity")
+            .defineInRange("chainIntensity", 1.0, 0.0, 3.0);
+        FWA_LANTERN_INTENSITY = b.comment("Strength of wind-driven lantern movement.")
+            .translation("livingwind.config.fwaLanternIntensity")
+            .defineInRange("lanternIntensity", 1.0, 0.0, 3.0);
+        FWA_BELL_INTENSITY = b.comment("Strength of wind-driven idle bell rocking (does not affect bell ringing).")
+            .translation("livingwind.config.fwaBellIntensity")
+            .defineInRange("bellIntensity", 1.0, 0.0, 3.0);
+        b.pop();
+
+        b.comment("Swinging Lanterns 2.0.4 integration; its physics, collisions and Create motion remain native.")
+            .translation("livingwind.config.section.swingingLanterns")
+            .push("swingingLanterns");
+        SWINGING_LANTERNS_COMPAT = b.comment("Use Living Wind direction and strength to drive Swinging Lanterns' existing wind input. Requires Swinging Lanterns; no extra forces are applied to its physics solver.")
+            .translation("livingwind.config.swingingLanternsEnabled")
+            .define("enabled", true);
+        SWINGING_LANTERNS_WIND_MULTIPLIER = b.comment("Multiplier for Living Wind's sway and downwind lean of Swinging Lanterns. Light winds give gentle swings; stronger winds tilt lanterns downwind. Set to 0 for calm wind, or turn integration off for stock behavior.")
+            .translation("livingwind.config.swingingLanternsMultiplier")
+            .defineInRange("windMultiplier", 1.0, 0.0, 3.0);
+        b.pop();
+
+        b.comment("Interactive Foliage 2.2.0 GPU grass-sway integration.")
+            .translation("livingwind.config.section.interactiveFoliage")
+            .push("interactiveFoliage");
+        INTERACTIVE_FOLIAGE_WIND_COMPAT = b.comment("Use Living Wind direction and strength for Interactive Foliage's grass waving. Enable Weather Wind in Interactive Foliage. Its entity interactions are unchanged.")
+            .translation("livingwind.config.interactiveFoliageWind")
+            .define("enabled", true);
+        b.pop();
+
+        b.comment("Supplementaries wind vane animation compatibility.")
+            .translation("livingwind.config.section.supplementaries")
+            .push("supplementaries");
+        SUPPLEMENTARIES_WIND_VANE_COMPAT = b.comment("Steer Supplementaries wind vanes using Living Wind's synchronized wind direction and local shelter. The original Supplementaries redstone behavior is unchanged.")
+            .translation("livingwind.config.supplementariesVane")
+            .define("windVane", true);
+        b.pop();
+
         b.pop();
 
         b.comment("Client-side wind ambience. Uses the final altitude/shelter-adjusted wind strength.")
@@ -360,77 +461,6 @@ public final class ClientWindConfig {
         SHELTER_LOW_COST = b.comment("Reduce shelter block probes per tick; updates around particles may take a little longer.")
             .translation("livingwind.config.shelterLowCost")
             .define("shelterLowCost", false);
-        b.pop();
-
-        b.comment("Experimental optional Complementary Reimagined + Euphoria 1.10 shader bridge.")
-            .translation("livingwind.config.section.shaderBridge")
-            .push("shaderBridge");
-        SHADER_AUTO_PATCH = b.comment(
-                "Automatically patch existing compatible Euphoria shader ZIPs and folders at startup.",
-                "Keeps original shader backups in config/livingwind/shader-backups.",
-                "The original Complementary shader ZIP is never patched. Restart after changing this option."
-            )
-            .translation("livingwind.config.shaderAutoPatch")
-            .define("autoPatchEuphoriaShaders", true);
-        SHADER_BRIDGE_ENABLED = b.comment(
-                "Publish synchronized Living Wind strength, direction, gusts and animation time to Euphoria shaders.",
-                "With compatible Euphoria shader packs, Living Wind patches the foliage code automatically."
-            )
-            .translation("livingwind.config.shaderBridgeEnabled")
-            .define("enabled", true);
-        SHADER_WAVING_MULTIPLIER = b.comment(
-                "Amplitude multiplier for the optional Living Wind shader waving integration.",
-                "Set to 0 to make the shader calm when Living Wind is connected."
-            )
-            .translation("livingwind.config.shaderWavingMultiplier")
-            .defineInRange("wavingMultiplier", 1.0, 0.0, 3.0);
-        b.pop();
-
-        b.comment("Optional Fancy World Animations wind-responsive chains, lanterns and bells.")
-            .translation("livingwind.config.section.fwa")
-            .push("fancyWorldAnimations");
-        FWA_WIND_COMPAT = b.comment("Link FWA swing animations to Living Wind strength, direction, gusts and shelter. FWA is optional.")
-            .translation("livingwind.config.fwaEnabled")
-            .define("enabled", true);
-        FWA_WIND_IMPACT = b.comment("Overall impact of Living Wind on Fancy World Animations swinging objects. 0 = original FWA motion; 6 = visibly stronger wind-driven swings. Individual chain, lantern and bell intensities are additional multipliers.")
-            .translation("livingwind.config.fwaWindImpact")
-            .defineInRange("windImpact", 6.0, 0.0, 12.0);
-        FWA_CHAIN_INTENSITY = b.comment("Strength of wind-driven chain movement; zero keeps chains mostly still while Living Wind is active.")
-            .translation("livingwind.config.fwaChainIntensity")
-            .defineInRange("chainIntensity", 1.0, 0.0, 3.0);
-        FWA_LANTERN_INTENSITY = b.comment("Strength of wind-driven lantern movement.")
-            .translation("livingwind.config.fwaLanternIntensity")
-            .defineInRange("lanternIntensity", 1.0, 0.0, 3.0);
-        FWA_BELL_INTENSITY = b.comment("Strength of wind-driven idle bell rocking (does not affect bell ringing).")
-            .translation("livingwind.config.fwaBellIntensity")
-            .defineInRange("bellIntensity", 1.0, 0.0, 3.0);
-        b.pop();
-
-        b.comment("Optional Swinging Lanterns 2.0.4 integration; its physics, collisions and Create motion remain native.")
-            .translation("livingwind.config.section.swingingLanterns")
-            .push("swingingLanterns");
-        SWINGING_LANTERNS_COMPAT = b.comment("Use Living Wind direction and strength to drive Swinging Lanterns' existing wind input. Requires Swinging Lanterns; no extra forces are applied to its physics solver.")
-            .translation("livingwind.config.swingingLanternsEnabled")
-            .define("enabled", true);
-        SWINGING_LANTERNS_WIND_MULTIPLIER = b.comment("Multiplier for Living Wind's sway and downwind lean of Swinging Lanterns. Light winds give gentle swings; stronger winds tilt lanterns downwind. Set to 0 for calm wind, or turn integration off for stock behavior.")
-            .translation("livingwind.config.swingingLanternsMultiplier")
-            .defineInRange("windMultiplier", 1.0, 0.0, 3.0);
-        b.pop();
-
-        b.comment("Optional Interactive Foliage 2.2.0 GPU grass-sway integration.")
-            .translation("livingwind.config.section.interactiveFoliage")
-            .push("interactiveFoliage");
-        INTERACTIVE_FOLIAGE_WIND_COMPAT = b.comment("Use Living Wind direction and strength for Interactive Foliage's grass waving. Enable Weather Wind in Interactive Foliage. Its entity interactions are unchanged.")
-            .translation("livingwind.config.interactiveFoliageWind")
-            .define("enabled", true);
-        b.pop();
-
-        b.comment("Optional Supplementaries wind vane animation compatibility.")
-            .translation("livingwind.config.section.supplementaries")
-            .push("supplementaries");
-        SUPPLEMENTARIES_WIND_VANE_COMPAT = b.comment("Steer Supplementaries wind vanes using Living Wind's synchronized wind direction and local shelter. The original Supplementaries redstone behavior is unchanged.")
-            .translation("livingwind.config.supplementariesVane")
-            .define("windVane", true);
         b.pop();
 
         b.comment("Developer/testing readouts.")

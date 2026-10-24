@@ -13,11 +13,19 @@ public final class BuiltinParticleClassBlacklist {
     private static final Set<String> IMMUNE_CLASSES = Set.of(
         // Dynamic Surroundings creates these directly, often using vanilla particle types.
         // Never blacklist vanilla END_ROD globally: only DS fireflies are exempt.
-        // Water foam, surface ripples and waterfall mist have their own fluid motion.
+        // Water foam and surface ripples have their own fluid motion. New DS
+        // waterfall mist is wind-responsive and now uses Living Wind's movement.
         "org.orecruncher.dsurround.effects.particles.FireflyParticle",
         "org.orecruncher.dsurround.effects.particles.WaterFoam",
         "org.orecruncher.dsurround.effects.particles.WaterRippleParticle",
-        "org.orecruncher.dsurround.effects.particles.WaterfallMist",
+        // Spawn's fly and dragonfly instances have scripted steering/animation.
+        // Protect them even if an optional spawning path bypasses the vanilla
+        // ParticleEngine particle-ID capture. Never exclude the whole Spawn package:
+        // its environmental smoke and sand should still follow Living Wind.
+        "com.ninni.spawn.client.particles.FlyParticle",
+        "com.ninni.spawn.client.particles.WanderingFlyParticle",
+        "com.ninni.spawn.client.particles.OrbitingFlyParticle",
+        "com.ninni.spawn.client.particles.DragonflyParticle",
         // Coastal Waves' directly-added particle handler has no normal particle ID.
         "waves.client.particle.WaveParticleHandler",
         // Visuality 3.x uses a custom particle registry, so ordinary IDs are insufficient.

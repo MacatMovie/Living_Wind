@@ -12,6 +12,7 @@
     "AdvancedChimneysSmokeMixin",
     "AmbientSoundsWindCategoryMixin",
     "DynamicSurroundingsWindMixin",
+    "DynamicSurroundingsParticleWindMixin",
     "FwaAnimationMixin",
     "FwaChainMixin",
     "FwaLanternMixin",
@@ -22,12 +23,14 @@
     "SupplementariesWindVaneMixin",
     "InteractiveFoliageWindMixin",
     "InteractiveFoliageSwayShaderMixin",
-    "InteractiveFoliageLegacyShaderMixin"
+    "InteractiveFoliageLegacyShaderMixin",
+    "SmallShipsClientWindManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   },
   "mixins": [
-    "CreateWindmillBearingMixin"
+    "CreateWindmillBearingMixin",
+    "SmallShipsWindManagerMixin"
   ]
 }

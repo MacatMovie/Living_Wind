@@ -21,11 +21,13 @@ import org.jetbrains.annotations.Nullable;
 public final class ParticleWindFilter {
     private static final ResourceLocation AMBIENT_PIXEL_ID = LivingWind.id("ambient_pixel");
     private static final ResourceLocation WIND_LEAF_ID = LivingWind.id("wind_leaf");
+    private static final ResourceLocation WIND_STREAK_ID = LivingWind.id("wind_streak");
     private static final ResourceLocation WIND_NEEDLES_ID = LivingWind.id("wind_needles");
     private static final ResourceLocation WIND_GRASS_ID = LivingWind.id("wind_grass");
     private static final ResourceLocation VANILLA_BLOCK_FRAGMENT_ID = ResourceLocation.fromNamespaceAndPath("minecraft", "block");
     private static final TagKey<net.minecraft.core.particles.ParticleType<?>> WIND_IMMUNE_TAG =
         TagKey.create(Registries.PARTICLE_TYPE, LivingWind.id("wind_immune"));
+    private static final ResourceLocation ATMOSPHERICS_STREAK_ID = ResourceLocation.fromNamespaceAndPath("atmospherics", "wind_streak");
     private static final ResourceLocation PRETTY_RAIN_RAIN_ID = ResourceLocation.fromNamespaceAndPath("particlerain", "rain");
     private static final ResourceLocation PRETTY_RAIN_DUST_ID = ResourceLocation.fromNamespaceAndPath("particlerain", "dust");
     private static final ResourceLocation PRETTY_RAIN_DUST_MOTE_ID = ResourceLocation.fromNamespaceAndPath("particlerain", "dust_mote");
@@ -110,6 +112,15 @@ public final class ParticleWindFilter {
         responseMultipliers = Map.copyOf(nextResponses);
     }
 
+    /**
+     * Lets Living Wind supply the ONLY particle wind when Dynamic Surroundings is installed.
+     * Disabling Living Wind's generic particle wind restores DS's own wind normally.
+     * This is separate from the user's Dynamic Surroundings *audio* selection.
+     */
+    public static boolean controlsDynamicSurroundingsParticleWind() {
+        return enabled && ClientWindState.hasServerState();
+    }
+
     public static boolean shouldAffect(@Nullable ResourceLocation id, @Nullable Particle particle) {
         if (!enabled) return false;
         // A few visual-effect mods (including Visuality 3.x) use their own particle
@@ -133,8 +144,14 @@ public final class ParticleWindFilter {
         // Every native foliage particle steers itself, including the new
         // conifer needles. Generic wind here would add a SECOND full-strength
         // push on top of the specially tuned needle movement.
-        if (AMBIENT_PIXEL_ID.equals(id) || WIND_LEAF_ID.equals(id) || WIND_NEEDLES_ID.equals(id) || WIND_GRASS_ID.equals(id) || usesPrettyRainVelocityCompat(id) || usesPrettyRainDirectionOnlyCompat(id)) return false;
+        if (usesAtmosphericsStreakCompat() && ATMOSPHERICS_STREAK_ID.equals(id)) return false;
+        if (WIND_STREAK_ID.equals(id) || AMBIENT_PIXEL_ID.equals(id) || WIND_LEAF_ID.equals(id) || WIND_NEEDLES_ID.equals(id) || WIND_GRASS_ID.equals(id) || usesPrettyRainVelocityCompat(id) || usesPrettyRainDirectionOnlyCompat(id)) return false;
         return passesConfiguredFilter(id);
+    }
+
+    /** Route Atmospherics streaks through direction-only compatibility instead of adding wind force twice. */
+    public static boolean usesAtmosphericsStreakCompat() {
+        return enabled && passesConfiguredFilter(ATMOSPHERICS_STREAK_ID);
     }
 
     public static boolean usesPrettyRainVelocityCompat(@Nullable ResourceLocation id) {
@@ -159,7 +176,9 @@ public final class ParticleWindFilter {
      */
     public static void orientPrettyRainDirectionOnly(WindParticleAccess access) {
         if (ParticleWaterProtection.isSubmerged(access.livingwind$getPositionX(),
-                access.livingwind$getPositionY(), access.livingwind$getPositionZ())) return;
+                access.livingwind$getPositionY(), access.livingwind$getPositionZ())
+            || WindShelter.weatherExposureAt(access.livingwind$getPositionX(),
+                access.livingwind$getPositionY(), access.livingwind$getPositionZ()) <= 0.01f) return;
         double originalX = access.livingwind$getVelocityX();
         double originalZ = access.livingwind$getVelocityZ();
         double speed = Math.hypot(originalX, originalZ);
@@ -240,11 +259,15 @@ public final class ParticleWindFilter {
     }
 
     public static double prettyRainVelocityX(double x, double y, double z) {
-        return cardinalSafe(ClientWindState.altitudeWindX() * WindShelter.weatherExposureAt(x, y, z) * prettyRainWindMultiplier, ClientWindState.directionDegrees(), true);
+        float exposure = WindShelter.weatherExposureAt(x, y, z);
+        if (exposure <= 0.0f) return 0.0; // No fake cardinal-axis motion in sheltered caves.
+        return cardinalSafe(ClientWindState.altitudeWindX() * exposure * prettyRainWindMultiplier, ClientWindState.directionDegrees(), true);
     }
 
     public static double prettyRainVelocityZ(double x, double y, double z) {
-        return cardinalSafe(ClientWindState.altitudeWindZ() * WindShelter.weatherExposureAt(x, y, z) * prettyRainWindMultiplier, ClientWindState.directionDegrees(), false);
+        float exposure = WindShelter.weatherExposureAt(x, y, z);
+        if (exposure <= 0.0f) return 0.0;
+        return cardinalSafe(ClientWindState.altitudeWindZ() * exposure * prettyRainWindMultiplier, ClientWindState.directionDegrees(), false);
     }
 
     private static double cardinalSafe(double velocity, float direction, boolean xAxis) {
@@ -259,7 +282,7 @@ public final class ParticleWindFilter {
     public static float offsetX(@Nullable ResourceLocation id, @Nullable Particle particle) {
         if (!shouldAffect(id, particle) || ClientWindState.altitudeStrength() < 0.001f
                 || isSubmerged(particle)) return 0.0f;
-        float localExposure = exposure(particle);
+        float localExposure = exposure(particle, id);
         return ClientWindState.altitudeWindX() * localExposure * force
             * response(id) * customResponse(id) * highWindVisualMultiplier();
     }
@@ -267,7 +290,7 @@ public final class ParticleWindFilter {
     public static float offsetZ(@Nullable ResourceLocation id, @Nullable Particle particle) {
         if (!shouldAffect(id, particle) || ClientWindState.altitudeStrength() < 0.001f
                 || isSubmerged(particle)) return 0.0f;
-        return ClientWindState.altitudeWindZ() * exposure(particle) * force
+        return ClientWindState.altitudeWindZ() * exposure(particle, id) * force
             * response(id) * customResponse(id) * highWindVisualMultiplier();
     }
 
@@ -281,26 +304,30 @@ public final class ParticleWindFilter {
      * A linear force made the old defaults too visually similar across moderate and storm wind.
      * This curve keeps light wind restrained but lets the upper end become progressively obvious.
      */
-    private static float exposure(@Nullable Particle particle) {
+    private static float exposure(@Nullable Particle particle, @Nullable ResourceLocation id) {
         if (!(particle instanceof WindParticleAccess access)) return 1.0f;
         final double x = access.livingwind$getPositionX();
         final double y = access.livingwind$getPositionY();
         final double z = access.livingwind$getPositionZ();
+        final int now = WindShelter.shelterTick();
+        float memo = access.livingwind$cachedExposure(now, x, y, z);
+        if (!Float.isNaN(memo)) return memo;
         // A cache MISS is not evidence of wind. Keep a particle's last CONFIRMED
         // sheltered state through a tiny gap as it crosses exact-block cache cells.
         // Direct measurements of full outdoor exposure always take effect immediately.
         final float measured = WindShelter.trackedParticleExposureAt(x, y, z);
-        final int now = WindShelter.shelterTick();
         final int bx = Mth.floor(x), by = Mth.floor(y), bz = Mth.floor(z);
         if (measured >= 0.0f && measured < 0.20f) {
             access.livingwind$rememberSheltered(now, bx, by, bz);
         }
-        return ParticleShelterContinuity.resolve(
+        float effective = ParticleShelterContinuity.resolve(
             measured, now, access.livingwind$getLastShelteredTick(),
             bx, by, bz,
             access.livingwind$getLastShelteredX(),
             access.livingwind$getLastShelteredY(),
             access.livingwind$getLastShelteredZ());
+        access.livingwind$storeExposure(now, x, y, z, effective);
+        return effective;
     }
 
     private static float highWindVisualMultiplier() {

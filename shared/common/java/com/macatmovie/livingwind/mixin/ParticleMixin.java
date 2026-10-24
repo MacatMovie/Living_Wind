@@ -27,6 +27,9 @@ public abstract class ParticleMixin implements WindParticleAccess {
     @Unique private int livingwind$lastShelteredX;
     @Unique private int livingwind$lastShelteredY;
     @Unique private int livingwind$lastShelteredZ;
+    @Unique private int livingwind$exposureTick = -1;
+    @Unique private double livingwind$exposureX, livingwind$exposureY, livingwind$exposureZ;
+    @Unique private float livingwind$exposureValue;
 
     @Override
     public void livingwind$setParticleType(@Nullable ResourceLocation id) { livingwind$particleType = id; }
@@ -66,6 +69,22 @@ public abstract class ParticleMixin implements WindParticleAccess {
         livingwind$lastShelteredX = x;
         livingwind$lastShelteredY = y;
         livingwind$lastShelteredZ = z;
+    }
+
+    @Override
+    public float livingwind$cachedExposure(int tick, double px, double py, double pz) {
+        return livingwind$exposureTick == tick && livingwind$exposureX == px
+            && livingwind$exposureY == py && livingwind$exposureZ == pz
+            ? livingwind$exposureValue : Float.NaN;
+    }
+
+    @Override
+    public void livingwind$storeExposure(int tick, double px, double py, double pz, float exposure) {
+        livingwind$exposureTick = tick;
+        livingwind$exposureX = px;
+        livingwind$exposureY = py;
+        livingwind$exposureZ = pz;
+        livingwind$exposureValue = exposure;
     }
 
     @Inject(method = "tick", at = @At("HEAD"))

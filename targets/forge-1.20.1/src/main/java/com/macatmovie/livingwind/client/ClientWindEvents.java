@@ -30,6 +30,7 @@ public final class ClientWindEvents {
         if (level == null || player == null) {
             WindAudioManager.reset();
             WindLeafSpawner.reset();
+            WindStreakSpawner.reset();
             ClientWindState.reset();
             WindShelter.clear();
             ParticleWaterProtection.clear();
@@ -66,6 +67,7 @@ public final class ClientWindEvents {
 
         if (!mc.isPaused()) {
             AmbientWindParticles.tick(level, player);
+            WindStreakSpawner.tick(level, player);
             WindLeafSpawner.tick(level, player);
             WindAudioManager.tick(level, player);
         }

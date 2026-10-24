@@ -191,11 +191,41 @@ public final class BuiltinParticleBlacklist {
         "explosiveenhancement:blank_shockwave",
         "explosiveenhancement:underwaterblastwave",
         "explosiveenhancement:underwatersparks",
+        // Scorched Guns: bullet holes are stationary block-surface decals, not airborne particles.
+        "scguns:bullet_hole",
         // Footprint Particle: fixed decals, snow kick-up and water interaction effects.
         "footprintparticle:footprint",
         "footprintparticle:watermark",
         "footprintparticle:snowdust",
         "footprintparticle:watersplash",
+        // Spawn (Ninni): insects and creature-driven effects have their own AI-like
+        // movement, model animation, or positions tied to an entity/block surface.
+        // Generic wind offsets make flies, dragonflies, and pond skaters jitter.
+        // The pond skaters were added in Spawn 4.0.8 for 1.21.1; missing IDs on
+        // Forge 1.20.1 are harmless. Keep sand/sea/volcano smoke wind-responsive.
+        "spawn:fly",
+        "spawn:wandering_fly",
+        "spawn:orbiting_fly",
+        "spawn:spring_dragonfly",
+        "spawn:summer_dragonfly",
+        "spawn:fall_dragonfly",
+        "spawn:winter_dragonfly",
+        "spawn:clear_pond_skater",
+        "spawn:murky_pond_skater",
+        // Animal-attached glows, eggs, footsteps, and effect animations.
+        "spawn:angler_fish_lantern_glow",
+        "spawn:tuna_egg",
+        "spawn:iguana_sweep",
+        "spawn:barnacle_puff",
+        "spawn:booby_footstep",
+        "spawn:blue_footed_boot_footstep",
+        "spawn:angry",
+        "spawn:frenzy",
+        "spawn:stink",
+        // Source-defined flash/blast sequences should keep their intended paths.
+        "spawn:volcano_flare",
+        "spawn:sun_flare",
+        "spawn:sun_blast",
         // Visuality: crystal sparkles, slime drops, mob hit fragments, and water rings.
         // Some Visuality versions register these in a separate custom registry.
         // Matching particle classes are also protected by BuiltinParticleClassBlacklist.

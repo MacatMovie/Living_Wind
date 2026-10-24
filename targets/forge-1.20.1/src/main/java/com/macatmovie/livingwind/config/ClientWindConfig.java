@@ -31,6 +31,10 @@ public final class ClientWindConfig {
     public static final ForgeConfigSpec.DoubleValue AMBIENT_SWAY_MULTIPLIER;
     public static final ForgeConfigSpec.IntValue AMBIENT_LIFETIME_MIN_TICKS;
     public static final ForgeConfigSpec.IntValue AMBIENT_LIFETIME_MAX_TICKS;
+    public static final ForgeConfigSpec.BooleanValue WIND_STREAKS_ENABLED;
+    public static final ForgeConfigSpec.DoubleValue WIND_STREAKS_DENSITY;
+    public static final ForgeConfigSpec.DoubleValue WIND_STREAKS_MIN_STRENGTH;
+    public static final ForgeConfigSpec.IntValue WIND_STREAKS_MAX_ACTIVE;
     public static final ForgeConfigSpec.BooleanValue LEAF_PARTICLES_ENABLED;
     public static final ForgeConfigSpec.DoubleValue LEAF_PARTICLE_DENSITY;
     public static final ForgeConfigSpec.BooleanValue LEAF_TEXTURE_COLORS;
@@ -199,6 +203,24 @@ public final class ClientWindConfig {
             )
             .translation("livingwind.config.ambientLifetimeMax")
             .defineInRange("maximumLifetimeTicks", 180, 20, 600);
+        b.pop();
+
+        // A self-contained native rendering effect, independent of mod compatibility.
+        b.comment("Subtle Breath-of-the-Wild-inspired visual wind lines; fully client-side.")
+            .translation("livingwind.config.section.windStreaks")
+            .push("windStreaks");
+        WIND_STREAKS_ENABLED = b.comment("Draw soft, slightly curved wind streaks without any entities or trail particles.")
+            .translation("livingwind.config.windStreaksEnabled")
+            .define("enabled", true);
+        WIND_STREAKS_DENSITY = b.comment("Wind streak spawn density. 0 disables spawns without disabling other wind effects.")
+            .translation("livingwind.config.windStreaksDensity")
+            .defineInRange("density", 1.0, 0.0, 4.0);
+        WIND_STREAKS_MIN_STRENGTH = b.comment("Minimum local wind strength before wind streaks start appearing.")
+            .translation("livingwind.config.windStreaksMinStrength")
+            .defineInRange("minimumWindStrength", 0.40, 0.0, 2.5);
+        WIND_STREAKS_MAX_ACTIVE = b.comment("Hard limit on simultaneously active native wind streaks (8 vertices each).")
+            .translation("livingwind.config.windStreaksMaxActive")
+            .defineInRange("maxActive", 24, 0, 80);
         b.pop();
 
         b.comment("Canopy-born, visibly tumbling native Minecraft leaf particles.")

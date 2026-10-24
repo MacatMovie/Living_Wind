@@ -4,6 +4,10 @@ plugins {
     id 'net.neoforged.moddev.legacyforge' version '2.0.147'
 }
 
+repositories {
+    maven { name = 'SimpleCloudsOfficial'; url = 'https://maven.nonamecrackers2.dev/releases' }
+}
+
 version = mod_version
 group = mod_group_id
 base { archivesName = "LivingWind-Forge-${minecraft_version}" }
@@ -39,6 +43,7 @@ legacyForge {
 }
 
 dependencies {
+    compileOnly 'nonamecrackers2:simplecloudsapi-forge:1.4-1.20.1'
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
 

@@ -41,9 +41,6 @@ import java.lang.reflect.Method;
 public abstract class CreateWindmillBearingMixin {
     // Server tick runs on the logical server thread. Primitive flags avoid
     // static initializers in a Mixin target class.
-    @Unique private static boolean livingwind$tickSeen;
-    @Unique private static int livingwind$updateLogs;
-    @Unique private static boolean livingwind$sampleLogged;
     @Unique private static boolean livingwind$inspectionWarned;
 
     @Shadow(remap = false) protected float lastGeneratedSpeed;
@@ -91,11 +88,6 @@ public abstract class CreateWindmillBearingMixin {
         BlockEntity tile = (BlockEntity) (Object) this;
         if (!(tile.getLevel() instanceof ServerLevel server)) return;
 
-        if (!livingwind$tickSeen) {
-            livingwind$tickSeen = true;
-            LoggerFactory.getLogger("Living Wind / Create").info("Create windmill bridge ACTIVE: server bearing tick hook reached at {}", tile.getBlockPos());
-        }
-
         long tick = server.getGameTime();
         int interval = Math.max(20, WindConfig.CREATE_WINDMILL_UPDATE_TICKS.get());
         BlockPos pos = tile.getBlockPos();
@@ -140,12 +132,6 @@ public abstract class CreateWindmillBearingMixin {
             WindConfig.CREATE_WINDMILL_MAX_MULTIPLIER.get().floatValue(),
             WindConfig.CREATE_WINDMILL_RPM_STEP.get().floatValue());
         float current = livingwind$appliedRpm > 0f ? livingwind$appliedRpm : magnitude;
-        if (!livingwind$sampleLogged) {
-            livingwind$sampleLogged = true;
-            LoggerFactory.getLogger("Living Wind / Create").info(
-                "Create windmill sample at {}: vanilla={}, wind={}, target={}, current={}",
-                pos, magnitude, wind, wanted, current);
-        }
         float next = CreateWindmillScaling.approachRpm(current, wanted,
             WindConfig.CREATE_WINDMILL_MAX_CHANGE_PER_UPDATE.get().floatValue(),
             WindConfig.CREATE_WINDMILL_MIN_RPM_CHANGE.get().floatValue());
@@ -154,11 +140,6 @@ public abstract class CreateWindmillBearingMixin {
         livingwind$appliedRpm = next;
         updateGeneratedRotation(); // Actual kinetic RPM + stress + client packet.
 
-        // Bounded diagnostics for this experimental integration: at most six
-        // lines per session, even with hundreds of bearings in a large factory.
-        if (livingwind$updateLogs++ < 6)
-            LoggerFactory.getLogger("Living Wind / Create").info("Create windmill RPM updated at {}: vanilla={}, wind={}, target={}, applied={}",
-                pos, magnitude, wind, wanted, next);
     }
 
     @Unique

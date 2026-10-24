@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "simulatedcoasters:red_balloon",
+      "required": false
+    },
+    {
+      "id": "#coasters_extras:balloons",
+      "required": false
+    }
+  ]
+}

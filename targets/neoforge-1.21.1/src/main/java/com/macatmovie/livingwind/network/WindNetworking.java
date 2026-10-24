@@ -23,14 +23,20 @@ public final class WindNetworking {
         );
     }
 
+    private static WindSnapshot withLocalWeather(ServerPlayer player, WindSnapshot snapshot) {
+        if (net.neoforged.fml.ModList.get().isLoaded("simpleclouds")) {
+            return com.macatmovie.livingwind.compat.SimpleCloudsWindCompat.atPlayer(player, snapshot);
+        }
+        return snapshot;
+    }
+
     public static void sendToLevel(ServerLevel level, WindSnapshot snapshot) {
-        WindSyncPayload payload = WindSyncPayload.from(snapshot);
         for (ServerPlayer player : level.players()) {
-            PacketDistributor.sendToPlayer(player, payload);
+            sendToPlayer(player, snapshot);
         }
     }
 
     public static void sendToPlayer(ServerPlayer player, WindSnapshot snapshot) {
-        PacketDistributor.sendToPlayer(player, WindSyncPayload.from(snapshot));
+        PacketDistributor.sendToPlayer(player, WindSyncPayload.from(withLocalWeather(player, snapshot)));
     }
 }

@@ -2,6 +2,7 @@ package com.macatmovie.livingwind.client;
 
 import com.macatmovie.livingwind.client.access.WindParticleAccess;
 import com.macatmovie.livingwind.config.ClientWindConfig;
+import net.minecraft.util.Mth;
 
 /**
  * Outdoor wind vector for Advanced Chimneys smoke. Called ONLY through its
@@ -23,21 +24,32 @@ public final class AdvancedChimneysSmokeWind {
     }
 
     /**
-     * -1 means the async-safe shelter survey has not yet published this cell.
-     * The smoke mixin remembers its last reading and uses the player's current
-     * local exposure only on the very first miss, so newly emitted campfire
-     * smoke doesn't inherit Advanced Chimneys' unrelated wind while queued.
+     * Resolve shelter at the SMOKE particle's own position, never at the player.
+     * Uses the same bounded, worker-safe shelter cache and short grace period
+     * as Living Wind's normal particles. Unknown cells default to outdoor wind,
+     * not the observing player's indoor/outdoor state. A recently measured
+     * sheltered particle briefly keeps that protection across cache misses.
+     * No new world/block queries or cache budgets are introduced here.
      */
     public static float exposure(WindParticleAccess particle) {
         double x = particle.livingwind$getPositionX();
         double y = particle.livingwind$getPositionY();
         double z = particle.livingwind$getPositionZ();
         if (ParticleWaterProtection.isSubmerged(x, y, z)) return 0.0f;
-        return WindShelter.trackedParticleExposureAt(x, y, z);
-    }
 
-    public static float initialExposure() {
-        return ClientWindState.exposure();
+        float measured = WindShelter.trackedParticleExposureAt(x, y, z);
+        int now = WindShelter.shelterTick();
+        int bx = Mth.floor(x), by = Mth.floor(y), bz = Mth.floor(z);
+        if (measured >= 0.0f && measured < 0.20f) {
+            particle.livingwind$rememberSheltered(now, bx, by, bz);
+        }
+        float effective = ParticleShelterContinuity.resolve(
+            measured, now, particle.livingwind$getLastShelteredTick(),
+            bx, by, bz,
+            particle.livingwind$getLastShelteredX(),
+            particle.livingwind$getLastShelteredY(),
+            particle.livingwind$getLastShelteredZ());
+        return effective;
     }
 
     public static double targetX(float exposure) {

@@ -1,5 +1,7 @@
 package com.macatmovie.livingwind.server;
 
+import com.macatmovie.livingwind.api.WindApi;
+
 import com.macatmovie.livingwind.network.WindNetworking;
 import com.macatmovie.livingwind.wind.WindSnapshot;
 import com.mojang.brigadier.arguments.FloatArgumentType;
@@ -144,7 +146,7 @@ public final class ServerWindCommands {
     private static int status(CommandSourceStack source) {
         ServerLevel level = source.getLevel();
         WindSavedData data = WindSavedData.get(level);
-        WindSnapshot snapshot = data.snapshot(level.getGameTime());
+        WindSnapshot snapshot = WindApi.get(level);
         long manualTicks = data.commandManualWindyTicksRemaining(level.getGameTime());
         long forcedTicks = data.commandForcedStrengthTicksRemaining(level.getGameTime());
         source.sendSuccess(() -> Component.literal(String.format(
@@ -160,6 +162,6 @@ public final class ServerWindCommands {
     /** One immediate simulation refresh makes test commands visible without waiting for the next 2s sync. */
     private static void refreshAndSync(ServerLevel level, WindSavedData data) {
         data.tick(level);
-        WindNetworking.sendToLevel(level, data.snapshot(level.getGameTime()));
+        WindNetworking.sendToLevel(level, WindApi.get(level));
     }
 }

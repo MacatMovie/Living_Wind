@@ -215,9 +215,8 @@ public final class ParticlePickerScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, width, height, 0xD0101010);
-        graphics.drawCenteredString(font, title, width / 2, 14, 0xFFFFFF);
         super.render(graphics, mouseX, mouseY, partialTick);
+        graphics.drawCenteredString(font, title, width / 2, 14, 0xFFFFFF);
 
         graphics.enableScissor(listLeft, listTop, listRight, listBottom);
         int stride = ROW_HEIGHT + ROW_GAP;

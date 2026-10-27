@@ -20,7 +20,9 @@ public final class ClientWindConfig {
     public static final ForgeConfigSpec.DoubleValue PARTICLE_WIND_FORCE;
     public static final ForgeConfigSpec.EnumValue<FilterMode> PARTICLE_FILTER_MODE;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> PARTICLE_FILTER;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> BUILTIN_BLACKLIST_EXCEPTIONS;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> PARTICLE_RESPONSE_MULTIPLIERS;
+    public static final ForgeConfigSpec.BooleanValue STREAMS_REFLOWING_DEFAULTS_MIGRATED;
     public static final ForgeConfigSpec.BooleanValue AMBIENT_PARTICLES;
     public static final ForgeConfigSpec.IntValue AMBIENT_SAMPLES_PER_TICK;
     public static final ForgeConfigSpec.IntValue AMBIENT_RADIUS;
@@ -62,15 +64,25 @@ public final class ClientWindConfig {
     public static final ForgeConfigSpec.DoubleValue SHELTER_EFFECTIVENESS;
     public static final ForgeConfigSpec.DoubleValue INDOOR_AUDIO_ATTENUATION;
     public static final ForgeConfigSpec.BooleanValue SHELTER_LOW_COST;
+    public static final ForgeConfigSpec.BooleanValue SWINGING_SIGNS_COMPAT;
+    public static final ForgeConfigSpec.DoubleValue SWINGING_SIGNS_WIND_MULTIPLIER;
     public static final ForgeConfigSpec.BooleanValue SWINGING_LANTERNS_COMPAT;
     public static final ForgeConfigSpec.DoubleValue SWINGING_LANTERNS_WIND_MULTIPLIER;
     public static final ForgeConfigSpec.BooleanValue FWA_WIND_COMPAT;
+    public static final ForgeConfigSpec.BooleanValue CHIMES_WIND_COMPAT;
+    public static final ForgeConfigSpec.DoubleValue CHIMES_ANIMATION_WIND_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue CHIMES_SOUND_WIND_MULTIPLIER;
     public static final ForgeConfigSpec.BooleanValue SUPPLEMENTARIES_WIND_VANE_COMPAT;
+    public static final ForgeConfigSpec.BooleanValue WINDBLOWN_WIND_COMPAT;
+    public static final ForgeConfigSpec.DoubleValue WINDBLOWN_WIND_MULTIPLIER;
     public static final ForgeConfigSpec.BooleanValue INTERACTIVE_FOLIAGE_WIND_COMPAT;
     public static final ForgeConfigSpec.DoubleValue FWA_WIND_IMPACT;
     public static final ForgeConfigSpec.DoubleValue FWA_CHAIN_INTENSITY;
     public static final ForgeConfigSpec.DoubleValue FWA_LANTERN_INTENSITY;
     public static final ForgeConfigSpec.DoubleValue FWA_BELL_INTENSITY;
+    public static final ForgeConfigSpec.BooleanValue SHADER_BRIDGE_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue SHADER_AUTO_PATCH;
+    public static final ForgeConfigSpec.DoubleValue SHADER_WAVING_MULTIPLIER;
     public static final ForgeConfigSpec.BooleanValue DEBUG_HUD; // Legacy showHud value, retained for config migration.
     public static final ForgeConfigSpec.EnumValue<DebugHudMode> DEBUG_HUD_MODE;
 
@@ -134,6 +146,12 @@ public final class ClientWindConfig {
                 List.of(),
                 o -> o instanceof String s && ResourceLocation.tryParse(s) != null
             );
+        BUILTIN_BLACKLIST_EXCEPTIONS = b.comment(
+                "Optional built-in blacklist exclusions explicitly unlocked by the user in the particle filter editor.",
+                "Empty by default. The ordinary built-in protection stays active unless a user opts out."
+            )
+            .defineListAllowEmpty("builtinBlacklistExceptions", List.of(),
+                o -> o instanceof String id && ResourceLocation.tryParse(id) != null);
         PARTICLE_RESPONSE_MULTIPLIERS = b.comment(
                 "Optional per-particle wind response multipliers, stored as modid:particle=multiplier.",
                 "1.0 keeps normal Living Wind response; values above 1 make a particle lighter/more wind-responsive;",
@@ -146,6 +164,9 @@ public final class ClientWindConfig {
                 DEFAULT_PARTICLE_RESPONSES,
                 ClientWindConfig::isResponseEntry
             );
+        STREAMS_REFLOWING_DEFAULTS_MIGRATED = b.comment(
+                "Internal one-time upgrade marker for earlier Streams Reflowing 0.3x defaults."
+            ).define("streamsReflowingDefaultsMigrated", false);
         b.pop();
 
         b.comment("Tiny world particles emitted by exposed blocks when wind is present.")
@@ -398,6 +419,27 @@ public final class ClientWindConfig {
             .defineInRange("bellIntensity", 1.0, 0.0, 3.0);
         b.pop();
 
+        b.comment("Chimes 2.1.1 optional wind-driven animation and ambient chime sounds.")
+            .push("chimes");
+        CHIMES_WIND_COMPAT = b.comment("Make Chimes sway with Living Wind and vary ambient chiming frequency. Interaction sounds and tied chimes stay managed by Chimes.")
+            .define("enabled", true);
+        CHIMES_ANIMATION_WIND_MULTIPLIER = b.comment("Multiplier for Chimes swaying in the local wind. 0 disables wind sway while retaining native interaction animations.")
+            .defineInRange("animationWindMultiplier", 1.0, 0.0, 5.0);
+        CHIMES_SOUND_WIND_MULTIPLIER = b.comment("Strength of local wind's effect on random ambient Chimes sounds. 0 preserves their original ambient sound frequency.")
+            .defineInRange("soundWindMultiplier", 1.0, 0.0, 3.0);
+        b.pop();
+
+        b.comment("Swinging Hanging Signs integration; only the ambient sway changes, preserving bump and spring reactions.")
+            .translation("livingwind.config.section.swingingSigns")
+            .push("swingingSigns");
+        SWINGING_SIGNS_COMPAT = b.comment("Use Living Wind for swinging hanging signs; their original interaction spring remains unchanged.")
+            .translation("livingwind.config.swingingSignsEnabled")
+            .define("enabled", true);
+        SWINGING_SIGNS_WIND_MULTIPLIER = b.comment("How strongly wind moves hanging signs. Zero stops ambient wind sway; collisions still work.")
+            .translation("livingwind.config.swingingSignsMultiplier")
+            .defineInRange("windMultiplier", 1.0, 0.0, 3.0);
+        b.pop();
+
         b.comment("Optional Swinging Lanterns 2.0.4 integration; its physics, collisions and Create motion remain native.")
             .translation("livingwind.config.section.swingingLanterns")
             .push("swingingLanterns");
@@ -407,6 +449,14 @@ public final class ClientWindConfig {
         SWINGING_LANTERNS_WIND_MULTIPLIER = b.comment("Multiplier for Living Wind's sway and downwind lean of Swinging Lanterns. Light winds give gentle swings; stronger winds tilt lanterns downwind. Set to 0 for calm wind, or turn integration off for stock behavior.")
             .translation("livingwind.config.swingingLanternsMultiplier")
             .defineInRange("windMultiplier", 1.0, 0.0, 3.0);
+        b.pop();
+
+        b.comment("Optional Windblown GPU foliage wind bridge (above-water plants only).")
+            .push("windblown");
+        WINDBLOWN_WIND_COMPAT = b.comment("Use Living Wind direction and intensity for Windblown foliage and vines. Water vegetation keeps Windblown's original current. Shader-pack compatibility follows Windblown.")
+            .define("enabled", true);
+        WINDBLOWN_WIND_MULTIPLIER = b.comment("Intensity of Living Wind on Windblown foliage; Windblown's own strength slider is respected as an additional multiplier.")
+            .defineInRange("windMultiplier", 1.0, 0.0, 5.0);
         b.pop();
 
         b.comment("Optional Interactive Foliage 2.2.0 GPU grass-sway integration.")
@@ -423,6 +473,21 @@ public final class ClientWindConfig {
         SUPPLEMENTARIES_WIND_VANE_COMPAT = b.comment("Steer Supplementaries wind vanes using Living Wind's synchronized wind direction and local shelter. The original Supplementaries redstone behavior is unchanged.")
             .translation("livingwind.config.supplementariesVane")
             .define("windVane", true);
+        b.pop();
+
+        b.comment("Optional Complementary Reimagined r5.9.3 shader bridge, with or without Euphoria 1.10.5.")
+            .translation("livingwind.config.section.shaderBridge")
+            .push("shaderBridge");
+        SHADER_AUTO_PATCH = b.comment("Automatically patch installed compatible Complementary shader ZIPs/folders at startup.",
+                "Keeps originals in config/livingwind/shader-backups. Restart after changing.")
+            .translation("livingwind.config.shaderAutoPatch")
+            .define("autoPatchEuphoriaShaders", true);
+        SHADER_BRIDGE_ENABLED = b.comment("Use Living Wind's direction and strength for enabled foliage/leaf waving and Nether Storm drift.")
+            .translation("livingwind.config.shaderBridgeEnabled")
+            .define("enabled", true);
+        SHADER_WAVING_MULTIPLIER = b.comment("Amplitude multiplier for shader grass and leaf waving, 0 = calm.")
+            .translation("livingwind.config.shaderWavingMultiplier")
+            .defineInRange("wavingMultiplier", 1.0, 0.0, 3.0);
         b.pop();
 
         b.comment("Developer/testing readouts.")

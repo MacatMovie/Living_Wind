@@ -15,6 +15,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.Level;
 
 /**
  * Tiny, bounded, demand-driven shelter grid. Particle threads only read published numbers and
@@ -844,7 +845,12 @@ public final class WindShelter {
      * Full collision blocks (including solid glass) stop airflow; no path tracing or chunk loading.
      */
     private static float survey(ClientLevel level, BlockPos at, boolean cheap) {
-        if (!level.dimensionType().hasSkyLight()) return 1.0f;
+        // Keep the existing skylight/Overworld survey byte-for-byte below this branch.
+        // Nether-only enclosed-area detection must not change Overworld cave, roof,
+        // canopy, or exact-cell shelter behavior.
+        if (!level.dimensionType().hasSkyLight()) {
+            return level.dimension() == Level.NETHER ? surveyNetherEnclosure(level, at, cheap) : 1.0f;
+        }
         if (!level.hasChunkAt(at)) return 1.0f;
         if (level.canSeeSky(at)) return 1.0f;
         int distance = cheap ? 4 : 6;
@@ -886,6 +892,64 @@ public final class WindShelter {
             exposure = 0.60f;
         }
         return exposure;
+    }
+
+
+    /**
+     * Small, bounded Nether enclosure check. The Nether's bedrock ceiling is never
+     * considered shelter: only a SOLID overhead block within a few blocks counts.
+     * An overhead block alone is not enough; open caverns and uncovered decks
+     * keep their wind. Run solely in the existing client-thread shelter surveys,
+     * never in particle workers. The Overworld algorithm remains untouched.
+     */
+    private static float surveyNetherEnclosure(ClientLevel level, BlockPos at, boolean cheap) {
+        if (!level.hasChunkAt(at) || level.isOutsideBuildHeight(at)) return 1.0f;
+        BlockPos.MutableBlockPos probe = at.mutable();
+        int roofRise = cheap ? 6 : 8;
+        boolean nearRoof = false;
+        for (int step = 1; step <= roofRise; step++) {
+            probe.set(at.getX(), at.getY() + step, at.getZ());
+            if (level.isOutsideBuildHeight(probe) || !level.hasChunkAt(probe)) return 1.0f;
+            BlockState state = level.getBlockState(probe);
+            if (state.is(BlockTags.LEAVES)) continue;
+            if (!state.getCollisionShape(level, probe).isEmpty()) {
+                nearRoof = true;
+                break;
+            }
+        }
+        // Most open Nether terrain exits here without any horizontal probes.
+        if (!nearRoof) return 1.0f;
+
+        int openDirections = 0;
+        int distance = cheap ? 4 : 6;
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
+            probe.set(at);
+            boolean blocked = false;
+            for (int step = 1; step <= distance; step++) {
+                probe.move(direction);
+                if (level.isOutsideBuildHeight(probe) || !level.hasChunkAt(probe)) {
+                    // Unloaded cells are unknown, not positive evidence of a wall.
+                    break;
+                }
+                BlockState state = level.getBlockState(probe);
+                boolean porous = state.is(BlockTags.LEAVES)
+                    || (state.getBlock() instanceof DoorBlock && state.getValue(DoorBlock.OPEN));
+                if (!porous && !state.getCollisionShape(level, probe).isEmpty()) {
+                    blocked = true;
+                    break;
+                }
+            }
+            if (!blocked) openDirections++;
+        }
+        // Four unobstructed directions = open cavern, even beneath natural rock.
+        // A sealed house/tunnel has few openings within the short probe radius.
+        return switch (openDirections) {
+            case 0 -> 0.0f;
+            case 1 -> 0.30f;
+            case 2 -> 0.62f;
+            case 3 -> 0.85f;
+            default -> 1.0f;
+        };
     }
 
     /**

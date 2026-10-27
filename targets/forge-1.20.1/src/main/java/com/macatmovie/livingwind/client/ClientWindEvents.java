@@ -41,6 +41,14 @@ public final class ClientWindEvents {
             return;
         }
 
+        if (ClientWindState.dimensionWindDisabled()) {
+            WindAudioManager.reset();
+            WindLeafSpawner.reset();
+            WindStreakSpawner.reset();
+            ClientWindState.tick();
+            return;
+        }
+
         ClientWindState.tick();
         ClientWindState.updateAltitude(player.getBlockY(), level.dimension() == net.minecraft.world.level.Level.OVERWORLD);
         tickCounter++;

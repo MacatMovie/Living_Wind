@@ -1,3 +1,8 @@
 {
-  "textures": ["livingwind:wind_grass_1"]
+  "textures": [
+    "livingwind:wind_grass_1",
+    "livingwind:wind_grass_2",
+    "livingwind:wind_grass_3",
+    "livingwind:wind_grass_4"
+  ]
 }

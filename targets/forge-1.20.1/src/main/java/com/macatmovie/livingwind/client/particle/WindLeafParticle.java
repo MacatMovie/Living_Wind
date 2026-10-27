@@ -35,6 +35,7 @@ public final class WindLeafParticle extends TextureSheetParticle {
 
     private final boolean grassFragment;
     private final boolean coniferNeedles;
+    private final boolean petalFragment;
     private final float phase;
     private final float phase2;
     private final float wobble;
@@ -49,6 +50,17 @@ public final class WindLeafParticle extends TextureSheetParticle {
     private float rollAngle;
     private float prevRollAngle;
     private int groundTicks;
+
+    /** Reused per render thread: eliminates per-leaf/per-frame corner allocations. */
+    private static final ThreadLocal<RenderScratch> RENDER_SCRATCH =
+        ThreadLocal.withInitial(RenderScratch::new);
+
+    private static final class RenderScratch {
+        final Quaternionf rotation = new Quaternionf();
+        final Vector3f[] corners = {
+            new Vector3f(), new Vector3f(), new Vector3f(), new Vector3f()
+        };
+    }
 
     // Primitive-only per-particle continuity: native particles bypass the generic
     // wind hook, so they need its confirmed-shelter grace rule themselves.
@@ -72,13 +84,14 @@ public final class WindLeafParticle extends TextureSheetParticle {
 
     private WindLeafParticle(ClientLevel level, double x, double y, double z,
                              double red, double green, double blue, SpriteSet spriteSet,
-                             boolean grassFragment, boolean coniferNeedles) {
+                             boolean grassFragment, boolean coniferNeedles, boolean petalFragment) {
         super(level, x, y, z);
         this.grassFragment = grassFragment;
         this.coniferNeedles = coniferNeedles;
+        this.petalFragment = petalFragment;
         this.pickSprite(spriteSet);
-        this.quadSize = grassFragment ? 0.065f + random.nextFloat() * 0.045f : 0.105f + random.nextFloat() * 0.055f;
-        this.lifetime = grassFragment ? 65 + random.nextInt(85) : 95 + random.nextInt(100);
+        this.quadSize = grassFragment ? 0.065f + random.nextFloat() * 0.045f : petalFragment ? 0.088f + random.nextFloat() * 0.045f : 0.105f + random.nextFloat() * 0.055f;
+        this.lifetime = grassFragment ? 65 + random.nextInt(85) : petalFragment ? 78 + random.nextInt(78) : 95 + random.nextInt(100);
         this.hasPhysics = true;
         this.gravity = 0.0f; // Custom gravity varies while floating and after landing.
         this.friction = 0.98f;
@@ -99,7 +112,7 @@ public final class WindLeafParticle extends TextureSheetParticle {
             ? 0.0f : ClientWindState.altitudeStrength() * exposure;
         // Dedicated foliage fragments travel 30% farther with the wind; grass fragments keep their old feel.
         // Apply the boost here as well as to the steering target so newly emitted leaves do not start slower.
-        double foliageWindBoost = (grassFragment ? 1.0 : 1.30)
+        double foliageWindBoost = ((grassFragment ? 1.0 : petalFragment ? 1.16 : 1.30))
             * (coniferNeedles ? NEEDLE_WIND_DRIFT : 1.0);
         double initialDriftBoost = WindMath.visualDriftBoost(w) * foliageWindBoost;
         this.xd = w > 0.0f ? ClientWindState.altitudeWindX() * exposure * (0.085 + w * 0.025) * initialDriftBoost : 0.0;
@@ -123,7 +136,7 @@ public final class WindLeafParticle extends TextureSheetParticle {
         float turbulence = underwater || wind <= 0.001f ? 0.0f : ClientWindState.turbulence();
         // This runtime multiplier also applies to existing player configs saved with windResponse=1.0.
         double power = ClientWindConfig.LEAF_PARTICLE_WIND_RESPONSE.get() * windAffinity
-            * (grassFragment ? 1.0 : 1.30) * (coniferNeedles ? NEEDLE_WIND_DRIFT : 1.0);
+            * (grassFragment ? 1.0 : petalFragment ? 1.16 : 1.30) * (coniferNeedles ? NEEDLE_WIND_DRIFT : 1.0);
         // Stronger high-end drift without changing the server weather or gust distributions.
         // 2.0 wind -> 1.60x motion; calm wind stays almost unchanged.
         double highWindBoost = WindMath.visualDriftBoost(observedWind);
@@ -197,17 +210,19 @@ public final class WindLeafParticle extends TextureSheetParticle {
         float px = (float)(Mth.lerp(partialTick, this.xo, this.x) - cam.x);
         float py = (float)(Mth.lerp(partialTick, this.yo, this.y) - cam.y);
         float pz = (float)(Mth.lerp(partialTick, this.zo, this.z) - cam.z);
-        Quaternionf rotation = new Quaternionf(camera.rotation());
+        RenderScratch scratch = RENDER_SCRATCH.get();
+        Quaternionf rotation = scratch.rotation.set(camera.rotation());
         rotation.rotateY(Mth.lerp(partialTick, prevYawAngle, yawAngle));
         rotation.rotateX(Mth.lerp(partialTick, prevPitchAngle, pitchAngle));
         rotation.rotateZ(Mth.lerp(partialTick, prevRollAngle, rollAngle));
         float size = this.getQuadSize(partialTick);
         float u0 = this.getU0(), u1 = this.getU1(), v0 = this.getV0(), v1 = this.getV1();
         int light = this.getLightColor(partialTick);
-        Vector3f[] corners = {
-            new Vector3f(-1, -1, 0), new Vector3f(-1, 1, 0),
-            new Vector3f( 1, 1, 0), new Vector3f( 1,-1, 0)
-        };
+        Vector3f[] corners = scratch.corners;
+        corners[0].set(-1, -1, 0);
+        corners[1].set(-1,  1, 0);
+        corners[2].set( 1,  1, 0);
+        corners[3].set( 1, -1, 0);
         for (Vector3f c : corners) { rotation.transform(c); c.mul(size).add(px, py, pz); }
         // Both windward and leeward faces remain visible as the leaf flips in 3D.
         vertex(buffer, corners[0], u1, v1, light);
@@ -230,7 +245,7 @@ public final class WindLeafParticle extends TextureSheetParticle {
         public GrassProvider(SpriteSet sprites) { this.sprites = sprites; }
         @Override public Particle createParticle(SimpleParticleType type, ClientLevel level,
                 double x, double y, double z, double xs, double ys, double zs) {
-            return new WindLeafParticle(level, x, y, z, xs, ys, zs, sprites, true, false);
+            return new WindLeafParticle(level, x, y, z, xs, ys, zs, sprites, true, false, false);
         }
     }
 
@@ -240,7 +255,17 @@ public final class WindLeafParticle extends TextureSheetParticle {
         public NeedlesProvider(SpriteSet sprites) { this.sprites = sprites; }
         @Override public Particle createParticle(SimpleParticleType type, ClientLevel level,
                 double x, double y, double z, double xs, double ys, double zs) {
-            return new WindLeafParticle(level, x, y, z, xs, ys, zs, sprites, false, true);
+            return new WindLeafParticle(level, x, y, z, xs, ys, zs, sprites, false, true, false);
+        }
+    }
+
+    /** Flower petals share the broadleaf renderer but drift a little less and stay slightly smaller. */
+    public static final class PetalProvider implements ParticleProvider<SimpleParticleType> {
+        private final SpriteSet sprites;
+        public PetalProvider(SpriteSet sprites) { this.sprites = sprites; }
+        @Override public Particle createParticle(SimpleParticleType type, ClientLevel level,
+                double x, double y, double z, double xs, double ys, double zs) {
+            return new WindLeafParticle(level, x, y, z, xs, ys, zs, sprites, false, false, true);
         }
     }
 
@@ -249,7 +274,7 @@ public final class WindLeafParticle extends TextureSheetParticle {
         public Provider(SpriteSet sprites) { this.sprites = sprites; }
         @Override public Particle createParticle(SimpleParticleType type, ClientLevel level,
                 double x, double y, double z, double xs, double ys, double zs) {
-            return new WindLeafParticle(level, x, y, z, xs, ys, zs, sprites, false, false);
+            return new WindLeafParticle(level, x, y, z, xs, ys, zs, sprites, false, false, false);
         }
     }
 }

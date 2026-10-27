@@ -28,27 +28,33 @@ public final class ClientWindState {
     private static volatile boolean createWindmillsEnabled;
     private static volatile boolean highSeasWindEnabled;
     private static volatile boolean smallShipsWindEnabled;
+    private static volatile boolean treasureBalloonsWindEnabled;
+    private static volatile float treasureBalloonsWindMultiplier;
     private static volatile boolean hasServerState;
+    private static volatile boolean dimensionWindDisabled;
 
     private ClientWindState() {}
 
     public static void accept(WindSyncPayload payload) {
-        targetStrength = payload.strength();
+        dimensionWindDisabled = payload.windDisabled();
+        targetStrength = dimensionWindDisabled ? 0.0f : payload.strength();
         targetDirection = WindMath.normalizeDegrees(payload.directionDegrees());
-        turbulence = payload.turbulence();
-        directionInstability = payload.directionInstability();
-        gustStrength = payload.gustStrength();
+        turbulence = dimensionWindDisabled ? 0.0f : payload.turbulence();
+        directionInstability = dimensionWindDisabled ? 0.0f : payload.directionInstability();
+        gustStrength = dimensionWindDisabled ? 0.0f : payload.gustStrength();
         windyPeriod = payload.windyPeriod();
         stormFront = payload.stormFront();
         createWindmillsEnabled = payload.createWindmillsEnabled();
         smallShipsWindEnabled = payload.smallShipsWindEnabled();
+        treasureBalloonsWindEnabled = payload.treasureBalloonsWindEnabled();
+        treasureBalloonsWindMultiplier = payload.treasureBalloonsWindMultiplier();
 
         altitudeScalingEnabled = payload.altitudeScalingEnabled();
         altitudeMinY = payload.altitudeMinY();
         altitudeMaxY = payload.altitudeMaxY();
         altitudeMinMultiplier = payload.altitudeMinMultiplier();
         altitudeMaxMultiplier = payload.altitudeMaxMultiplier();
-        if (!hasServerState) {
+        if (!hasServerState || dimensionWindDisabled) {
             currentStrength = targetStrength;
             currentDirection = targetDirection;
         }
@@ -68,8 +74,10 @@ public final class ClientWindState {
         turbulence = directionInstability = gustStrength = 0.0f;
         exposure = 1.0f;
         altitudeMultiplier = 1.0f;
-        windyPeriod = stormFront = createWindmillsEnabled = highSeasWindEnabled = smallShipsWindEnabled = false;
+        windyPeriod = stormFront = createWindmillsEnabled = highSeasWindEnabled = smallShipsWindEnabled = treasureBalloonsWindEnabled = false;
+        treasureBalloonsWindMultiplier = 0.0f;
         hasServerState = false;
+        dimensionWindDisabled = false;
     }
 
     public static void setExposure(float value) { exposure = Mth.clamp(value, 0.0f, 1.0f); }
@@ -96,10 +104,13 @@ public final class ClientWindState {
     public static float altitudeMultiplier() { return altitudeMultiplier; }
     public static boolean windyPeriod() { return windyPeriod; }
     public static boolean stormFront() { return stormFront; }
-    public static boolean createWindmillsEnabled() { return hasServerState && createWindmillsEnabled; }
+    public static boolean createWindmillsEnabled() { return hasServerState && !dimensionWindDisabled && createWindmillsEnabled; }
     public static boolean hasServerState() { return hasServerState; }
-    public static boolean highSeasWindEnabled() { return hasServerState && highSeasWindEnabled; }
-    public static boolean smallShipsWindEnabled() { return hasServerState && smallShipsWindEnabled; }
+    public static boolean dimensionWindDisabled() { return dimensionWindDisabled; }
+    public static boolean highSeasWindEnabled() { return hasServerState && !dimensionWindDisabled && highSeasWindEnabled; }
+    public static boolean treasureBalloonsWindEnabled() { return hasServerState && !dimensionWindDisabled && treasureBalloonsWindEnabled; }
+    public static float treasureBalloonsWindMultiplier() { return treasureBalloonsWindMultiplier; }
+    public static boolean smallShipsWindEnabled() { return hasServerState && !dimensionWindDisabled && smallShipsWindEnabled; }
     // Maintained as a platform-neutral no-op in Forge. NeoForge's synced flag is
     // consumed through a small method in its platform-specific networking code.
     public static void setHighSeasWindEnabled(boolean enabled) { highSeasWindEnabled = enabled; }

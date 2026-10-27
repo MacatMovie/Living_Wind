@@ -9,6 +9,7 @@ public final class WindBlockTags {
     public static final TagKey<Block> LEAF_EMITTERS = tag("leaf_emitters");
     public static final TagKey<Block> GRASS_EMITTERS = tag("grass_emitters");
     public static final TagKey<Block> DUST_EMITTERS = tag("dust_emitters");
+    public static final TagKey<Block> NETHER_AMBIENT_EMITTERS = tag("nether_ambient_emitters");
     public static final TagKey<Block> SAND_EMITTERS = tag("sand_emitters");
     public static final TagKey<Block> SNOW_EMITTERS = tag("snow_emitters");
 

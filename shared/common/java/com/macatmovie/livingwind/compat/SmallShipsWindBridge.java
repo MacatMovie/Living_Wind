@@ -4,6 +4,7 @@ import com.macatmovie.livingwind.api.WindApi;
 import com.macatmovie.livingwind.client.ClientWindState;
 import com.macatmovie.livingwind.config.WindConfig;
 import com.macatmovie.livingwind.wind.WindSnapshot;
+import com.macatmovie.livingwind.wind.WindDimensionBlacklist;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -35,7 +36,7 @@ public final class SmallShipsWindBridge {
 
     /** Return null to leave Small Ships' original wind result untouched. */
     public static Object serverWind(ServerLevel level) {
-        if (level == null || !WindConfig.SMALL_SHIPS_WIND_ENABLED.get() || !smallShipsWindAllowed()) return null;
+        if (level == null || WindDimensionBlacklist.contains(level) || !WindConfig.SMALL_SHIPS_WIND_ENABLED.get() || !smallShipsWindAllowed()) return null;
         WindSnapshot snapshot = WindApi.get(level);
         return newWind(snapshot.directionDegrees(), snapshot.strength());
     }

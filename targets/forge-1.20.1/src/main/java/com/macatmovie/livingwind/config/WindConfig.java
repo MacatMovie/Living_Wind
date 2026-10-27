@@ -1,5 +1,9 @@
 package com.macatmovie.livingwind.config;
 
+import java.util.List;
+import com.macatmovie.livingwind.wind.WindDimensionSettings;
+import net.minecraft.resources.ResourceLocation;
+
 import net.minecraftforge.common.ForgeConfigSpec;
 
 public final class WindConfig {
@@ -28,11 +32,16 @@ public final class WindConfig {
     public static final ForgeConfigSpec.DoubleValue CREATE_WINDMILL_MAX_CHANGE_PER_UPDATE;
     public static final ForgeConfigSpec.IntValue CREATE_WINDMILL_UPDATE_TICKS;
     public static final ForgeConfigSpec.BooleanValue SMALL_SHIPS_WIND_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue TREASURE_BALLOONS_WIND_ENABLED;
+    public static final ForgeConfigSpec.DoubleValue TREASURE_BALLOONS_WIND_MULTIPLIER;
 
     public enum NetherWindMode { DISABLED, REDUCED_GUSTY, NORMAL }
     public enum EndWindMode { DISABLED, VERY_WEAK, NORMAL }
     public static final ForgeConfigSpec.EnumValue<NetherWindMode> NETHER_WIND_MODE;
     public static final ForgeConfigSpec.EnumValue<EndWindMode> END_WIND_MODE;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> DIMENSION_BLACKLIST;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> DIMENSION_MODES;
+    public static final ForgeConfigSpec.EnumValue<WindDimensionSettings.Mode> DEFAULT_DIMENSION_MODE;
     public static final ForgeConfigSpec.BooleanValue ALTITUDE_SCALING_ENABLED;
     public static final ForgeConfigSpec.IntValue ALTITUDE_MIN_Y;
     public static final ForgeConfigSpec.IntValue ALTITUDE_MAX_Y;
@@ -139,6 +148,16 @@ public final class WindConfig {
         END_WIND_MODE = b.comment("DISABLED = no wind; VERY_WEAK = faint air with very gradual directional shifts; NORMAL = unmodified simulation.")
             .translation("livingwind.config.endWindMode")
             .defineEnum("endWindMode", EndWindMode.DISABLED);
+        DIMENSION_BLACKLIST = b.comment("Dimension IDs with Living Wind completely disabled (e.g. modid:dimension). Overrides Nether/End settings and forced wind commands.")
+            .translation("livingwind.config.dimensionBlacklist")
+            .defineListAllowEmpty("dimensionBlacklist", List.<String>of(),
+                entry -> entry instanceof String id && ResourceLocation.tryParse(id) != null);
+        DIMENSION_MODES = b.comment("Dimension modes as modid:dimension=MODE. Valid modes: NORMAL, REDUCED_GUSTY, VERY_WEAK, DISABLED. Entries override the legacy blacklist and vanilla mode values.")
+            .translation("livingwind.config.dimensionModes")
+            .defineListAllowEmpty("dimensionModes", List.<String>of(), entry -> WindDimensionSettings.validEntry(entry));
+        DEFAULT_DIMENSION_MODE = b.comment("Wind behavior of dimensions not explicitly listed (vanilla Nether and End retain their previous modes until overridden).")
+            .translation("livingwind.config.defaultDimensionMode")
+            .defineEnum("defaultDimensionMode", WindDimensionSettings.Mode.NORMAL);
         b.pop();
 
         b.comment("Optional Create windmill bearing compatibility. Uses real kinetic RPM and stress capacity, not visual-only animation.")
@@ -173,6 +192,17 @@ public final class WindConfig {
         SMALL_SHIPS_WIND_ENABLED = b.comment("Use Living Wind as Small Ships' wind source when Small Ships is installed. Disable to restore its independent wind simulation.")
             .translation("livingwind.config.smallShipsWindEnabled")
             .define("enabled", true);
+        b.pop();
+
+        b.comment("Optional Realm RPG: Treasure Balloons flight integration (both loaders). Has no effect without the other mod.")
+            .translation("livingwind.config.section.treasureBalloons")
+            .push("treasureBalloons");
+        TREASURE_BALLOONS_WIND_ENABLED = b.comment("Let Living Wind push intact Treasure Balloons in its direction, speeding them up downwind and slowing them upwind. Disable to restore the original cardinal-direction flight.")
+            .translation("livingwind.config.treasureBalloonsWindEnabled")
+            .define("enabled", true);
+        TREASURE_BALLOONS_WIND_MULTIPLIER = b.comment("Strength of wind-driven Treasure Balloon drift. 1.0 is balanced; 0 disables drift. Does not affect popped balloons.")
+            .translation("livingwind.config.treasureBalloonsWindMultiplier")
+            .defineInRange("windMultiplier", 1.0, 0.0, 5.0);
         b.pop();
 
         b.comment("Low-frequency server-to-client wind synchronization.")

@@ -2,6 +2,7 @@ package com.macatmovie.livingwind.network;
 
 import com.macatmovie.livingwind.client.ClientWindState;
 import com.macatmovie.livingwind.wind.WindSnapshot;
+import com.macatmovie.livingwind.wind.WindDimensionBlacklist;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -12,7 +13,7 @@ public final class WindNetworking {
     private WindNetworking() {}
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("1");
+        PayloadRegistrar registrar = event.registrar("2");
         registrar.playToClient(
             WindSyncPayload.TYPE,
             WindSyncPayload.STREAM_CODEC,
@@ -37,6 +38,8 @@ public final class WindNetworking {
     }
 
     public static void sendToPlayer(ServerPlayer player, WindSnapshot snapshot) {
-        PacketDistributor.sendToPlayer(player, WindSyncPayload.from(withLocalWeather(player, snapshot)));
+        boolean blocked = WindDimensionBlacklist.contains(player.serverLevel());
+        WindSnapshot effective = blocked ? WindDimensionBlacklist.calm(player.serverLevel().getGameTime()) : withLocalWeather(player, snapshot);
+        PacketDistributor.sendToPlayer(player, WindSyncPayload.from(effective, blocked));
     }
 }

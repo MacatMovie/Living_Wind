@@ -8,6 +8,8 @@
     "ParticleMixin",
     "PrettyRainShrubMixin",
     "OfficialParticleRainWindMixin",
+    "OculusCommonUniformsMixin",
+    "IrisCommonUniformsMixin",
     "AdvancedChimneysSmokeMixin",
     "AtmosphericsWindStreakMixin",
     "AmbientSoundsWindCategoryMixin",
@@ -18,16 +20,29 @@
     "FwaAnimationMixin",
     "FwaChainMixin",
     "FwaLanternMixin",
+    "SwingingSignsSwayMixin",
     "SwingingLanternsWindMixin",
     "SwingingLanternsPhysicsWindLimitMixin",
     "SwingingLanternsExposureAccess",
     "FwaBellMixin",
     "SupplementariesWindVaneMixin",
     "HighSeasWindVaneSmoothingMixin",
+    "WindblownFrameMixin",
+    "WindblownShaderMixin",
     "InteractiveFoliageWindMixin",
     "InteractiveFoliageSwayShaderMixin",
     "InteractiveFoliageLegacyShaderMixin",
-    "SmallShipsClientWindManagerMixin"
+    "SmallShipsClientWindManagerMixin",
+    "ChimesIronRendererMixin",
+    "ChimesCopperRendererMixin",
+    "ChimesBambooRendererMixin",
+    "ChimesAmethystRendererMixin",
+    "ChimesGlassRendererMixin",
+    "ChimesIronAmbientMixin",
+    "ChimesCopperAmbientMixin",
+    "ChimesBambooAmbientMixin",
+    "ChimesAmethystAmbientMixin",
+    "ChimesGlassAmbientMixin"
   ],
   "injectors": {
     "defaultRequire": 1
@@ -36,6 +51,7 @@
     "CreateWindmillBearingMixin",
     "HighSeasWindManagerMixin",
     "SableBlockChangeMixin",
-    "SmallShipsWindManagerMixin"
+    "SmallShipsWindManagerMixin",
+    "TreasureBalloonsUpdateMixin"
   ]
 }

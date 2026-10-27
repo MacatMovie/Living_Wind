@@ -3,6 +3,8 @@ package com.macatmovie.livingwind.client;
 import com.macatmovie.livingwind.config.ClientWindConfig;
 import com.macatmovie.livingwind.registry.ModParticles;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.ParticleStatus;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -13,6 +15,11 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.BushBlock;
+import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.DoublePlantBlock;
+import net.minecraft.world.level.block.LeavesBlock;
+import net.minecraft.world.level.block.TallFlowerBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.material.MapColor;
@@ -46,8 +53,11 @@ public final class WindLeafSpawner {
     private static float currentRate;
     private static BlockPos lastSurveyCenter;
     private static int neighborhoodSurveys;
+    private static final Map<net.minecraft.world.level.block.Block, Profile> PROFILE_CACHE = new IdentityHashMap<>();
 
     private enum Kind { NONE, CANOPY, PLANT, GRASS }
+
+    private enum Profile { NONE, CANOPY, GRASSLIKE, FLOWER, FOLIAGE }
 
     private static final class Emitter {
         final BlockPos pos;
@@ -73,6 +83,7 @@ public final class WindLeafSpawner {
         currentRate = 0;
         lastSurveyCenter = null;
         neighborhoodSurveys = 0;
+        PROFILE_CACHE.clear();
     }
 
     public static int debugSourceCount() { return CANOPY.size(); }
@@ -153,12 +164,80 @@ public final class WindLeafSpawner {
     }
 
     private static Kind classify(ClientLevel level, BlockPos pos, BlockState state) {
+        return switch (profile(level, pos, state)) {
+            case CANOPY -> ParticleWindFilter.shouldSpawnNativeLeaves() ? Kind.CANOPY : Kind.NONE;
+            case GRASSLIKE -> Kind.GRASS;
+            case FLOWER, FOLIAGE -> Kind.PLANT;
+            default -> Kind.NONE;
+        };
+    }
+
+    private static Profile profile(ClientLevel level, BlockPos pos, BlockState state) {
+        var block = state.getBlock();
+        Profile cached = PROFILE_CACHE.get(block);
+        if (cached != null) return cached;
+        Profile resolved = resolveProfile(level, pos, state);
+        PROFILE_CACHE.put(block, resolved);
+        return resolved;
+    }
+
+    private static Profile resolveProfile(ClientLevel level, BlockPos pos, BlockState state) {
         if (state.is(WindBlockTags.LEAF_EMITTERS) || state.is(BlockTags.LEAVES)
-                || LeafParticleTypes.hasOverride(state))
-            return ParticleWindFilter.shouldSpawnNativeLeaves() ? Kind.CANOPY : Kind.NONE;
-        if (state.is(WindBlockTags.GRASS_EMITTERS)) return Kind.GRASS;
-        if (state.is(BlockTags.FLOWERS) || state.getMapColor(level, pos) == MapColor.PLANT) return Kind.PLANT;
-        return Kind.NONE;
+                || LeafParticleTypes.hasOverride(state) || state.getBlock() instanceof LeavesBlock) {
+            return Profile.CANOPY;
+        }
+        if (!state.getFluidState().isEmpty()) return Profile.NONE;
+
+        String name = BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath();
+        if (isWaterPlantName(name)) return Profile.NONE;
+        if (state.is(WindBlockTags.GRASS_EMITTERS) || isGrasslike(state, name)) return Profile.GRASSLIKE;
+        if (state.is(BlockTags.FLOWERS) || state.is(BlockTags.SMALL_FLOWERS)
+                || state.getBlock() instanceof TallFlowerBlock || isFlowerLike(state, name)) {
+            return Profile.FLOWER;
+        }
+        if (state.getBlock() instanceof BushBlock || state.getBlock() instanceof DoublePlantBlock
+                || state.getBlock() instanceof CropBlock || state.getMapColor(level, pos) == MapColor.PLANT
+                || isGeneralFoliageName(name)) {
+            return Profile.FOLIAGE;
+        }
+        return Profile.NONE;
+    }
+
+    private static boolean isWaterPlantName(String name) {
+        return name.contains("kelp") || name.contains("seagrass") || name.contains("coral")
+            || name.contains("sea_pickle") || name.contains("lily_pad") || name.contains("waterlily")
+            || name.contains("mangrove_roots") || name.contains("waterleaf") || name.contains("duckweed");
+    }
+
+    private static boolean isGrasslike(BlockState state, String name) {
+        if (state.getBlock() instanceof CropBlock) return true;
+        return name.contains("grass") || name.contains("fern") || name.contains("reed")
+            || name.contains("rush") || name.contains("sedge") || name.contains("cattail")
+            || name.contains("bulrush") || name.contains("blade") || name.contains("pampas")
+            || name.contains("wheat") || name.contains("barley") || name.contains("oat")
+            || name.contains("rye") || name.contains("rice") || name.contains("corn")
+            || name.contains("maize") || name.contains("sugar_cane") || name.contains("bamboo")
+            || name.contains("crop") || name.contains("stalk");
+    }
+
+    private static boolean isFlowerLike(BlockState state, String name) {
+        return name.contains("flower") || name.contains("blossom") || name.contains("petal")
+            || name.contains("poppy") || name.contains("rose") || name.contains("dandelion")
+            || name.contains("sunflower") || name.contains("orchid") || name.contains("tulip")
+            || name.contains("allium") || name.contains("peony") || name.contains("lilac")
+            || name.contains("daisy") || name.contains("lavender") || name.contains("magnolia")
+            || name.contains("camellia") || name.contains("bluebell") || name.contains("hibiscus")
+            || name.contains("lotus") || name.contains("lily") || name.contains("azalea")
+            || name.contains("cherry") || name.contains("bloom");
+    }
+
+    private static boolean isGeneralFoliageName(String name) {
+        return name.contains("bush") || name.contains("shrub") || name.contains("hedge")
+            || name.contains("ivy") || name.contains("vine") || name.contains("foliage")
+            || name.contains("undergrowth") || name.contains("bramble") || name.contains("thicket")
+            || name.contains("sprout") || name.contains("shoot") || name.contains("herb")
+            || name.contains("plant") || name.contains("sapling") || name.contains("moss")
+            || name.contains("leafy") || name.contains("frond");
     }
 
     private static ArrayList<Emitter> sources(Kind kind) {
@@ -424,7 +503,8 @@ public final class WindLeafSpawner {
                 case GRASS -> 20 + random.nextInt(25);
                 default -> 50;
             };
-            int color = emitterColor(level, emissionPos, level.getBlockState(emissionPos), kind, random);
+            Profile profile = profile(level, emissionPos, foliage);
+            int color = emitterColor(level, emissionPos, foliage, kind, profile, random);
             float shade = 0.84f + random.nextFloat() * 0.22f;
             double red = Mth.clamp(((color >> 16) & 255) / 255f * shade, 0.06f, 1f);
             double green = Mth.clamp(((color >> 8) & 255) / 255f * shade, 0.06f, 1f);
@@ -435,9 +515,20 @@ public final class WindLeafSpawner {
                 if (random.nextFloat() < ClientWindConfig.CONIFER_SPAWN_MULTIPLIER.get()) {
                     level.addParticle(ModParticles.WIND_NEEDLES.get(), x, y, z, red, green, blue);
                 }
+            } else if (kind == Kind.GRASS) {
+                level.addParticle(ModParticles.WIND_GRASS.get(), x, y, z, red, green, blue);
+            } else if (profile == Profile.FLOWER) {
+                if (random.nextFloat() < 0.82f) {
+                    level.addParticle(ModParticles.WIND_PETAL.get(), x, y, z, red, green, blue);
+                } else {
+                    level.addParticle(ModParticles.WIND_GRASS.get(), x, y, z, red * 0.82, green * 1.02, blue * 0.82);
+                }
             } else {
-                level.addParticle(kind == Kind.GRASS ? ModParticles.WIND_GRASS.get() : ModParticles.WIND_LEAF.get(),
-                        x, y, z, red, green, blue);
+                if (random.nextFloat() < 0.62f) {
+                    level.addParticle(ModParticles.WIND_GRASS.get(), x, y, z, red, green, blue);
+                } else {
+                    level.addParticle(ModParticles.WIND_PETAL.get(), x, y, z, red, green, blue);
+                }
             }
             return true;
         }
@@ -447,7 +538,8 @@ public final class WindLeafSpawner {
     }
 
     /** Block tint stays authoritative; untinted foliage uses the cached texture palette. */
-    private static int emitterColor(ClientLevel level, BlockPos pos, BlockState state, Kind kind, RandomSource random) {
+    private static int emitterColor(ClientLevel level, BlockPos pos, BlockState state,
+                                    Kind kind, Profile profile, RandomSource random) {
         if (kind == Kind.CANOPY) {
             return WindFoliageColorCache.leafColor(state, level, pos, random,
                 ClientWindConfig.LEAF_TEXTURE_COLORS.get());
@@ -455,10 +547,11 @@ public final class WindLeafSpawner {
         int color = Minecraft.getInstance().getBlockColors().getColor(state, level, pos, 0);
         if (color != -1) return color & 0xFFFFFF;
         if (ClientWindConfig.LEAF_TEXTURE_COLORS.get()) {
-            int textureColor = WindFoliageColorCache.colorFor(state, level, pos, random, kind == Kind.PLANT);
+            int textureColor = WindFoliageColorCache.colorFor(state, level, pos, random,
+                profile == Profile.FLOWER || profile == Profile.FOLIAGE);
             if (textureColor != -1) return textureColor;
         }
-        if (kind == Kind.PLANT) {
+        if (profile == Profile.FLOWER || profile == Profile.FOLIAGE) {
             String name = BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath();
             if (name.contains("poppy") || name.contains("rose") || name.contains("red_") || name.contains("crimson")) return 0xDF414A;
             if (name.contains("dandelion") || name.contains("sunflower") || name.contains("yellow")) return 0xF0C44D;

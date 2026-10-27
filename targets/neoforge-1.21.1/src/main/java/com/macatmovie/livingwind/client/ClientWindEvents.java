@@ -2,6 +2,7 @@ package com.macatmovie.livingwind.client;
 
 import com.macatmovie.livingwind.config.ClientWindConfig;
 import com.macatmovie.livingwind.client.compat.FwaWindMotion;
+import com.macatmovie.livingwind.compat.SableShelterCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.player.Player;
@@ -34,6 +35,14 @@ public final class ClientWindEvents {
             return;
         }
 
+        if (ClientWindState.dimensionWindDisabled()) {
+            WindAudioManager.reset();
+            WindLeafSpawner.reset();
+            WindStreakSpawner.reset();
+            ClientWindState.tick();
+            return;
+        }
+
         ClientWindState.tick();
         ClientWindState.updateAltitude(player.getBlockY(), level.dimension() == net.minecraft.world.level.Level.OVERWORLD);
         tickCounter++;
@@ -51,6 +60,10 @@ public final class ClientWindEvents {
         if (!mc.isPaused() && ClientWindConfig.REDUCE_WIND_INDOORS.get()
                 && shelterTickCounter % 5 == 0) {
             float target = WindShelter.playerExposure(level, player.blockPosition().above());
+            if (ClientWindConfig.SABLE_SUBLEVEL_SHELTER.get()) {
+                target = SableShelterCompat.playerExposure(level, player, target,
+                    ClientWindConfig.SHELTER_EFFECTIVENESS.get().floatValue());
+            }
             smoothedExposure += (target - smoothedExposure) * 0.30f;
             ClientWindState.setExposure(smoothedExposure);
         } else if (!ClientWindConfig.REDUCE_WIND_INDOORS.get()) {

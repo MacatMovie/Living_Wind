@@ -20,25 +20,40 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 /**
- * User-local, opt-out, conservative auto-patcher for the exact Euphoria
- * r5.9.3 / 1.10.5 foliage GLSL the Living Wind bridge was tested against.
+ * User-local, opt-out, conservative auto-patcher for Complementary Reimagined
+ * r5.9.3 with or without Euphoria Patches 1.10.5. Supports foliage and
+ * Nether Storm using the shader packs already installed by the player.
  *
  * Important: this changes an *installed* shader archive, not a shader embedded
  * in or distributed with Living Wind. Full byte-exact backups are made before
  * replacing ZIPs. Unrecognized versions and packs are left untouched.
  *
- * Invoked after Euphoria's startup scanner and after Euphoria generates a pack.
+ * Invoked during client startup and after Euphoria regenerates a pack.
  * Uses only Java NIO: no Euphoria or Iris linkage at class-loading time.
  */
 public final class LivingWindShaderAutoPatcher {
     private static final String TARGET = "shaders/lib/materials/materialMethods/wavingBlocks.glsl";
-    private static final String MARKER = "// LIVING WIND OPTIONAL SHADER BRIDGE (v0.2.9)";
+    private static final String STORM = "shaders/lib/atmospherics/netherStorm.glsl";
+    private static final String STORM_MARKER = "// LIVING WIND NETHER STORM DRIFT (v0.3.0)";
+    private static final String LEGACY_MARKER = "// LIVING WIND OPTIONAL SHADER BRIDGE (v0.2.9)";
+    private static final String LEGACY_END = "// END LIVING WIND OPTIONAL SHADER BRIDGE";
+    private static final String STORM_INSERT = """
+        // LIVING WIND NETHER STORM DRIFT (v0.3.0)
+        // The original storm turbulence remains unchanged; only its spatial noise
+        // sampling is advected by a continuously integrated horizontal wind offset.
+        uniform float livingWindStormActive;
+        uniform float livingWindStormOffsetX;
+        uniform float livingWindStormOffsetZ;
+        // END LIVING WIND NETHER STORM DRIFT
+        """;
+
+    private static final String MARKER = "// LIVING WIND OPTIONAL SHADER BRIDGE (v0.3.0)";
     private static final long MAX_ZIP_BYTES = 128L * 1024 * 1024;
     private static final long MAX_SHADER_BYTES = 1024L * 1024;
     private static final int MAX_ENTRIES = 8192;
     private static final String INSERT = """
-    // LIVING WIND OPTIONAL SHADER BRIDGE (v0.2.9)
-    // Registered dynamically by Living Wind through Euphoria 1.10.5's uniform API.
+    // LIVING WIND OPTIONAL SHADER BRIDGE (v0.3.0)
+    // Registered dynamically through Iris/Oculus or Euphoria uniform hooks.
     // When Living Wind isn't connected, use the original Complementary waving.
     uniform float livingWindActive;
     uniform float livingWindStrength;
@@ -116,36 +131,38 @@ public final class LivingWindShaderAutoPatcher {
         return false;
     }
 
+    /** Atomically modify both GLSL files, with a complete original ZIP backup. */
     public static boolean patchZip(Path zip, Path backups) throws IOException {
         if (Files.size(zip) > MAX_ZIP_BYTES) return false;
-        String targetName = null;
-        byte[] patchedBytes;
-        try (ZipFile original = new ZipFile(zip.toFile(), ZipFile.OPEN_READ, Charset.forName("IBM850"))) {
-            int matches = 0;
-            for (var entries = original.entries(); entries.hasMoreElements();) {
-                ZipEntry entry = entries.nextElement();
-                if (entry.getName().endsWith(TARGET) && !entry.isDirectory()) {
-                    targetName = entry.getName();
-                    matches++;
+        java.util.Map<String, byte[]> replacements = new java.util.HashMap<>();
+        try (ZipFile src = new ZipFile(zip.toFile(), ZipFile.OPEN_READ, Charset.forName("IBM850"))) {
+            if (src.size() > MAX_ENTRIES) return false;
+            for (String target : new String[]{TARGET, STORM}) {
+                ZipEntry matching = null;
+                for (var entries = src.entries(); entries.hasMoreElements();) {
+                    ZipEntry entry = entries.nextElement();
+                    if (!entry.isDirectory() && entry.getName().endsWith(target)) {
+                        if (matching != null) return false; // Ambiguous nested shader packs
+                        matching = entry;
+                    }
                 }
+                if (matching == null || matching.getSize() < 1 || matching.getSize() > MAX_SHADER_BYTES) return false;
+                byte[] input;
+                try (InputStream in = src.getInputStream(matching)) {
+                    input = in.readNBytes((int) MAX_SHADER_BYTES + 1);
+                }
+                if (input.length > MAX_SHADER_BYTES) return false;
+                byte[] replacement = target.equals(TARGET) ? patchSource(input) : patchStormSource(input);
+                if (replacement == null) {
+                    String existing = new String(input, StandardCharsets.UTF_8);
+                    if (!existing.contains(target.equals(TARGET) ? MARKER : STORM_MARKER)) return false;
+                } else replacements.put(matching.getName(), replacement);
             }
-            if (matches != 1 || original.size() > MAX_ENTRIES) return false;
-            ZipEntry target = original.getEntry(targetName);
-            if (target.getSize() < 1 || target.getSize() > MAX_SHADER_BYTES) return false;
-            byte[] source;
-            try (InputStream in = original.getInputStream(target)) {
-                source = in.readNBytes((int) MAX_SHADER_BYTES + 1);
-            }
-            if (source.length > MAX_SHADER_BYTES) return false;
-            patchedBytes = patchSource(source);
-            if (patchedBytes == null) return false;
         }
-
-        // Reserve a complete byte-exact local backup BEFORE altering the source.
+        if (replacements.isEmpty()) return false;
         Files.createDirectories(backups);
-        String hash = sha256(zip);
         String location = shortHash(zip.toAbsolutePath().normalize().toString().getBytes(StandardCharsets.UTF_8));
-        Path backup = backups.resolve(location + "-" + hash.substring(0, 20) + ".zip");
+        Path backup = backups.resolve(location + "-" + sha256(zip).substring(0, 20) + ".zip");
         if (!Files.exists(backup)) Files.copy(zip, backup);
 
         Path temp = Files.createTempFile(zip.getParent(), ".livingwind-", ".tmp");
@@ -153,91 +170,100 @@ public final class LivingWindShaderAutoPatcher {
             try (ZipFile src = new ZipFile(zip.toFile(), ZipFile.OPEN_READ, Charset.forName("IBM850"));
                  OutputStream fileOut = Files.newOutputStream(temp);
                  ZipOutputStream out = new ZipOutputStream(fileOut)) {
-                String comment = src.getComment();
-                if (comment != null) out.setComment(comment);
+                if (src.getComment() != null) out.setComment(src.getComment());
                 for (var entries = src.entries(); entries.hasMoreElements();) {
-                    ZipEntry originalEntry = entries.nextElement();
-                    ZipEntry newEntry;
-                    if (originalEntry.getName().equals(targetName)) {
-                        // Fresh DEFLATED entry: an originally STORED GLSL entry
-                        // can change its size/CRC after the insertion.
-                        newEntry = new ZipEntry(originalEntry.getName());
-                        newEntry.setMethod(ZipEntry.DEFLATED);
-                        newEntry.setTime(originalEntry.getTime());
-                    } else {
-                        newEntry = new ZipEntry(originalEntry);
+                    ZipEntry entry = entries.nextElement();
+                    byte[] replacement = replacements.get(entry.getName());
+                    ZipEntry replacementEntry = replacement == null ? new ZipEntry(entry) : new ZipEntry(entry.getName());
+                    if (replacement != null) {
+                        replacementEntry.setMethod(ZipEntry.DEFLATED);
+                        replacementEntry.setTime(entry.getTime());
                     }
-                    out.putNextEntry(newEntry);
-                    if (!originalEntry.isDirectory()) {
-                        if (originalEntry.getName().equals(targetName)) {
-                            out.write(patchedBytes);
-                        } else {
-                            try (InputStream stream = src.getInputStream(originalEntry)) {
-                                stream.transferTo(out);
-                            }
-                        }
+                    out.putNextEntry(replacementEntry);
+                    if (!entry.isDirectory()) {
+                        if (replacement != null) out.write(replacement);
+                        else try (InputStream in = src.getInputStream(entry)) { in.transferTo(out); }
                     }
                     out.closeEntry();
                 }
             }
-            // Verify that the generated archive actually contains our code.
-            try (ZipFile result = new ZipFile(temp.toFile())) {
-                ZipEntry entry = result.getEntry(targetName);
-                if (entry == null) throw new IOException("Waving shader disappeared during patch");
-                String content;
-                try (InputStream in = result.getInputStream(entry)) {
-                    content = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-                }
-                if (!content.contains(MARKER) || count(content, "LivingWindGetWave(worldPos, 170.0)") != 2)
-                    throw new IOException("Shader output verification failed");
-            }
-            replaceAtomically(temp, zip);
-            System.out.println("[Living Wind] Auto-patched Euphoria shader " + zip.getFileName()
-                + " (original backed up to " + backup.getFileName() + ")");
-            return true;
-        } finally {
-            Files.deleteIfExists(temp);
-        }
-    }
-
-    private static void patchFolder(Path pack, Path backups) throws IOException {
-        // Folder shader packs can have a single outer wrapper directory.
-        Path target = pack.resolve(TARGET);
-        if (!Files.isRegularFile(target)) {
-            try (DirectoryStream<Path> children = Files.newDirectoryStream(pack)) {
-                for (Path child : children) {
-                    if (Files.isDirectory(child) && Files.isRegularFile(child.resolve(TARGET))) {
-                        if (Files.isRegularFile(target)) return;
-                        target = child.resolve(TARGET);
+            try (ZipFile validated = new ZipFile(temp.toFile())) {
+                if (validated.size() < 2) throw new IOException("Patched shader archive is empty");
+                for (var replace : replacements.entrySet()) {
+                    ZipEntry entry = validated.getEntry(replace.getKey());
+                    if (entry == null) throw new IOException("Patched GLSL entry missing");
+                    try (InputStream in = validated.getInputStream(entry)) {
+                        if (!java.util.Arrays.equals(in.readAllBytes(), replace.getValue()))
+                            throw new IOException("Patched GLSL mismatch");
                     }
                 }
             }
-        }
-        if (!Files.isRegularFile(target) || Files.isSymbolicLink(target) || Files.size(target) > MAX_SHADER_BYTES) return;
-        byte[] source = Files.readAllBytes(target);
-        byte[] patched = patchSource(source);
-        if (patched == null) return;
-        Files.createDirectories(backups);
-        Path backup = backups.resolve(shortHash(target.toAbsolutePath().toString().getBytes(StandardCharsets.UTF_8))
-            + "-" + sha256(source).substring(0, 20) + ".glsl");
-        if (!Files.exists(backup)) Files.copy(target, backup);
-        Path temp = Files.createTempFile(target.getParent(), ".livingwind-", ".tmp");
-        try {
-            Files.write(temp, patched);
-            replaceAtomically(temp, target);
-            System.out.println("[Living Wind] Auto-patched Euphoria shader folder " + pack.getFileName());
+            replaceAtomically(temp, zip);
+            System.out.println("[Living Wind] Updated Complementary shader " + zip.getFileName()
+                + " (backup: " + backup.getFileName() + ")");
+            return true;
         } finally { Files.deleteIfExists(temp); }
     }
 
+    private static void patchFolder(Path pack, Path backups) throws IOException {
+        Path root = pack;
+        if (!Files.isRegularFile(root.resolve(TARGET)) || !Files.isRegularFile(root.resolve(STORM))) {
+            try (DirectoryStream<Path> children = Files.newDirectoryStream(pack)) {
+                int candidates = 0;
+                for (Path child : children) {
+                    if (Files.isDirectory(child) && !Files.isSymbolicLink(child)
+                        && Files.isRegularFile(child.resolve(TARGET)) && Files.isRegularFile(child.resolve(STORM))) {
+                        root = child; candidates++;
+                    }
+                }
+                if (candidates != 1) return;
+            }
+        }
+        Path wave = root.resolve(TARGET), storm = root.resolve(STORM);
+        if (Files.isSymbolicLink(wave) || Files.isSymbolicLink(storm)) return;
+        if (Files.size(wave) > MAX_SHADER_BYTES || Files.size(storm) > MAX_SHADER_BYTES) return;
+        byte[] originalW = Files.readAllBytes(wave), originalS = Files.readAllBytes(storm);
+        byte[] resultW = patchSource(originalW), resultS = patchStormSource(originalS);
+        if (resultW == null && !new String(originalW, StandardCharsets.UTF_8).contains(MARKER)) return;
+        if (resultS == null && !new String(originalS, StandardCharsets.UTF_8).contains(STORM_MARKER)) return;
+        if (resultW == null && resultS == null) return;
+        Files.createDirectories(backups);
+        for (Path originalFile : new Path[]{wave, storm}) {
+            byte[] bytes = originalFile.equals(wave) ? originalW : originalS;
+            Path backup = backups.resolve(shortHash(originalFile.toAbsolutePath().toString().getBytes(StandardCharsets.UTF_8))
+                + "-" + sha256(bytes).substring(0, 20) + ".glsl");
+            if (!Files.exists(backup)) Files.copy(originalFile, backup);
+        }
+        if (resultW != null) replaceFile(wave, resultW);
+        if (resultS != null) replaceFile(storm, resultS);
+        System.out.println("[Living Wind] Updated Complementary shader folder " + pack.getFileName());
+    }
+
+    private static void replaceFile(Path file, byte[] data) throws IOException {
+        Path temp = Files.createTempFile(file.getParent(), ".livingwind-", ".tmp");
+        try { Files.write(temp, data); replaceAtomically(temp, file); }
+        finally { Files.deleteIfExists(temp); }
+    }
+
+    /** Both plain Complementary and Euphoria use this identical foliage interface. */
     public static byte[] patchSource(byte[] original) {
         String shader = new String(original, StandardCharsets.UTF_8);
-        if (shader.contains(MARKER) || !shader.contains("MCWIND_INTERNAL")
-            || !shader.contains("vec3 GetRawWave(in vec3 pos, float wind)")) return null;
+        if (shader.contains(MARKER)) return null;
+        if (!shader.contains("vec3 GetRawWave(in vec3 pos, float wind)")) return null;
         String anchor = "void DoWave_Foliage(inout vec3 playerPos, vec3 worldPos, float waveMult) {";
         if (count(shader, anchor) != 1) return null;
+        if (shader.contains(LEGACY_MARKER)) {
+            // Upgrade our previous Euphoria patch in place, without restoring the
+            // player's original shader ZIP or touching Euphoria's other changes.
+            int start = shader.indexOf(LEGACY_MARKER);
+            int end = shader.indexOf(LEGACY_END, start);
+            if (end < 0 || shader.indexOf(LEGACY_MARKER, start + 1) >= 0) return null;
+            end += LEGACY_END.length();
+            shader = shader.substring(0, start) + INSERT.stripTrailing() + shader.substring(end);
+            return shader.getBytes(StandardCharsets.UTF_8);
+        }
         for (String fn : new String[]{"DoWave_Foliage", "DoWave_Leaves"}) {
-            String function = "void " + fn + "(";
-            int start = shader.indexOf(function);
+            int start = shader.indexOf("void " + fn + "(");
             if (start < 0) return null;
             int end = shader.indexOf("\nvoid ", start + 5);
             if (end < 0) return null;
@@ -248,6 +274,21 @@ public final class LivingWindShaderAutoPatcher {
                 "vec3 wave = LivingWindGetWave(worldPos, 170.0);") + shader.substring(end);
         }
         return shader.replace(anchor, INSERT + anchor).getBytes(StandardCharsets.UTF_8);
+    }
+
+    /** Moves the noise sampling only; never alters storm density/height or MCWind. */
+    public static byte[] patchStormSource(byte[] original) {
+        String shader = new String(original, StandardCharsets.UTF_8);
+        if (shader.contains(STORM_MARKER) || !shader.contains("vec4 GetNetherStorm(")) return null;
+        String anchor = "vec4 GetNetherStorm(";
+        String coord = "tracePosM.y += tracePosM.x;";
+        if (count(shader, anchor) != 1 || count(shader, coord) != 1 || !shader.contains("Noise3D(tracePosM")) return null;
+        // No additional raymarch iterations. Preserve EP's MCWind-specific turbulence.
+        shader = shader.replace(anchor, STORM_INSERT + "\n" + anchor);
+        shader = shader.replace(coord, coord + "\n        // Wind moves entire fog formations in world-space X/Z, preserving turbulence."
+            + "\n        tracePosM.xz -= vec2(livingWindStormOffsetX, livingWindStormOffsetZ)"
+            + " * (livingWindStormActive > 0.5 ? 0.001 : 0.0);");
+        return shader.getBytes(StandardCharsets.UTF_8);
     }
 
     private static int count(String s, String part) {

@@ -5,7 +5,9 @@ import com.macatmovie.livingwind.api.ParticleWindApi;
 import com.macatmovie.livingwind.client.access.WindParticleAccess;
 import com.macatmovie.livingwind.config.ClientWindConfig;
 import com.macatmovie.livingwind.wind.WindMath;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -24,6 +26,7 @@ public final class ParticleWindFilter {
     private static final ResourceLocation WIND_STREAK_ID = LivingWind.id("wind_streak");
     private static final ResourceLocation WIND_NEEDLES_ID = LivingWind.id("wind_needles");
     private static final ResourceLocation WIND_GRASS_ID = LivingWind.id("wind_grass");
+    private static final ResourceLocation WIND_PETAL_ID = LivingWind.id("wind_petal");
     private static final ResourceLocation VANILLA_BLOCK_FRAGMENT_ID = new ResourceLocation("minecraft", "block");
     private static final TagKey<net.minecraft.core.particles.ParticleType<?>> WIND_IMMUNE_TAG =
         TagKey.create(Registries.PARTICLE_TYPE, LivingWind.id("wind_immune"));
@@ -57,8 +60,36 @@ public final class ParticleWindFilter {
 
     private ParticleWindFilter() {}
 
+    /**
+     * One-time cleanup: the previous multiplier editor could persist untouched 0.3x
+     * Streams Reflowing defaults as if they were deliberate user overrides.
+     * Migrate those exact stale values once, preserving all other custom values.
+     * After migration users can explicitly select 0.3x again if they wish.
+     */
+    public static void migrateLegacyStreamsDefaults() {
+        if (ClientWindConfig.STREAMS_REFLOWING_DEFAULTS_MIGRATED.get()) return;
+        List<String> kept = new ArrayList<>();
+        boolean changed = false;
+        for (String raw : ClientWindConfig.PARTICLE_RESPONSE_MULTIPLIERS.get()) {
+            int eq = raw.lastIndexOf('=');
+            if (eq > 0 && BuiltinParticleResponseMultipliers.isLegacyStreamsDefault(
+                    raw.substring(0, eq).trim(), raw.substring(eq + 1).trim())) {
+                changed = true;
+            } else {
+                kept.add(raw);
+            }
+        }
+        if (changed) {
+            ClientWindConfig.PARTICLE_RESPONSE_MULTIPLIERS.set(kept);
+            ClientWindConfig.PARTICLE_RESPONSE_MULTIPLIERS.save();
+        }
+        ClientWindConfig.STREAMS_REFLOWING_DEFAULTS_MIGRATED.set(true);
+        ClientWindConfig.STREAMS_REFLOWING_DEFAULTS_MIGRATED.save();
+    }
+
     // Called only on the normal client thread. The particle hook sees immutable published snapshots.
     public static void refresh() {
+        migrateLegacyStreamsDefaults();
         enabled = ClientWindConfig.AFFECT_EXISTING_PARTICLES.get();
         force = ClientWindConfig.PARTICLE_WIND_FORCE.get().floatValue();
         mode = ClientWindConfig.PARTICLE_FILTER_MODE.get();
@@ -85,7 +116,9 @@ public final class ParticleWindFilter {
         // Built-ins are enabled only in BLACKLIST mode: whitelist means exactly the
         // player's chosen IDs. Cached once on config refresh, never per particle tick.
         if (mode == ClientWindConfig.FilterMode.BLACKLIST) {
+            Set<String> exceptions = new HashSet<>(ClientWindConfig.BUILTIN_BLACKLIST_EXCEPTIONS.get());
             for (String raw : BuiltinParticleBlacklist.installedIds()) {
+                if (exceptions.contains(raw)) continue;
                 ResourceLocation id = ResourceLocation.tryParse(raw);
                 if (id != null) next.add(id);
             }
@@ -143,7 +176,7 @@ public final class ParticleWindFilter {
         // Every native foliage particle steers itself, including the new
         // conifer needles. Generic wind here would add a SECOND full-strength
         // push on top of the specially tuned needle movement.
-        if (WIND_STREAK_ID.equals(id) || AMBIENT_PIXEL_ID.equals(id) || WIND_LEAF_ID.equals(id) || WIND_NEEDLES_ID.equals(id) || WIND_GRASS_ID.equals(id) || usesPrettyRainVelocityCompat(id) || usesPrettyRainDirectionOnlyCompat(id)) return false;
+        if (WIND_STREAK_ID.equals(id) || AMBIENT_PIXEL_ID.equals(id) || WIND_LEAF_ID.equals(id) || WIND_NEEDLES_ID.equals(id) || WIND_GRASS_ID.equals(id) || WIND_PETAL_ID.equals(id) || usesPrettyRainVelocityCompat(id) || usesPrettyRainDirectionOnlyCompat(id)) return false;
         return passesConfiguredFilter(id);
     }
 
@@ -272,19 +305,71 @@ public final class ParticleWindFilter {
         return Math.copySign(0.0001, signSource == 0.0 ? 1.0 : signSource);
     }
 
+    /**
+     * Forge 1.20.1: Particle.move() requests X and Z through separate Mixin hooks.
+     * Both offsets use the same eligibility, water, exposure, and response checks.
+     * Memoize just the immediately adjacent axis call on this worker thread,
+     * rather than repeating the entire query for a single particle movement.
+     *
+     * ThreadLocal is intentional: AsyncParticles may tick different particles on
+     * different workers. No particle references survive a completed axis pair.
+     */
+    private static final ThreadLocal<MovementOffsets> MOVEMENT_OFFSETS =
+        ThreadLocal.withInitial(MovementOffsets::new);
+
+    private static final class MovementOffsets {
+        Particle particle;
+        ResourceLocation id;
+        float x;
+        float z;
+        int remainingAxis; // 0 = none, 1 = X, 2 = Z
+    }
+
     public static float offsetX(@Nullable ResourceLocation id, @Nullable Particle particle) {
-        if (!shouldAffect(id, particle) || ClientWindState.altitudeStrength() < 0.001f
-                || isSubmerged(particle)) return 0.0f;
-        float localExposure = exposure(particle, id);
-        return ClientWindState.altitudeWindX() * localExposure * force
-            * response(id) * customResponse(id) * highWindVisualMultiplier();
+        MovementOffsets cached = MOVEMENT_OFFSETS.get();
+        if (cached.remainingAxis == 1 && cached.particle == particle && cached.id == id) {
+            float value = cached.x;
+            cached.remainingAxis = 0;
+            cached.particle = null;
+            cached.id = null;
+            return value;
+        }
+        calculateMovementOffsets(cached, id, particle);
+        cached.particle = particle;
+        cached.id = id;
+        cached.remainingAxis = 2;
+        return cached.x;
     }
 
     public static float offsetZ(@Nullable ResourceLocation id, @Nullable Particle particle) {
+        MovementOffsets cached = MOVEMENT_OFFSETS.get();
+        if (cached.remainingAxis == 2 && cached.particle == particle && cached.id == id) {
+            float value = cached.z;
+            cached.remainingAxis = 0;
+            cached.particle = null;
+            cached.id = null;
+            return value;
+        }
+        calculateMovementOffsets(cached, id, particle);
+        cached.particle = particle;
+        cached.id = id;
+        cached.remainingAxis = 1;
+        return cached.z;
+    }
+
+    private static void calculateMovementOffsets(MovementOffsets out,
+            @Nullable ResourceLocation id, @Nullable Particle particle) {
+        id = StreamsReflowingParticleIds.resolve(id, particle);
         if (!shouldAffect(id, particle) || ClientWindState.altitudeStrength() < 0.001f
-                || isSubmerged(particle)) return 0.0f;
-        return ClientWindState.altitudeWindZ() * exposure(particle, id) * force
-            * response(id) * customResponse(id) * highWindVisualMultiplier();
+                || isSubmerged(particle)) {
+            out.x = 0.0f;
+            out.z = 0.0f;
+            return;
+        }
+        float scale = exposure(particle, id) * force * response(id) * customResponse(id)
+            * highWindVisualMultiplier();
+        out.x = ClientWindState.altitudeWindX() * scale;
+        out.z = ClientWindState.altitudeWindZ() * scale;
     }
 
     private static boolean isSubmerged(@Nullable Particle particle) {

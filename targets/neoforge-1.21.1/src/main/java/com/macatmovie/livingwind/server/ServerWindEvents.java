@@ -2,6 +2,8 @@ package com.macatmovie.livingwind.server;
 
 import com.macatmovie.livingwind.config.WindConfig;
 import com.macatmovie.livingwind.network.WindNetworking;
+import com.macatmovie.livingwind.api.WindApi;
+import com.macatmovie.livingwind.wind.WindDimensionBlacklist;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
@@ -14,11 +16,11 @@ public final class ServerWindEvents {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
 
         WindSavedData data = WindSavedData.get(level);
-        data.tick(level);
+        if (!WindDimensionBlacklist.contains(level)) data.tick(level);
 
         int interval = WindConfig.SYNC_INTERVAL_TICKS.get();
         if (interval > 0 && level.getGameTime() % interval == 0L && !level.players().isEmpty()) {
-            WindNetworking.sendToLevel(level, data.snapshot(level.getGameTime()));
+            WindNetworking.sendToLevel(level, WindApi.get(level));
         }
     }
 
@@ -26,7 +28,7 @@ public final class ServerWindEvents {
         if (event.getEntity() instanceof ServerPlayer player) {
             ServerLevel level = player.serverLevel();
             WindSavedData data = WindSavedData.get(level);
-            WindNetworking.sendToPlayer(player, data.snapshot(level.getGameTime()));
+            WindNetworking.sendToPlayer(player, WindApi.get(level));
         }
     }
 
@@ -34,7 +36,7 @@ public final class ServerWindEvents {
         if (event.getEntity() instanceof ServerPlayer player) {
             ServerLevel level = player.serverLevel();
             WindSavedData data = WindSavedData.get(level);
-            WindNetworking.sendToPlayer(player, data.snapshot(level.getGameTime()));
+            WindNetworking.sendToPlayer(player, WindApi.get(level));
         }
     }
 }

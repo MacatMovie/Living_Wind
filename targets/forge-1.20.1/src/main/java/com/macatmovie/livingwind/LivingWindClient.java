@@ -34,6 +34,8 @@ public final class LivingWindClient {
                 () -> new ConfigScreenHandler.ConfigScreenFactory((mc, parent) -> new LivingWindConfigScreen(parent))
             );
             CosyCrittersCompat.register();
+            com.macatmovie.livingwind.client.shader.LivingWindShaderAutoPatcher.patchInstalledPacks(
+                net.minecraft.client.Minecraft.getInstance().gameDirectory.toPath().resolve("shaderpacks"));
         });
     }
 
@@ -55,5 +57,6 @@ public final class LivingWindClient {
         event.registerSpriteSet(ModParticles.WIND_LEAF.get(), WindLeafParticle.Provider::new);
         event.registerSpriteSet(ModParticles.WIND_NEEDLES.get(), WindLeafParticle.NeedlesProvider::new);
         event.registerSpriteSet(ModParticles.WIND_GRASS.get(), WindLeafParticle.GrassProvider::new);
+        event.registerSpriteSet(ModParticles.WIND_PETAL.get(), WindLeafParticle.PetalProvider::new);
     }
 }

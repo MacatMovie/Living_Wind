@@ -2,6 +2,7 @@ package com.macatmovie.livingwind.api;
 
 import com.macatmovie.livingwind.server.WindSavedData;
 import com.macatmovie.livingwind.wind.WindSnapshot;
+import com.macatmovie.livingwind.wind.WindDimensionBlacklist;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -12,6 +13,7 @@ import net.minecraft.util.Mth;
 public final class WindApi {
     private WindApi() {}
     public static WindSnapshot get(ServerLevel level) {
+        if (WindDimensionBlacklist.contains(level)) return WindDimensionBlacklist.calm(level.getGameTime());
         return WindSavedData.get(level).snapshot(level.getGameTime());
     }
 

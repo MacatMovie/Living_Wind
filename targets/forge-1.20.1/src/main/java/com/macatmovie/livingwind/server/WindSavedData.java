@@ -1,6 +1,7 @@
 package com.macatmovie.livingwind.server;
 
 import com.macatmovie.livingwind.config.WindConfig;
+import com.macatmovie.livingwind.wind.WindDimensionSettings;
 import com.macatmovie.livingwind.wind.GustPulse;
 import com.macatmovie.livingwind.wind.WindMath;
 import com.macatmovie.livingwind.wind.WindSnapshot;
@@ -210,19 +211,17 @@ public final class WindSavedData extends SavedData {
         }
         boolean forceStrength = forcedStrengthEndTick > now;
         RandomSource random = level.getRandom();
-        boolean inNether = level.dimension() == net.minecraft.world.level.Level.NETHER;
-        boolean inEnd = level.dimension() == net.minecraft.world.level.Level.END;
-        boolean windDisabled = inNether && WindConfig.NETHER_WIND_MODE.get() == WindConfig.NetherWindMode.DISABLED
-            || inEnd && WindConfig.END_WIND_MODE.get() == WindConfig.EndWindMode.DISABLED;
+        WindDimensionSettings.Mode dimensionMode = WindDimensionSettings.mode(level);
+        boolean windDisabled = dimensionMode == WindDimensionSettings.Mode.DISABLED;
         if (windDisabled) {
-            effectiveStrength = forceStrength ? forcedStrength : 0.0f;
+            effectiveStrength = 0.0f;
             effectiveGust = 0.0f;
             effectiveWindyPeriod = false;
             effectiveStormFront = false;
             return;
         }
-        boolean reducedNether = inNether && WindConfig.NETHER_WIND_MODE.get() == WindConfig.NetherWindMode.REDUCED_GUSTY;
-        boolean weakEnd = inEnd && WindConfig.END_WIND_MODE.get() == WindConfig.EndWindMode.VERY_WEAK;
+        boolean reducedNether = dimensionMode == WindDimensionSettings.Mode.REDUCED_GUSTY;
+        boolean weakEnd = dimensionMode == WindDimensionSettings.Mode.VERY_WEAK;
 
 
         if (profileDay == Long.MIN_VALUE) {
@@ -409,17 +408,14 @@ public final class WindSavedData extends SavedData {
             0.12f + random.nextFloat() * 0.42f + targetTurbulence * 0.16f, 0.05f, 0.90f
         );
 
-        if (level.dimension() == net.minecraft.world.level.Level.END
-            && WindConfig.END_WIND_MODE.get() == WindConfig.EndWindMode.VERY_WEAK) {
+        if (WindDimensionSettings.mode(level) == WindDimensionSettings.Mode.VERY_WEAK) {
             targetTurbulence = Math.min(targetTurbulence, 0.10f);
             targetDirectionInstability = Math.min(targetDirectionInstability, 0.08f);
         }
         float maxTurn = 18.0f + targetDirectionInstability * 85.0f;
         float delta = (random.nextFloat() - random.nextFloat()) * maxTurn;
-        if (level.dimension() == net.minecraft.world.level.Level.END
-            && WindConfig.END_WIND_MODE.get() == WindConfig.EndWindMode.VERY_WEAK) delta *= 0.10f;
-        targetDirection = (!(level.dimension() == net.minecraft.world.level.Level.END
-            && WindConfig.END_WIND_MODE.get() == WindConfig.EndWindMode.VERY_WEAK)
+        if (WindDimensionSettings.mode(level) == WindDimensionSettings.Mode.VERY_WEAK) delta *= 0.10f;
+        targetDirection = (!(WindDimensionSettings.mode(level) == WindDimensionSettings.Mode.VERY_WEAK)
             && random.nextFloat() < 0.025f)
             ? random.nextFloat() * 360.0f
             : WindMath.normalizeDegrees(targetDirection + delta);
@@ -431,8 +427,7 @@ public final class WindSavedData extends SavedData {
     }
 
     private void maybeStartGust(ServerLevel level, RandomSource random, long now) {
-        if (level.dimension() == net.minecraft.world.level.Level.END
-            && WindConfig.END_WIND_MODE.get() == WindConfig.EndWindMode.VERY_WEAK) return;
+        if (WindDimensionSettings.mode(level) == WindDimensionSettings.Mode.VERY_WEAK) return;
 
         // A cluster schedules its followers independently of the usual natural gust check.
         // They may start before the previous gust fades away, but the normal scheduler is
@@ -466,8 +461,7 @@ public final class WindSavedData extends SavedData {
         if (supportsWeather(level) && level.isThundering()) chance += 0.16f;
         if (effectiveWindyPeriod) chance += 0.12f;
         if (effectiveStormFront) chance += 0.12f;
-        if (level.dimension() == net.minecraft.world.level.Level.NETHER
-            && WindConfig.NETHER_WIND_MODE.get() == WindConfig.NetherWindMode.REDUCED_GUSTY) chance += 0.13f;
+        if (WindDimensionSettings.mode(level) == WindDimensionSettings.Mode.REDUCED_GUSTY) chance += 0.13f;
 
         if (random.nextFloat() < chance) {
             startNaturalGust(level, random, now);

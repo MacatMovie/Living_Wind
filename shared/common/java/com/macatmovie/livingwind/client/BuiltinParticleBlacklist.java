@@ -172,13 +172,6 @@ public final class BuiltinParticleBlacklist {
         "subtle_effects:magma_cube_trail",
         "subtle_effects:egg_splat",
         "subtle_effects:snow_splat",
-        // Streams Reflowing: all five particles follow the stream's own water
-        // flow simulation, even the floating leaf and stick variants.
-        "streamsreflowing:stream_bubble",
-        "streamsreflowing:stream_splash",
-        "streamsreflowing:stream_foam",
-        "streamsreflowing:stream_leaf",
-        "streamsreflowing:stream_stick",
         // Explosive Enhancement: cohesive explosion sequences, sparks and shockwaves
         // should retain the motion specified by that effect.
         "explosiveenhancement:blastwave",
@@ -226,6 +219,11 @@ public final class BuiltinParticleBlacklist {
         "spawn:volcano_flare",
         "spawn:sun_flare",
         "spawn:sun_blast",
+        // Streams Reflowing: bubbles and floating leaves/sticks keep their own water motion.
+        // The waterfall splash and foam remain partially wind-responsive (0.2x).
+        "streamsreflowing:stream_bubble",
+        "streamsreflowing:stream_leaf",
+        "streamsreflowing:stream_stick",
         // Visuality: crystal sparkles, slime drops, mob hit fragments, and water rings.
         // Some Visuality versions register these in a separate custom registry.
         // Matching particle classes are also protected by BuiltinParticleClassBlacklist.

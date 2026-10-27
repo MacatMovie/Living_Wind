@@ -10,6 +10,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 
 /**
@@ -36,21 +37,25 @@ public final class AmbientWindParticles {
         RandomSource random = level.getRandom();
         int radius = ClientWindConfig.AMBIENT_RADIUS.get();
         BlockPos origin = player.blockPosition();
+        boolean nether = level.dimension() == Level.NETHER;
 
         for (int i = 0; i < samples; i++) {
             // Most attempts sample exposed terrain/canopy tops. A smaller share samples the nearby
             // volume so leaf/plant particles can also originate from visible tree and plant faces.
-            boolean surfaceSample = random.nextFloat() < 0.68f;
-            BlockPos pos = surfaceSample
-                ? randomSurfacePosition(level, origin, radius, random)
-                : randomNearbyPosition(level, origin, radius, random);
+            boolean surfaceSample = !nether && random.nextFloat() < 0.68f;
+            BlockPos pos = nether
+                ? (i % 2 == 0 ? randomNetherSurfacePosition(level, origin, radius, random)
+                    : randomNearbyPosition(level, origin, radius, random))
+                : surfaceSample ? randomSurfacePosition(level, origin, radius, random)
+                    : randomNearbyPosition(level, origin, radius, random);
             if (pos == null) continue;
             BlockState state = level.getBlockState(pos);
             if (state.isAir()) continue;
 
-            EmitterKind kind = classify(state);
+            EmitterKind kind = classify(state, nether);
             if (kind == EmitterKind.NONE) continue;
-            if (!surfaceSample && kind != EmitterKind.LEAF && kind != EmitterKind.GRASS) continue;
+            // Keep the existing overworld eligibility exactly as it was.
+            if (!nether && !surfaceSample && kind != EmitterKind.LEAF && kind != EmitterKind.GRASS) continue;
 
             Direction face = surfaceSample ? Direction.UP : findExposedFace(level, pos, random);
             if (face == null) continue;
@@ -96,6 +101,32 @@ public final class AmbientWindParticles {
         if (Math.abs(y - origin.getY()) > 16) return null;
         BlockPos pos = new BlockPos(x, y, z);
         return level.canSeeSky(pos.above()) ? pos : null;
+    }
+
+    /**
+     * Nether terrain has no usable sky-facing heightmap. Try just a handful of
+     * cells in one nearby column, prioritizing surfaces around player height.
+     * Every read is chunk-guarded; sampling count remains the configured budget.
+     */
+    private static BlockPos randomNetherSurfacePosition(ClientLevel level, BlockPos origin,
+                                                        int radius, RandomSource random) {
+        int localRadius = Math.min(radius, 12);
+        int x = origin.getX() + random.nextInt(localRadius * 2 + 1) - localRadius;
+        int z = origin.getZ() + random.nextInt(localRadius * 2 + 1) - localRadius;
+        int startY = origin.getY() + random.nextInt(7) + 1;
+        BlockPos.MutableBlockPos probe = new BlockPos.MutableBlockPos();
+        for (int step = 0; step < 9; step++) {
+            probe.set(x, startY - step, z);
+            if (level.isOutsideBuildHeight(probe) || !level.hasChunkAt(probe)) break;
+            BlockState state = level.getBlockState(probe);
+            if (!state.is(WindBlockTags.NETHER_AMBIENT_EMITTERS)) continue;
+            // This also prevents choosing blocks buried in a solid Nether wall.
+            BlockPos above = probe.above();
+            if (level.hasChunkAt(above) && level.getBlockState(above).getCollisionShape(level, above).isEmpty()) {
+                return probe.immutable();
+            }
+        }
+        return null;
     }
 
     private static BlockPos randomNearbyPosition(ClientLevel level, BlockPos origin, int radius, RandomSource random) {
@@ -146,7 +177,8 @@ public final class AmbientWindParticles {
         return color & 0xFFFFFF;
     }
 
-    private static EmitterKind classify(BlockState state) {
+    private static EmitterKind classify(BlockState state, boolean nether) {
+        if (nether && state.is(WindBlockTags.NETHER_AMBIENT_EMITTERS)) return EmitterKind.NETHER_DUST;
         if (state.is(WindBlockTags.LEAF_EMITTERS)) return EmitterKind.LEAF;
         // The default grass tag explicitly contains grass_block, short_grass, tall_grass, fern and large_fern.
         // WORLD_SURFACE sampling therefore naturally gives dense fields more eligible emitters.
@@ -163,7 +195,8 @@ public final class AmbientWindParticles {
         GRASS(0.055f),
         SNOW(0.065f),
         SAND(0.045f),
-        DUST(0.032f);
+        DUST(0.032f),
+        NETHER_DUST(0.065f);
 
         final float baseChance;
         EmitterKind(float baseChance) {

@@ -23,7 +23,7 @@ import net.minecraft.world.level.block.Block;
 /** A lazy browser for leaf blocks in the installed modpack; no renderer or per-tick registry scanning.
  * Click a row to cycle Auto -> Conifer -> Broadleaf -> Auto. User entries win over datapack tags.
  */
-public final class LeafTypeMappingScreen extends Screen {
+public class LeafTypeMappingScreen extends Screen {
     private static final int TOP = 69;
     private static final int ROW = 21;
     private static final int SCROLLBAR_WIDTH = 10;

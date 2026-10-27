@@ -1,5 +1,7 @@
 package com.macatmovie.livingwind.server;
 
+import com.macatmovie.livingwind.api.WindApi;
+
 import com.macatmovie.livingwind.LivingWind;
 import com.macatmovie.livingwind.config.WindConfig;
 import com.macatmovie.livingwind.wind.WindSnapshot;
@@ -152,7 +154,7 @@ public final class SableWindForceHandler implements SubLevelObserver {
             windByLevel.remove(level);
             return;
         }
-        windByLevel.put(level, WindSavedData.get(level).snapshot(level.getGameTime()));
+        windByLevel.put(level, WindApi.get(level));
     }
 
     private void onLevelUnload(LevelEvent.Unload event) {

@@ -9,6 +9,10 @@
     "ParticleMixin",
     "PrettyRainShrubMixin",
     "OfficialParticleRainWindMixin",
+    "EuphoriaAutoShaderMixin",
+    "EuphoriaUniformsMixin",
+    "OculusCommonUniformsMixin",
+    "IrisCommonUniformsMixin",
     "AdvancedChimneysSmokeMixin",
     "AmbientSoundsWindCategoryMixin",
     "DynamicSurroundingsWindMixin",
@@ -16,21 +20,35 @@
     "FwaAnimationMixin",
     "FwaChainMixin",
     "FwaLanternMixin",
+    "SwingingSignsSwayMixin",
     "SwingingLanternsWindMixin",
     "SwingingLanternsPhysicsWindLimitMixin",
     "SwingingLanternsExposureAccess",
     "FwaBellMixin",
     "SupplementariesWindVaneMixin",
+    "WindblownFrameMixin",
+    "WindblownShaderMixin",
     "InteractiveFoliageWindMixin",
     "InteractiveFoliageSwayShaderMixin",
     "InteractiveFoliageLegacyShaderMixin",
-    "SmallShipsClientWindManagerMixin"
+    "SmallShipsClientWindManagerMixin",
+    "ChimesIronRendererMixin",
+    "ChimesCopperRendererMixin",
+    "ChimesBambooRendererMixin",
+    "ChimesAmethystRendererMixin",
+    "ChimesGlassRendererMixin",
+    "ChimesIronAmbientMixin",
+    "ChimesCopperAmbientMixin",
+    "ChimesBambooAmbientMixin",
+    "ChimesAmethystAmbientMixin",
+    "ChimesGlassAmbientMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   },
   "mixins": [
     "CreateWindmillBearingMixin",
-    "SmallShipsWindManagerMixin"
+    "SmallShipsWindManagerMixin",
+    "TreasureBalloonsUpdateMixin"
   ]
 }

@@ -47,6 +47,9 @@ public final class LivingWindClient {
         modBus.addListener(LivingWindClient::registerClientReloadListeners);
         modBus.addListener(LivingWindClient::registerGuiLayers);
         CosyCrittersCompat.register();
+        modBus.addListener((net.neoforged.fml.event.lifecycle.FMLClientSetupEvent event) ->
+            event.enqueueWork(() -> com.macatmovie.livingwind.client.shader.LivingWindShaderAutoPatcher.patchInstalledPacks(
+                net.minecraft.client.Minecraft.getInstance().gameDirectory.toPath().resolve("shaderpacks"))));
         com.macatmovie.livingwind.compat.SableInstrumentSetup.client();
     }
 
@@ -60,6 +63,7 @@ public final class LivingWindClient {
         event.registerSpriteSet(ModParticles.WIND_LEAF.get(), WindLeafParticle.Provider::new);
         event.registerSpriteSet(ModParticles.WIND_NEEDLES.get(), WindLeafParticle.NeedlesProvider::new);
         event.registerSpriteSet(ModParticles.WIND_GRASS.get(), WindLeafParticle.GrassProvider::new);
+        event.registerSpriteSet(ModParticles.WIND_PETAL.get(), WindLeafParticle.PetalProvider::new);
     }
 
     private static void registerBlockEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {

@@ -3,6 +3,7 @@ package com.macatmovie.livingwind.network;
 import com.macatmovie.livingwind.LivingWind;
 import com.macatmovie.livingwind.client.ClientWindState;
 import com.macatmovie.livingwind.wind.WindSnapshot;
+import com.macatmovie.livingwind.wind.WindDimensionBlacklist;
 import java.util.function.Supplier;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -13,7 +14,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class WindNetworking {
-    private static final String PROTOCOL = "1";
+    private static final String PROTOCOL = "2";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
         new ResourceLocation(LivingWind.MOD_ID, "main"),
         () -> PROTOCOL,
@@ -56,7 +57,9 @@ public final class WindNetworking {
     }
 
     public static void sendToPlayer(ServerPlayer player, WindSnapshot snapshot) {
-        sendToPlayer(player, WindSyncPayload.from(withLocalWeather(player, snapshot)));
+        boolean blocked = WindDimensionBlacklist.contains(player.serverLevel());
+        WindSnapshot effective = blocked ? WindDimensionBlacklist.calm(player.serverLevel().getGameTime()) : withLocalWeather(player, snapshot);
+        sendToPlayer(player, WindSyncPayload.from(effective, blocked));
     }
 
     private static void sendToPlayer(ServerPlayer player, WindSyncPayload payload) {

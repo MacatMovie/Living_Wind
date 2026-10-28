@@ -18,6 +18,11 @@ public final class ClientWindApi {
     /** Strength at the local player after altitude and shelter/exposure modifiers. */
     public static float localStrength() { return ClientWindState.localStrength(); }
 
+    /** Position-aware strength (altitude + sampled biome), without position-specific shelter. */
+    public static float strengthAt(double x, double y, double z) { return ClientWindState.strengthAt(x, y, z); }
+    public static float windXAt(double x, double y, double z) { return ClientWindState.windXAt(x, y, z); }
+    public static float windZAt(double x, double y, double z) { return ClientWindState.windZAt(x, y, z); }
+
     public static float directionDegrees() { return ClientWindState.directionDegrees(); }
     public static float globalWindX() { return ClientWindState.globalWindX(); }
     public static float globalWindZ() { return ClientWindState.globalWindZ(); }

@@ -81,6 +81,10 @@ public final class LivingWindConfigScreen extends Screen {
         header("Small Ships 2.0");
         bool("Use Living Wind for Small Ships", WindConfig.SMALL_SHIPS_WIND_ENABLED.get(), WindConfig.SMALL_SHIPS_WIND_ENABLED::set);
 
+        header("Aleki's Nifty Ships");
+        bool("Use Living Wind for Nifty Ships", WindConfig.ALEKI_SHIPS_WIND_ENABLED.get(), WindConfig.ALEKI_SHIPS_WIND_ENABLED::set);
+        number("Nifty Ships Wind Strength Scale", WindConfig.ALEKI_SHIPS_WIND_SCALE.get(), WindConfig.ALEKI_SHIPS_WIND_SCALE::set, 0, 1);
+
         header("Treasure Balloons");
         bool("Wind-Driven Treasure Balloons", WindConfig.TREASURE_BALLOONS_WIND_ENABLED.get(), WindConfig.TREASURE_BALLOONS_WIND_ENABLED::set);
         number("Treasure Balloon Wind Multiplier", WindConfig.TREASURE_BALLOONS_WIND_MULTIPLIER.get(), WindConfig.TREASURE_BALLOONS_WIND_MULTIPLIER::set, 0, 5);
@@ -227,7 +231,7 @@ public final class LivingWindConfigScreen extends Screen {
             }
             nav("Compatibility", () -> openPage("clientCompatibility"));
         } else if ("commonCompatibility".equals(page)) {
-            for (String integration : new String[] {"Create Windmills", "Small Ships 2.0", "Treasure Balloons"}) {
+            for (String integration : new String[] {"Create Windmills", "Small Ships 2.0", "Aleki's Nifty Ships", "Treasure Balloons"}) {
                 nav(integration, () -> openPage(integration));
             }
         } else if ("clientCompatibility".equals(page)) {

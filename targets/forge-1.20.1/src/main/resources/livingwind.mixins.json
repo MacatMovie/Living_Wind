@@ -41,7 +41,8 @@
     "ChimesCopperAmbientMixin",
     "ChimesBambooAmbientMixin",
     "ChimesAmethystAmbientMixin",
-    "ChimesGlassAmbientMixin"
+    "ChimesGlassAmbientMixin",
+    "AlekiShipsTelltaleMixin"
   ],
   "injectors": {
     "defaultRequire": 1
@@ -49,6 +50,7 @@
   "mixins": [
     "CreateWindmillBearingMixin",
     "SmallShipsWindManagerMixin",
+    "AlekiShipsWindModelsMixin",
     "TreasureBalloonsUpdateMixin"
   ]
 }

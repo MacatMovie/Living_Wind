@@ -32,6 +32,8 @@ public final class WindConfig {
     public static final ForgeConfigSpec.DoubleValue CREATE_WINDMILL_MAX_CHANGE_PER_UPDATE;
     public static final ForgeConfigSpec.IntValue CREATE_WINDMILL_UPDATE_TICKS;
     public static final ForgeConfigSpec.BooleanValue SMALL_SHIPS_WIND_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue ALEKI_SHIPS_WIND_ENABLED;
+    public static final ForgeConfigSpec.DoubleValue ALEKI_SHIPS_WIND_SCALE;
     public static final ForgeConfigSpec.BooleanValue TREASURE_BALLOONS_WIND_ENABLED;
     public static final ForgeConfigSpec.DoubleValue TREASURE_BALLOONS_WIND_MULTIPLIER;
 
@@ -192,6 +194,17 @@ public final class WindConfig {
         SMALL_SHIPS_WIND_ENABLED = b.comment("Use Living Wind as Small Ships' wind source when Small Ships is installed. Disable to restore its independent wind simulation.")
             .translation("livingwind.config.smallShipsWindEnabled")
             .define("enabled", true);
+        b.pop();
+
+        b.comment("Optional Aleki's Nifty Ships sailing integration (Forge 1.20.1 only). Has no effect without Nifty Ships.")
+            .translation("livingwind.config.section.alekiShips")
+            .push("alekiShips");
+        ALEKI_SHIPS_WIND_ENABLED = b.comment("Let Nifty Ships use Living Wind at each ship's position. Disable to restore its registered wind provider, including any third-party provider.")
+            .translation("livingwind.config.alekiShipsWindEnabled")
+            .define("enabled", true);
+        ALEKI_SHIPS_WIND_SCALE = b.comment("Convert Living Wind strength to Nifty Ships' sail wind speed. Values above 0.2 are capped by Nifty Ships. 0.20 reaches full sail speed around Living Wind strength 1.0.")
+            .translation("livingwind.config.alekiShipsWindScale")
+            .defineInRange("strengthScale", 0.20, 0.0, 1.0);
         b.pop();
 
         b.comment("Optional Realm RPG: Treasure Balloons flight integration (both loaders). Has no effect without the other mod.")

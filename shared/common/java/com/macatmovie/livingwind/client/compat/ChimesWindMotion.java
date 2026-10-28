@@ -47,7 +47,7 @@ public final class ChimesWindMotion {
     private static float localWind(BlockPos pos, Level level) {
         if (level == null) return 0f;
         float exposed = WindShelter.exposureForStaticAnimation(pos);
-        return Math.max(0f, ClientWindState.strengthAtAltitude(pos.getY(), level.dimension() == Level.OVERWORLD)
+        return Math.max(0f, ClientWindState.strengthAt(pos.getX(), pos.getY(), pos.getZ())
                 * Mth.clamp(exposed, 0f, 1f));
     }
 

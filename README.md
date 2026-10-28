@@ -2,7 +2,7 @@
 
 Living Wind is a synchronized wind system for Minecraft, featuring changing wind direction, strength, and gusts. Other mods can read its wind values to drive their own movement, physics, animations, and particle effects.
 
-**Supported versions:** Forge 1.20.1 and NeoForge 1.21.1. The examples below describe the public API in Living Wind **v1.3.4**. Use the JAR for your Minecraft version and mod loader.
+**Supported versions:** Forge 1.20.1 and NeoForge 1.21.1. The examples below describe the public API in Living Wind **v1.3.5**. Use the JAR for your Minecraft version and mod loader.
 
 ## For mod developers
 
@@ -32,7 +32,9 @@ float windZ = wind.windZ();
 | Method | Returns | Good for |
 | --- | --- | --- |
 | `WindApi.get(serverLevel)` | The current atmospheric wind for that dimension, without altitude scaling. | A general wind reading for the dimension. |
-| `WindApi.getAt(serverLevel, pos)` | The same wind with the configured **Overworld altitude multiplier** applied at `pos`. | A windmill, balloon, or other object at a specific height. |
+| `WindApi.getAt(serverLevel, pos)` | Wind at `pos`, including the configured **Overworld altitude scaling** and **biome-specific strength modifiers**. | A windmill, balloon, or other object at a specific height. |
+
+`getAt` checks the biome at the requested position, while `get` deliberately stays a dimension-wide reading. Both methods retain their original names, parameters and return type. Read `getAt` on the server thread at a loaded position; do not query world biomes from async particle or physics workers.
 
 `getAt` does **not** calculate whether `pos` is sheltered inside a building. Living Wind's local shelter/exposure detection is client-side. If your server-side physics need shelter, implement and cache a suitable enclosure check in your mod.
 
@@ -51,7 +53,7 @@ float windZ = wind.windZ();
 
 The values are *wind data*, not Minecraft velocity units. Choose your own multiplier for movement and physics. Avoid also multiplying `windX()` and `windZ()` by `strength()` unless you specifically want a squared strength response.
 
-**Dimension settings matter:** If Living Wind is disabled in a dimension, `WindApi.get(...)` and `getAt(...)` return calm wind (zero strength and vector). Otherwise, the selected dimension mode is handled by the simulation; integrations generally do not need to special-case the Nether or End.
+**Dimension settings matter:** If Living Wind is disabled in a dimension, `WindApi.get(...)` and `getAt(...)` return calm wind (zero strength and vector). Otherwise, the selected dimension mode is handled by the simulation; integrations generally do not need to special-case the Nether or End. A dimension explicitly set to **Disabled** stays windless even in a modified biome.
 
 ### 2. Client-side wind API (visuals and animations)
 
@@ -63,10 +65,16 @@ import com.macatmovie.livingwind.api.ClientWindApi;
 // Inside client-side code, after checking that Living Wind is installed:
 if (ClientWindApi.hasWindState()) {
     float atmosphericWind = ClientWindApi.globalStrength();
-    float playerWind = ClientWindApi.localStrength();
+    float playerWind = ClientWindApi.localStrength(); // includes the player biome
     float direction = ClientWindApi.directionDegrees();
     float x = ClientWindApi.localWindX();
     float z = ClientWindApi.localWindZ();
+
+    // Assume xPos, yPos and zPos are the world coordinates of your effect.
+    // Outdoor visual/particle effect at that position (no shelter check):
+    float strengthHere = ClientWindApi.strengthAt(xPos, yPos, zPos);
+    float windXHere = ClientWindApi.windXAt(xPos, yPos, zPos);
+    float windZHere = ClientWindApi.windZAt(xPos, yPos, zPos);
 }
 ```
 
@@ -75,15 +83,17 @@ if (ClientWindApi.hasWindState()) {
 | Method | Meaning |
 | --- | --- |
 | `hasWindState()` | Whether synchronized wind data has arrived from a server/world. Check this before relying on client readings. |
-| `globalStrength()` | Atmospheric strength, before altitude and local shelter modifiers. |
-| `altitudeStrength()` | Strength after altitude scaling, before shelter reduction. Based on the **local player's altitude**. |
-| `localStrength()` | Strength at the **local player**, after altitude and shelter/exposure reduction. |
+| `globalStrength()` | Dimension-wide atmospheric strength before altitude, biome and shelter modifiers. Unchanged for existing integrations. |
+| `altitudeStrength()` | Altitude-scaled strength including the **local player's smoothed biome modifier**, before shelter reduction. |
+| `localStrength()` | Strength at the **local player**, after altitude, biome and shelter/exposure reduction. |
 | `directionDegrees()` | Current smoothed direction, following the same degrees convention as the server API. |
-| `globalWindX()` / `globalWindZ()` | Atmospheric wind vector before altitude and shelter modifiers. |
-| `localWindX()` / `localWindZ()` | Wind vector after the **local player's** altitude and shelter modifiers. |
+| `globalWindX()` / `globalWindZ()` | Dimension-wide vector before altitude, biome or shelter modifiers. |
+| `localWindX()` / `localWindZ()` | Wind vector after the **local player's** altitude, biome and shelter modifiers. |
+| `strengthAt(x, y, z)` | Position-aware, altitude- and biome-adjusted strength, **without shelter**. Reads a thread-safe sampled biome cache. |
+| `windXAt(x, y, z)` / `windZAt(x, y, z)` | The position-aware wind vector, already multiplied by strength; **without shelter**. |
 | `turbulence()`, `windyPeriod()`, `stormFront()` | Additional synchronized conditions for visual effects. |
 
-**Important:** `localStrength()` describes the **player's exposure**, not the exposure at any arbitrary rendered block. For example, if the player stands inside a house, outdoor leaves should not necessarily stop moving. For distant/world-space animations, use the atmospheric/altitude reading and any position-specific exposure logic your own mod needs.
+**Important:** `localStrength()` describes the **player's exposure**, not the exposure at any arbitrary rendered block. For example, if the player stands inside a house, outdoor leaves should not necessarily stop moving. For distant/world-space animations, prefer `strengthAt(x, y, z)` or `windXAt` / `windZAt` and any position-specific exposure logic your own mod needs. These methods never look up chunks on particle threads. Their sampled biome cache follows the local player, covers nearby positions, and may temporarily return unmodified atmospheric wind outside its range or before the next refresh. It is intended for visuals, **not authoritative gameplay**.
 
 For animated objects, smooth your animation in your own renderer if needed. For gameplay-affecting movement, use the **server** API instead of trusting a client reading.
 
@@ -101,7 +111,7 @@ For a simple local-JAR setup, place the appropriate JAR in your project's `libs/
 ```gradle
 // Example for a NeoForge 1.21.1 project. Use the Forge 1.20.1 JAR for Forge.
 dependencies {
-    compileOnly files('libs/LivingWind-NeoForge-1.21.1-v1.3.4.jar')
+    compileOnly files('libs/LivingWind-NeoForge-1.21.1-v1.3.5.jar')
 }
 ```
 
@@ -116,7 +126,7 @@ if (ModList.get().isLoaded("livingwind")) {
 }
 ```
 
-For optional dependency metadata, declare `livingwind` as **optional** rather than required (`mandatory=false` in Forge `mods.toml`, or `type="optional"` in NeoForge `neoforge.mods.toml`). The JAR's filename includes `v`, but the mod metadata version is numeric, such as `1.3.4`.
+For optional dependency metadata, declare `livingwind` as **optional** rather than required (`mandatory=false` in Forge `mods.toml`, or `type="optional"` in NeoForge `neoforge.mods.toml`). The JAR's filename includes `v`, but the mod metadata version is numeric, such as `1.3.5`.
 
 **Do not run `ClientWindApi` or `ParticleWindApi` from common initialization on a dedicated server.** Keep calls to client-only APIs behind your loader's client setup/dist separation.
 
@@ -158,6 +168,10 @@ ParticleWindApi.registerImmuneParticleClass(YourParticleClass.class);
 Option C is useful for directly constructed particles that don't retain a registry ID. It also covers subclasses of the registered class. Replace `YourParticleClass` with your own class extending Minecraft's client `Particle`.
 
 Use runtime registration **only when Living Wind is loaded**, and only on the client. Registration is intended to happen once during client initialization, not once per particle or frame.
+
+### Reading biome-adjusted wind
+
+Biome modifiers are included automatically when you use the **position-aware** API. Choose `WindApi.getAt(serverLevel, pos)` for server-side physics or `ClientWindApi.strengthAt(x, y, z)` / `windXAt` / `windZAt` for client visuals. You do not need to detect individual biomes or duplicate Living Wind's modifier logic. Global readings remain dimension-wide, and dimension-disabled wind remains disabled.
 
 ### API source references
 

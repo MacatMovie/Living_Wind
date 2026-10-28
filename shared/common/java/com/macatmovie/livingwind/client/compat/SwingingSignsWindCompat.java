@@ -22,8 +22,7 @@ public final class SwingingSignsWindCompat {
         Minecraft minecraft = Minecraft.getInstance();
         if (pos == null || state == null || minecraft.level == null) return original;
 
-        double strength = ClientWindState.strengthAtAltitude(pos.getY(),
-                minecraft.level.dimension() == Level.OVERWORLD)
+        double strength = ClientWindState.strengthAt(pos.getX(), pos.getY(), pos.getZ())
                 * ClientWindConfig.SWINGING_SIGNS_WIND_MULTIPLIER.get();
         if (!Double.isFinite(strength) || strength <= 0.0001) return 0.0f;
         float exposure = WindShelter.exposureForStaticAnimation(pos);

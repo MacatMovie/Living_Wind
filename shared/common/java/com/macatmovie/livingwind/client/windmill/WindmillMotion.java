@@ -32,9 +32,9 @@ public final class WindmillMotion {
 
         float exposure = frame.moving() ? WindShelter.exposureAt(frame.worldPosition())
                                         : WindShelter.exposureForStaticAnimation(frame.worldPosition());
-        float strength = Mth.clamp((frame.moving() ? ClientWindState.strengthAtAltitude(frame.worldPosition().getY(),
-                mill.getLevel().dimension() == net.minecraft.world.level.Level.OVERWORLD)
-                : ClientWindState.altitudeStrength()) * exposure, 0.0f, 2.0f);
+        var windPos = frame.worldPosition();
+        float strength = Mth.clamp(ClientWindState.strengthAt(windPos.getX(), windPos.getY(), windPos.getZ())
+            * exposure, 0.0f, 2.0f);
         // The user-facing windmill should point its head along the wind travel direction,
         // not into the source. This flips the previous heading by exactly 180 degrees.
         float targetYaw = WindMath.normalizeDegrees(90.0f - frame.localBearing(ClientWindState.directionDegrees()));

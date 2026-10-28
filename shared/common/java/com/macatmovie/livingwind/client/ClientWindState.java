@@ -2,6 +2,7 @@ package com.macatmovie.livingwind.client;
 
 import com.macatmovie.livingwind.network.WindSyncPayload;
 import com.macatmovie.livingwind.wind.WindMath;
+import com.macatmovie.livingwind.wind.WindBiomeModifiers;
 import net.minecraft.util.Mth;
 
 /**
@@ -18,6 +19,9 @@ public final class ClientWindState {
     private static volatile float gustStrength;
     private static volatile float exposure = 1.0f;
     private static volatile float altitudeMultiplier = 1.0f;
+    private static volatile float biomeWeight;
+    private static volatile float biomeWeightTarget;
+    private static volatile boolean playerInOverworld;
     private static volatile boolean altitudeScalingEnabled = true;
     private static volatile int altitudeMinY = 64;
     private static volatile int altitudeMaxY = 192;
@@ -28,6 +32,8 @@ public final class ClientWindState {
     private static volatile boolean createWindmillsEnabled;
     private static volatile boolean highSeasWindEnabled;
     private static volatile boolean smallShipsWindEnabled;
+    private static volatile boolean alekiShipsWindEnabled;
+    private static volatile float alekiShipsWindScale = 0.2f;
     private static volatile boolean treasureBalloonsWindEnabled;
     private static volatile float treasureBalloonsWindMultiplier;
     private static volatile boolean hasServerState;
@@ -64,6 +70,7 @@ public final class ClientWindState {
     public static void tick() {
         if (!hasServerState) return;
         currentStrength = Mth.lerp(0.10f, currentStrength, targetStrength);
+        biomeWeight = Mth.lerp(0.15f, biomeWeight, biomeWeightTarget);
         float delta = WindMath.shortestDeltaDegrees(currentDirection, targetDirection);
         currentDirection = WindMath.normalizeDegrees(currentDirection + delta * 0.10f);
     }
@@ -74,14 +81,22 @@ public final class ClientWindState {
         turbulence = directionInstability = gustStrength = 0.0f;
         exposure = 1.0f;
         altitudeMultiplier = 1.0f;
-        windyPeriod = stormFront = createWindmillsEnabled = highSeasWindEnabled = smallShipsWindEnabled = treasureBalloonsWindEnabled = false;
+        biomeWeight = biomeWeightTarget = 0.0f;
+        playerInOverworld = false;
+        windyPeriod = stormFront = createWindmillsEnabled = highSeasWindEnabled = smallShipsWindEnabled = alekiShipsWindEnabled = treasureBalloonsWindEnabled = false;
         treasureBalloonsWindMultiplier = 0.0f;
+        alekiShipsWindScale = 0.2f;
         hasServerState = false;
         dimensionWindDisabled = false;
     }
 
     public static void setExposure(float value) { exposure = Mth.clamp(value, 0.0f, 1.0f); }
+    public static void setBiomeWeight(float weight) {
+        biomeWeightTarget = Mth.clamp(weight, 0.0f, 1.0f);
+    }
+    public static float biomeWeight() { return biomeWeight; }
     public static void updateAltitude(int y, boolean overworld) {
+        playerInOverworld = overworld;
         if (!altitudeScalingEnabled || !overworld) {
             altitudeMultiplier = 1.0f;
             return;
@@ -111,14 +126,47 @@ public final class ClientWindState {
     public static boolean treasureBalloonsWindEnabled() { return hasServerState && !dimensionWindDisabled && treasureBalloonsWindEnabled; }
     public static float treasureBalloonsWindMultiplier() { return treasureBalloonsWindMultiplier; }
     public static boolean smallShipsWindEnabled() { return hasServerState && !dimensionWindDisabled && smallShipsWindEnabled; }
+    /** Forge 1.20.1-only: Nifty Ships uses server-synced wind in place of local boat recalculation. */
+    public static boolean alekiShipsWindEnabled() { return hasServerState && !dimensionWindDisabled && alekiShipsWindEnabled; }
+    public static void setAlekiShipsWindEnabled(boolean enabled) { alekiShipsWindEnabled = enabled; }
+    /** Server-synced strength conversion, Forge Nifty Ships client only. */
+    public static float alekiShipsWindScale() { return alekiShipsWindScale; }
+    public static void setAlekiShipsWindScale(float scale) { alekiShipsWindScale = Mth.clamp(scale, 0.0f, 1.0f); }
     // Maintained as a platform-neutral no-op in Forge. NeoForge's synced flag is
     // consumed through a small method in its platform-specific networking code.
     public static void setHighSeasWindEnabled(boolean enabled) { highSeasWindEnabled = enabled; }
-    public static float altitudeStrength() { return currentStrength * altitudeMultiplier; }
+    public static float altitudeStrength() {
+        if (dimensionWindDisabled) return 0.0f;
+        return WindBiomeModifiers.apply(currentStrength * altitudeMultiplier, biomeWeight);
+    }
+    /** Native particle altitude conventions, but with the biome sampled at the particle. */
+    public static float particleStrengthAt(double x, double z) {
+        if (dimensionWindDisabled || !hasServerState) return 0.0f;
+        return WindBiomeModifiers.apply(currentStrength * altitudeMultiplier,
+            ClientBiomeWindCache.glacierWeightAt(x, z));
+    }
+    /** Atmospheric reading before biome adjustments, for external integrations that need it. */
+    public static float baseAltitudeStrength() { return currentStrength * altitudeMultiplier; }
+    /** Position-specific biome reading using a main-thread-populated cache, safe on particle workers. */
+    public static float strengthAt(double x, double y, double z) {
+        if (dimensionWindDisabled || !hasServerState) return 0.0f;
+        return WindBiomeModifiers.apply(baseStrengthAtAltitude((int) Math.floor(y), playerInOverworld),
+            ClientBiomeWindCache.glacierWeightAt(x, z));
+    }
+    public static float windXAt(double x, double y, double z) {
+        return WindMath.windX(strengthAt(x, y, z), currentDirection);
+    }
+    public static float windZAt(double x, double y, double z) {
+        return WindMath.windZ(strengthAt(x, y, z), currentDirection);
+    }
 
     /** Sample altitude at a moving instrument's actual world Y rather than at
      * the observing player. Static effects retain their existing cached value. */
     public static float strengthAtAltitude(int y, boolean overworld) {
+        if (dimensionWindDisabled) return 0.0f;
+        return WindBiomeModifiers.apply(baseStrengthAtAltitude(y, overworld), biomeWeight);
+    }
+    private static float baseStrengthAtAltitude(int y, boolean overworld) {
         if (!altitudeScalingEnabled || !overworld) return currentStrength;
         if (altitudeMaxY <= altitudeMinY) return currentStrength * altitudeMaxMultiplier;
         float progress = Mth.clamp((y - altitudeMinY) / (float) (altitudeMaxY - altitudeMinY), 0.0f, 1.0f);

@@ -32,6 +32,7 @@ public final class ClientWindEvents {
             WindLeafSpawner.reset();
             WindStreakSpawner.reset();
             ClientWindState.reset();
+            ClientBiomeWindCache.reset();
             WindShelter.clear();
             ParticleWaterProtection.clear();
             FwaWindMotion.reset();
@@ -45,10 +46,13 @@ public final class ClientWindEvents {
             WindAudioManager.reset();
             WindLeafSpawner.reset();
             WindStreakSpawner.reset();
+            ClientWindState.setBiomeWeight(0.0f);
+            ClientBiomeWindCache.reset();
             ClientWindState.tick();
             return;
         }
 
+        ClientBiomeWindCache.tick(level, player, tickCounter);
         ClientWindState.tick();
         ClientWindState.updateAltitude(player.getBlockY(), level.dimension() == net.minecraft.world.level.Level.OVERWORLD);
         tickCounter++;

@@ -153,8 +153,20 @@ public final class ParticleWindFilter {
         return enabled && ClientWindState.hasServerState();
     }
 
+    /** Respect user particle filters, immune registrations and disabled particle wind. */
+    public static boolean allowsJneSteering(@Nullable ResourceLocation id, @Nullable Particle particle) {
+        if (!enabled || !JadensNetherExpansionParticleCompat.isJneAtmosphericParticle(id)
+                || BuiltinParticleClassBlacklist.contains(particle)
+                || ParticleWindApi.isRuntimeImmune(id) || ParticleWindApi.isRuntimeImmune(particle)
+                || isTaggedImmune(id)) return false;
+        return passesConfiguredFilter(id);
+    }
+
     public static boolean shouldAffect(@Nullable ResourceLocation id, @Nullable Particle particle) {
         if (!enabled) return false;
+        // JNE's self-propelled glacier particles have a replacement movement path.
+        // Never add generic wind on top, even when the user excludes that special path.
+        if (JadensNetherExpansionParticleCompat.isJneAtmosphericParticle(id)) return false;
         // A few visual-effect mods (including Visuality 3.x) use their own particle
         // registry or directly add particle instances, so an ID blacklist alone
         // cannot catch them. Uses a class-name cache; no optional mod is loaded.
@@ -360,16 +372,19 @@ public final class ParticleWindFilter {
     private static void calculateMovementOffsets(MovementOffsets out,
             @Nullable ResourceLocation id, @Nullable Particle particle) {
         id = StreamsReflowingParticleIds.resolve(id, particle);
-        if (!shouldAffect(id, particle) || ClientWindState.altitudeStrength() < 0.001f
+        float localWindStrength = particle instanceof WindParticleAccess access
+            ? ClientWindState.particleStrengthAt(access.livingwind$getPositionX(), access.livingwind$getPositionZ())
+            : ClientWindState.altitudeStrength();
+        if (!shouldAffect(id, particle) || localWindStrength < 0.001f
                 || isSubmerged(particle)) {
             out.x = 0.0f;
             out.z = 0.0f;
             return;
         }
         float scale = exposure(particle, id) * force * response(id) * customResponse(id)
-            * highWindVisualMultiplier();
-        out.x = ClientWindState.altitudeWindX() * scale;
-        out.z = ClientWindState.altitudeWindZ() * scale;
+            * highWindVisualMultiplier(localWindStrength);
+        out.x = WindMath.windX(localWindStrength, ClientWindState.directionDegrees()) * scale;
+        out.z = WindMath.windZ(localWindStrength, ClientWindState.directionDegrees()) * scale;
     }
 
     private static boolean isSubmerged(@Nullable Particle particle) {
@@ -408,9 +423,9 @@ public final class ParticleWindFilter {
         return effective;
     }
 
-    private static float highWindVisualMultiplier() {
-        float strength = Mth.clamp(ClientWindState.altitudeStrength(), 0.0f, 1.6f);
-        return (0.55f + strength * 0.95f) * WindMath.visualDriftBoost(ClientWindState.altitudeStrength());
+    private static float highWindVisualMultiplier(float localStrength) {
+        float strength = Mth.clamp(localStrength, 0.0f, 1.6f);
+        return (0.55f + strength * 0.95f) * WindMath.visualDriftBoost(localStrength);
     }
 
     private static float response(@Nullable ResourceLocation id) {

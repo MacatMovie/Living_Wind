@@ -14,7 +14,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class WindNetworking {
-    private static final String PROTOCOL = "2";
+    private static final String PROTOCOL = "3";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
         new ResourceLocation(LivingWind.MOD_ID, "main"),
         () -> PROTOCOL,
@@ -39,7 +39,11 @@ public final class WindNetworking {
 
     private static void handle(WindSyncPayload payload, Supplier<NetworkEvent.Context> supplier) {
         NetworkEvent.Context context = supplier.get();
-        context.enqueueWork(() -> ClientWindState.accept(payload));
+        context.enqueueWork(() -> {
+            ClientWindState.accept(payload);
+            ClientWindState.setAlekiShipsWindEnabled(payload.alekiShipsWindEnabled());
+            ClientWindState.setAlekiShipsWindScale(payload.alekiShipsWindScale());
+        });
         context.setPacketHandled(true);
     }
 

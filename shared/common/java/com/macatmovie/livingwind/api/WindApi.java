@@ -3,6 +3,7 @@ package com.macatmovie.livingwind.api;
 import com.macatmovie.livingwind.server.WindSavedData;
 import com.macatmovie.livingwind.wind.WindSnapshot;
 import com.macatmovie.livingwind.wind.WindDimensionBlacklist;
+import com.macatmovie.livingwind.wind.WindBiomeModifiers;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -17,11 +18,19 @@ public final class WindApi {
         return WindSavedData.get(level).snapshot(level.getGameTime());
     }
 
-    /** Atmospheric wind with the configured Overworld altitude multiplier applied at {@code pos}. */
+    /**
+     * Position-aware wind: altitude plus built-in biome modifiers. The dimension-wide
+     * {@link #get(ServerLevel)} reading remains unchanged for existing integrations.
+     * Call from the server thread with a loaded position, never on async worker threads.
+     */
     public static WindSnapshot getAt(ServerLevel level, BlockPos pos) {
         WindSnapshot base = get(level);
-        float multiplier = altitudeMultiplier(level, pos.getY());
-        return new WindSnapshot(base.strength() * multiplier, base.directionDegrees(), base.turbulence(),
+        float strength = base.strength() * altitudeMultiplier(level, pos.getY());
+        if (level.dimension() == Level.NETHER && !WindDimensionBlacklist.contains(level)
+                && level.getBiome(pos).is(WindBiomeModifiers.BLACK_ICE_GLACIERS)) {
+            strength = WindBiomeModifiers.apply(strength, 1.0f);
+        }
+        return new WindSnapshot(strength, base.directionDegrees(), base.turbulence(),
             base.directionInstability(), base.gustStrength(), base.windyPeriod(), base.stormFront(), base.gameTime());
     }
 

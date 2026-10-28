@@ -2,6 +2,7 @@ package com.macatmovie.livingwind.mixin;
 
 import com.macatmovie.livingwind.client.ParticleWindFilter;
 import com.macatmovie.livingwind.client.ParticleWaterProtection;
+import com.macatmovie.livingwind.client.JadensNetherExpansionParticleCompat;
 import com.macatmovie.livingwind.client.access.WindParticleAccess;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.resources.ResourceLocation;
@@ -109,11 +110,15 @@ public abstract class ParticleMixin implements WindParticleAccess {
 
     @ModifyVariable(method = "move", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private double livingwind$applyWindX(double movementX) {
+        double jne = JadensNetherExpansionParticleCompat.replacementX(livingwind$particleType, (Particle) (Object) this);
+        if (!Double.isNaN(jne)) return jne;
         return movementX + ParticleWindFilter.offsetX(livingwind$particleType, (Particle) (Object) this);
     }
 
     @ModifyVariable(method = "move", at = @At("HEAD"), argsOnly = true, ordinal = 2)
     private double livingwind$applyWindZ(double movementZ) {
+        double jne = JadensNetherExpansionParticleCompat.replacementZ(livingwind$particleType, (Particle) (Object) this);
+        if (!Double.isNaN(jne)) return jne;
         return movementZ + ParticleWindFilter.offsetZ(livingwind$particleType, (Particle) (Object) this);
     }
 }

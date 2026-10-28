@@ -30,8 +30,7 @@ public final class WindblownWindCompat {
                 || !ClientWindConfig.WINDBLOWN_WIND_COMPAT.get()) return;
         ClientLevel level = Minecraft.getInstance().level;
         if (level == null) return;
-        float strength = ClientWindState.strengthAtAltitude((int)Math.floor(camera.y),
-                Level.OVERWORLD.equals(level.dimension()));
+        float strength = ClientWindState.strengthAt(camera.x, camera.y, camera.z);
         strength *= frame[3] * ClientWindConfig.WINDBLOWN_WIND_MULTIPLIER.get().floatValue();
         if (!Float.isFinite(strength)) return;
         strength = Math.max(0f, Math.min(3.5f, strength));

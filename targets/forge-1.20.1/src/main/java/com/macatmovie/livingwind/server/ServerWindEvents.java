@@ -4,6 +4,7 @@ import com.macatmovie.livingwind.LivingWind;
 import com.macatmovie.livingwind.config.WindConfig;
 import com.macatmovie.livingwind.network.WindNetworking;
 import com.macatmovie.livingwind.api.WindApi;
+import com.macatmovie.livingwind.compat.ValkyrienSkiesWindBridge;
 import com.macatmovie.livingwind.wind.WindDimensionBlacklist;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -22,6 +23,7 @@ public final class ServerWindEvents {
 
         WindSavedData data = WindSavedData.get(level);
         if (!WindDimensionBlacklist.contains(level)) data.tick(level);
+        ValkyrienSkiesWindBridge.tick(level);
 
         int interval = WindConfig.SYNC_INTERVAL_TICKS.get();
         if (interval > 0 && level.getGameTime() % interval == 0L && !level.players().isEmpty()) {

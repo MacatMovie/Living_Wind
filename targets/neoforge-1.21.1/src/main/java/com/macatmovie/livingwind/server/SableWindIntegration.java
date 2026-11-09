@@ -17,6 +17,18 @@ public final class SableWindIntegration {
 
     public static void start(IEventBus modBus) {
         if (!ModList.get().isLoaded("sable")) return;
+        // Transmission & Linkage rotors use their bearing's physics tick, not
+        // the generic sail/airship force path. Cache wind on the server tick
+        // even with AeroWeather present; no class is loaded unless required.
+        if (ModList.get().isLoaded("aeronautics_utility_objects")) {
+            try {
+                Class<?> drive = Class.forName("com.macatmovie.livingwind.server.AeronauticsKineticBearingWind");
+                drive.getMethod("start").invoke(null);
+                LOG.info("Living Wind: Transmission & Linkage rotor wind drive enabled.");
+            } catch (ReflectiveOperationException | LinkageError e) {
+                LOG.error("Living Wind: could not initialize optional kinetic conversion bearing wind drive", e);
+            }
+        }
         // AeroWeather already drives Sable bodies with its own wind forces.
         // Avoid applying two independently computed wind fields to one ship.
         if (ModList.get().isLoaded("aeroweather")) {

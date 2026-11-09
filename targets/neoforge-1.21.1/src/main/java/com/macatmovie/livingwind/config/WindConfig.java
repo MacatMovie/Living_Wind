@@ -14,6 +14,14 @@ public final class WindConfig {
     public static final ModConfigSpec.DoubleValue GLOBAL_STRENGTH_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue RAIN_STRENGTH_BONUS;
     public static final ModConfigSpec.DoubleValue THUNDER_STRENGTH_BONUS;
+    public static final ModConfigSpec.BooleanValue WEATHER_STRENGTH_RANGES_ENABLED;
+    public static final ModConfigSpec.DoubleValue CLEAR_WEATHER_MIN_STRENGTH;
+    public static final ModConfigSpec.DoubleValue CLEAR_WEATHER_MAX_STRENGTH;
+    public static final ModConfigSpec.DoubleValue RAIN_WEATHER_MIN_STRENGTH;
+    public static final ModConfigSpec.DoubleValue RAIN_WEATHER_MAX_STRENGTH;
+    public static final ModConfigSpec.DoubleValue THUNDER_WEATHER_MIN_STRENGTH;
+    public static final ModConfigSpec.DoubleValue THUNDER_WEATHER_MAX_STRENGTH;
+    public static final ModConfigSpec.DoubleValue WEATHER_STRENGTH_FLUCTUATION;
     public static final ModConfigSpec.DoubleValue CALM_DAY_CHANCE;
     public static final ModConfigSpec.DoubleValue BREEZY_DAY_CHANCE;
     public static final ModConfigSpec.DoubleValue WINDY_PERIOD_CHANCE;
@@ -37,7 +45,35 @@ public final class WindConfig {
 
     public static final ModConfigSpec.BooleanValue AERONAUTICS_WIND_ENABLED;
     public static final ModConfigSpec.DoubleValue AERONAUTICS_WIND_MULTIPLIER;
+    public static final ModConfigSpec.BooleanValue AERONAUTICS_KINETIC_BEARING_ENABLED;
+    public static final ModConfigSpec.BooleanValue AERONAUTICS_KINETIC_BEARING_DEBUG;
+    public static final ModConfigSpec.DoubleValue AERONAUTICS_KINETIC_BEARING_MULTIPLIER;
     public static final ModConfigSpec.BooleanValue HIGH_SEAS_WIND_ENABLED;
+
+    public static final ModConfigSpec.BooleanValue GLIDER_WIND_ENABLED;
+    public static final ModConfigSpec.DoubleValue GLIDER_WIND_INFLUENCE;
+    public static final ModConfigSpec.BooleanValue ENTITY_WIND_ENABLED;
+    public static final ModConfigSpec.BooleanValue ENTITY_WIND_CHECK_SHELTER;
+    public static final ModConfigSpec.DoubleValue ENTITY_WIND_CLEAR_WEATHER_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue ENTITY_WIND_RAIN_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue ENTITY_WIND_THUNDER_MULTIPLIER;
+    public static final ModConfigSpec.BooleanValue ENTITY_WIND_PLAYERS;
+    public static final ModConfigSpec.BooleanValue ENTITY_WIND_MOBS;
+    public static final ModConfigSpec.BooleanValue ENTITY_WIND_PROJECTILES;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> ENTITY_WIND_PROJECTILE_BLACKLIST;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> ENTITY_WIND_PROJECTILE_BLACKLIST_EXCEPTIONS;
+    public static final ModConfigSpec.BooleanValue ENTITY_WIND_BOATS;
+    public static final ModConfigSpec.BooleanValue ENTITY_WIND_DROPPED_ITEMS;
+    public static final ModConfigSpec.DoubleValue ENTITY_WIND_PLAYER_GROUNDED_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue ENTITY_WIND_PLAYER_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue ENTITY_WIND_MOB_GROUNDED_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue ENTITY_WIND_MOB_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue ENTITY_WIND_PROJECTILE_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue ENTITY_WIND_BOAT_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue ENTITY_WIND_DROPPED_ITEM_MULTIPLIER;
+
+    public static final ModConfigSpec.BooleanValue SEASONAL_WIND_ENABLED;
+    public static final ModConfigSpec.DoubleValue SEASONAL_WIND_INTENSITY;
 
     public enum NetherWindMode { DISABLED, REDUCED_GUSTY, NORMAL }
     public enum EndWindMode { DISABLED, VERY_WEAK, NORMAL }
@@ -83,6 +119,38 @@ public final class WindConfig {
         THUNDER_STRENGTH_BONUS = b.comment("Additional bias while thundering.")
             .translation("livingwind.config.thunderStrengthBonus")
             .defineInRange("thunderStrengthBonus", 0.44, 0.0, 1.5);
+        WEATHER_STRENGTH_RANGES_ENABLED = b.comment(
+                "Use separate background wind strength ranges for clear weather, rain and thunderstorms.",
+                "OFF by default - the original weather bonuses and wind simulation remain unchanged.",
+                "Gusts, pre-storm fronts, manual windy events and the global strength multiplier still apply separately."
+            )
+            .translation("livingwind.config.weatherStrengthRangesEnabled")
+            .define("useStrengthRanges", false);
+        CLEAR_WEATHER_MIN_STRENGTH = b.comment("Minimum ordinary wind strength in clear weather, before global scaling and gusts.")
+            .translation("livingwind.config.clearWeatherMinStrength")
+            .defineInRange("clearMinimumStrength", 0.05, 0.0, 2.5);
+        CLEAR_WEATHER_MAX_STRENGTH = b.comment("Maximum ordinary wind strength in clear weather. Set equal to the minimum for steady background wind.")
+            .translation("livingwind.config.clearWeatherMaxStrength")
+            .defineInRange("clearMaximumStrength", 0.40, 0.0, 2.5);
+        RAIN_WEATHER_MIN_STRENGTH = b.comment("Minimum ordinary wind strength during rain, before global scaling and gusts.")
+            .translation("livingwind.config.rainWeatherMinStrength")
+            .defineInRange("rainMinimumStrength", 0.30, 0.0, 2.5);
+        RAIN_WEATHER_MAX_STRENGTH = b.comment("Maximum ordinary wind strength during rain. Set equal to the minimum for steady background wind.")
+            .translation("livingwind.config.rainWeatherMaxStrength")
+            .defineInRange("rainMaximumStrength", 0.85, 0.0, 2.5);
+        THUNDER_WEATHER_MIN_STRENGTH = b.comment("Minimum ordinary wind strength during thunderstorms, before global scaling and gusts.")
+            .translation("livingwind.config.thunderWeatherMinStrength")
+            .defineInRange("thunderMinimumStrength", 0.65, 0.0, 2.5);
+        THUNDER_WEATHER_MAX_STRENGTH = b.comment("Maximum ordinary wind strength during thunderstorms. Set equal to the minimum for steady background wind.")
+            .translation("livingwind.config.thunderWeatherMaxStrength")
+            .defineInRange("thunderMaximumStrength", 1.35, 0.0, 2.5);
+        WEATHER_STRENGTH_FLUCTUATION = b.comment(
+                "Ordinary wind strength fluctuation (0 = steady, 1 = full natural variation).",
+                "When custom weather ranges are enabled, this controls the movement inside each range.",
+                "Does not suppress gusts, pre-storm fronts, commands, wind direction changes or weather transitions."
+            )
+            .translation("livingwind.config.weatherStrengthFluctuation")
+            .defineInRange("strengthFluctuation", 1.0, 0.0, 1.0);
         PRE_STORM_FRONT_CHANCE = b.comment("Chance an approaching scheduled rain transition creates a pre-storm wind front.")
             .translation("livingwind.config.preStormFrontChance")
             .defineInRange("preStormFrontChance", 0.58, 0.0, 1.0);
@@ -165,6 +233,97 @@ public final class WindConfig {
             .defineEnum("defaultDimensionMode", WindDimensionSettings.Mode.NORMAL);
         b.pop();
 
+        b.comment("Optional Serene Seasons / Ecliptic Seasons seasonal atmosphere. Server controls affect the synchronized wind for every player.")
+            .translation("livingwind.config.section.seasonalCompatibility")
+            .push("seasonalCompatibility");
+        SEASONAL_WIND_ENABLED = b.comment("Adjust background wind and natural gust frequency/intensity across the four seasons. Respects manual wind commands and dimensions without seasons.")
+            .translation("livingwind.config.seasonalWindEnabled")
+            .define("seasonalWindEnabled", true);
+        SEASONAL_WIND_INTENSITY = b.comment("Scale seasonal wind differences: 0 = normal Living Wind all year, 1 = balanced seasons, 2 = exaggerated seasonal changes.")
+            .translation("livingwind.config.seasonalWindIntensity")
+            .defineInRange("seasonalWindIntensity", 1.0, 0.0, 2.0);
+        b.pop();
+
+        b.comment("Optional directional wind for deployed gliders from Gliders, Reliable Gliders, and Paraglider. Independent of Entity Wind; only affects actively gliding local players.")
+            .translation("livingwind.config.section.gliderWind")
+            .push("gliderWind");
+        GLIDER_WIND_ENABLED = b.comment("Let wind push an actively gliding player. Handles headwinds, tailwinds and sideways drift; prevents stacking with ordinary player Entity Wind.")
+            .define("enabled", true);
+        GLIDER_WIND_INFLUENCE = b.comment("Strength of the glider-only wind effect. 0 disables movement, 1 is balanced; higher values are stronger. The effect is smooth and capped.")
+            .defineInRange("influence", 1.0, 0.0, 3.0);
+        b.pop();
+
+        b.comment("Optional physical wind on entities. Disabled by default; changes gameplay when enabled.")
+            .translation("livingwind.config.section.entityWind")
+            .push("entityWind");
+        ENTITY_WIND_ENABLED = b.comment("Master switch: allow Living Wind to influence entity movement. OFF by default.")
+            .translation("livingwind.config.entityWindEnabled")
+            .define("enabled", false);
+        ENTITY_WIND_CHECK_SHELTER = b.comment("Check outdoor exposure for wind-affected entities. Disable to skip per-entity sky checks for better performance, but entities can then be pushed indoors or underground. Does not change particle or sound shelter behavior.")
+            .translation("livingwind.config.entityWindCheckShelter")
+            .define("checkShelter", true);
+        ENTITY_WIND_CLEAR_WEATHER_MULTIPLIER = b.comment(
+                "Extra entity push multiplier during clear weather, applied on top of each entity type's own wind impact settings.",
+                "0 = no entity push in clear weather, 1.0 = unchanged. Rain and thunder transitions blend smoothly. Only used if Entity Wind is enabled."
+            )
+            .translation("livingwind.config.entityWindClearWeatherMultiplier")
+            .defineInRange("clearWeatherMultiplier", 1.0, 0.0, 5.0);
+        ENTITY_WIND_RAIN_MULTIPLIER = b.comment(
+                "Extra entity push multiplier during rain (all affected entity types). 1.0 keeps the original strength.",
+                "Applied only to entity wind, not Living Wind's shared wind strength or particle physics."
+            )
+            .translation("livingwind.config.entityWindRainMultiplier")
+            .defineInRange("rainMultiplier", 1.0, 0.0, 5.0);
+        ENTITY_WIND_THUNDER_MULTIPLIER = b.comment(
+                "Extra entity push multiplier during thunderstorms (all affected entity types). 1.0 keeps the original strength.",
+                "Works independently of the Weather page's wind strength ranges and blends during weather transitions."
+            )
+            .translation("livingwind.config.entityWindThunderMultiplier")
+            .defineInRange("thunderMultiplier", 1.0, 0.0, 5.0);
+        ENTITY_WIND_PLAYERS = b.comment("Push survival/adventure players, with stronger effects while airborne. Creative/spectator and mounted players are excluded.")
+            .translation("livingwind.config.entityWindPlayers")
+            .define("players", true);
+        ENTITY_WIND_PLAYER_GROUNDED_MULTIPLIER = b.comment("Wind force on grounded players, relative to the original 0.12 grounded factor. 2.5 is 2.5x stronger than before.")
+            .translation("livingwind.config.entityWindPlayerGroundedMultiplier")
+            .defineInRange("playerGroundedMultiplier", 2.5, 0.0, 5.0);
+        ENTITY_WIND_PLAYER_MULTIPLIER = b.comment("Wind force on jumping/falling players. Existing playerMultiplier values are preserved. 0 disables airborne player push.")
+            .translation("livingwind.config.entityWindPlayerMultiplier")
+            .defineInRange("playerMultiplier", 1.0, 0.0, 5.0);
+        ENTITY_WIND_MOBS = b.comment("Push mobs, especially while falling or jumping. Ground movement receives only a small push.")
+            .translation("livingwind.config.entityWindMobs")
+            .define("mobs", true);
+        ENTITY_WIND_MOB_GROUNDED_MULTIPLIER = b.comment("Wind force on grounded mobs, relative to the original 0.12 grounded factor. 2.5 is 2.5x stronger than before.")
+            .translation("livingwind.config.entityWindMobGroundedMultiplier")
+            .defineInRange("mobGroundedMultiplier", 2.5, 0.0, 5.0);
+        ENTITY_WIND_MOB_MULTIPLIER = b.comment("Wind force on airborne mobs. Existing mobMultiplier values are preserved. 0 disables airborne mob push.")
+            .translation("livingwind.config.entityWindMobMultiplier")
+            .defineInRange("mobMultiplier", 1.0, 0.0, 5.0);
+        ENTITY_WIND_PROJECTILES = b.comment("Deflect moving projectiles while airborne, such as arrows, snowballs and thrown potions.")
+            .translation("livingwind.config.entityWindProjectiles")
+            .define("projectiles", true);
+        ENTITY_WIND_PROJECTILE_MULTIPLIER = b.comment("Multiplier for wind deflection of projectiles. 0 disables the force for projectiles.")
+            .translation("livingwind.config.entityWindProjectileMultiplier")
+            .defineInRange("projectileMultiplier", 1.0, 0.0, 5.0);
+        ENTITY_WIND_PROJECTILE_BLACKLIST = b.comment("Extra projectile entity IDs exempt from wind movement. Built-in protections are applied separately. Only checked when entity and projectile wind are enabled.")
+            .translation("livingwind.config.projectileBlacklist")
+            .defineListAllowEmpty("projectileBlacklist", List.<String>of(), () -> "modid:projectile", WindConfig::validProjectileId);
+        ENTITY_WIND_PROJECTILE_BLACKLIST_EXCEPTIONS = b.comment("Built-in projectile exemptions to disable after unlocking defaults in the editor. These are no longer protected from wind.")
+            .translation("livingwind.config.projectileBlacklistExceptions")
+            .defineListAllowEmpty("projectileBlacklistExceptions", List.<String>of(), () -> "modid:projectile", WindConfig::validProjectileId);
+        ENTITY_WIND_BOATS = b.comment("Let wind gently drift vanilla boats and chest boats. Steering remains under the rider's control. OFF by default.")
+            .translation("livingwind.config.entityWindBoats")
+            .define("boats", false);
+        ENTITY_WIND_BOAT_MULTIPLIER = b.comment("Multiplier for wind-driven boat drift. 0 disables boat force. Only applies in exposed outdoor areas.")
+            .translation("livingwind.config.entityWindBoatMultiplier")
+            .defineInRange("boatMultiplier", 1.0, 0.0, 5.0);
+        ENTITY_WIND_DROPPED_ITEMS = b.comment("Let exposed dropped item entities drift with wind, including items floating at the water surface. OFF by default.")
+            .translation("livingwind.config.entityWindDroppedItems")
+            .define("droppedItems", false);
+        ENTITY_WIND_DROPPED_ITEM_MULTIPLIER = b.comment("Multiplier for dropped item wind drift. 0 disables the force; items on the ground experience less push.")
+            .translation("livingwind.config.entityWindDroppedItemMultiplier")
+            .defineInRange("droppedItemMultiplier", 1.0, 0.0, 5.0);
+        b.pop();
+
         b.comment("Optional Create windmill bearing compatibility. Uses real kinetic RPM and stress capacity, not visual-only animation.")
             .translation("livingwind.config.section.createWindmills")
             .push("createWindmills");
@@ -200,6 +359,15 @@ public final class WindConfig {
         AERONAUTICS_WIND_MULTIPLIER = b.comment("Wind force multiplier on eligible airships/sail-bearing contraptions. 1.0x is the balanced, playtested baseline (formerly 0.30x); 0 disables the force.")
             .translation("livingwind.config.aeronauticsWindMultiplier")
             .defineInRange("forceMultiplier", 1.0, 0.0, 5.0);
+        AERONAUTICS_KINETIC_BEARING_ENABLED = b.comment("Drive Transmission & Linkage Kinetic Conversion Bearings with Living Wind. Only assembled Sable rotors with Create windmill sails generate torque. NeoForge 1.21.1 only.")
+            .translation("livingwind.config.kineticConversionBearingEnabled")
+            .define("kineticConversionBearingEnabled", true);
+        AERONAUTICS_KINETIC_BEARING_MULTIPLIER = b.comment("Transmission & Linkage windmill power multiplier. 1.0 uses the stronger v1.3.7 wind-drive balance; higher values provide more power under load. 0 disables wind drive (drag remains).")
+            .translation("livingwind.config.kineticConversionBearingTorqueMultiplier")
+            .defineInRange("kineticConversionBearingTorqueMultiplier", 1.0, 0.0, 5.0);
+        AERONAUTICS_KINETIC_BEARING_DEBUG = b.comment("Diagnostic: log rotor sail layout every 10 seconds, plus wind strength, RPM and limiting forces every 5 seconds. Enable only for testing.")
+            .translation("livingwind.config.kineticConversionBearingDebug")
+            .define("kineticConversionBearingDebug", false);
         b.pop();
 
         b.comment("Optional Create: High Seas wind integration. Replaces its wind queries with Living Wind, leaving sail physics to High Seas. Requires Create: High Seas.")
@@ -240,6 +408,11 @@ public final class WindConfig {
             .defineInRange("syncIntervalTicks", 40, 10, 200);
         b.pop();
         SPEC = b.build();
+    }
+
+    private static boolean validProjectileId(Object value) {
+        if (!(value instanceof String id) || id.isBlank() || !id.contains(":")) return false;
+        return ResourceLocation.tryParse(id) != null;
     }
 
     private WindConfig() {}

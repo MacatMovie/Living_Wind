@@ -66,6 +66,8 @@ public final class WindLeafParticle extends TextureSheetParticle {
     // wind hook, so they need its confirmed-shelter grace rule themselves.
     private int lastShelteredTick = -1;
     private int lastShelteredX, lastShelteredY, lastShelteredZ;
+    private float visualExposure = Float.NaN;
+    private int visualExposureTick = -1;
 
     private float nativeExposure() {
         int now = WindShelter.shelterTick();
@@ -78,8 +80,13 @@ public final class WindLeafParticle extends TextureSheetParticle {
         // Missing position data must not create a player-centered windless boundary.
         // The emitter already validates shelter before spawning; during flight, use
         // the same short indoor grace and outdoor fallback as ordinary particles.
-        return ParticleShelterContinuity.resolve(measured, now, lastShelteredTick,
+        float target = ParticleShelterContinuity.resolve(measured, now, lastShelteredTick,
             bx, by, bz, lastShelteredX, lastShelteredY, lastShelteredZ);
+        if (visualExposureTick != now) {
+            visualExposure = ParticleShelterContinuity.easeVisualExposure(visualExposure, target);
+            visualExposureTick = now;
+        }
+        return visualExposure;
     }
 
     private WindLeafParticle(ClientLevel level, double x, double y, double z,

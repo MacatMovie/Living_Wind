@@ -1,144 +1,71 @@
 package com.macatmovie.livingwind.client.gui;
 
 import com.macatmovie.livingwind.client.BuiltinParticleBlacklist;
+import com.macatmovie.livingwind.client.DefaultEntryVisibility;
 import com.macatmovie.livingwind.client.ParticleWindFilter;
 import com.macatmovie.livingwind.config.ClientWindConfig;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
-/** The built-in blacklist remains protected unless explicitly unlocked.
- * User exemptions are saved separately so updating defaults never wipes custom choices.
- */
-public final class ParticleFilterListScreen extends Screen {
-    private static final int TOP = 63, BOTTOM = 45, ROW = 23;
-    private final Screen parent;
-    private final List<String> values = new ArrayList<>();
+/** Built-in particle exclusions are never modified without explicit user action. */
+public final class ParticleFilterListScreen extends GroupedConfigListScreen {
+    private final List<String> custom = new ArrayList<>();
     private final Set<String> exceptions = new HashSet<>();
-    private boolean editDefaults;
-    private double scroll;
-
     public ParticleFilterListScreen(Screen parent) {
-        super(Component.literal("Living Wind Particle Filter"));
-        this.parent = parent;
-        values.addAll(ClientWindConfig.PARTICLE_FILTER.get());
+        super(parent, "Living Wind Particle Blacklist");
+        custom.addAll(ClientWindConfig.PARTICLE_FILTER.get());
         exceptions.addAll(ClientWindConfig.BUILTIN_BLACKLIST_EXCEPTIONS.get());
     }
-
-    @Override protected void init() { rebuildButtons(); }
-
-    private boolean showBuiltins() {
-        return ClientWindConfig.PARTICLE_FILTER_MODE.get() == ClientWindConfig.FilterMode.BLACKLIST;
+    @Override protected String helpText() { return "Listed particles ignore generic wind. Unlock to exempt a built-in preset."; }
+    @Override protected List<Entry> entries() {
+        Map<String, Entry> map = new LinkedHashMap<>();
+        for (String id : BuiltinParticleBlacklist.installedIds()) {
+            if (!exceptions.contains(id) && (!DefaultEntryVisibility.installedOnly() || DefaultEntryVisibility.particleInstalled(id)))
+                map.put(id, new Entry(id, true, false));
+        }
+        for (String id : custom) map.put(id, new Entry(id, BuiltinParticleBlacklist.contains(id), true));
+        return new ArrayList<>(map.values());
     }
-
-    private List<String> visibleItems() {
-        List<String> entries = new ArrayList<>();
-        if (showBuiltins()) {
-            for (String id : BuiltinParticleBlacklist.installedIds()) {
-                if (!exceptions.contains(id)) entries.add(id);
-            }
-        }
-        for (String id : values) {
-            if (!entries.contains(id)) entries.add(id);
-        }
-        return entries;
+    @Override protected void addEntryWidgets(Entry entry, int left, int y) {
+        if (entry.builtin() && !editDefaults) return;
+        addRowWidget(Button.builder(Component.literal("×"), b -> {
+            if (entry.builtin()) { exceptions.add(entry.id()); custom.remove(entry.id()); }
+            else custom.remove(entry.id());
+            refreshRows();
+        }).tooltip(Tooltip.create(Component.literal("Remove this entry (built-ins can be restored)")))
+          .bounds(left + 413, y, 25, 20).build());
     }
-
-    private void rebuildButtons() {
-        clearWidgets();
-        int left = width / 2 - 210;
-        addRenderableWidget(Button.builder(Component.literal(editDefaults ? "Lock Defaults" : "Unlock Defaults"), b -> {
-            editDefaults = !editDefaults;
-            rebuildButtons();
-        }).bounds(width / 2 + 90, 27, 120, 20).build());
-
-        List<String> rows = visibleItems();
-        int first = (int)(scroll / ROW);
-        int visible = Math.max(1, (height - TOP - BOTTOM) / ROW + 2);
-        for (int i = first; i < Math.min(rows.size(), first + visible); i++) {
-            String id = rows.get(i);
-            boolean builtin = showBuiltins() && BuiltinParticleBlacklist.contains(id);
-            if (builtin && !editDefaults) continue;
-            int y = TOP + i * ROW - (int)scroll;
-            if (y < TOP || y + 20 > height - BOTTOM) continue;
-            addRenderableWidget(Button.builder(Component.literal("×"), b -> {
-                if (builtin) { exceptions.add(id); values.remove(id); }
-                else values.remove(id);
-                clamp();
-                rebuildButtons();
-            }).bounds(left + 390, y, 20, 20).build());
-        }
-        if (showBuiltins() && editDefaults && !exceptions.isEmpty()) {
-            addRenderableWidget(Button.builder(Component.literal("Restore Defaults"), b -> {
-                exceptions.clear();
-                clamp();
-                rebuildButtons();
-            }).bounds(width / 2 - 210, 27, 130, 20).build());
-        }
-        addRenderableWidget(Button.builder(Component.literal("Add More..."), b ->
-            minecraft.setScreen(new ParticlePickerScreen(this, new HashSet<>(visibleItems()), this::add))
-        ).bounds(width / 2 - 154, height - 30, 150, 20).build());
-        addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> done())
-            .bounds(width / 2 + 4, height - 30, 150, 20).build());
+    @Override protected void addExtraFooter(int left, int y) {
+        addRenderableWidget(Button.builder(Component.literal("Restore Defaults"), b -> {
+            exceptions.clear();
+            refreshRows();
+        }).tooltip(Tooltip.create(Component.literal("Restore all removed built-in particle blacklist entries")))
+          .bounds(left, y, 107, 20).build());
     }
-
     private void add(String id) {
-        if (showBuiltins() && BuiltinParticleBlacklist.contains(id)) {
-            exceptions.remove(id); // Restore a removed default when explicitly re-added.
-        } else if (!values.contains(id)) values.add(id);
-        rebuildButtons();
+        if (BuiltinParticleBlacklist.contains(id)) { exceptions.remove(id); custom.remove(id); }
+        else if (!custom.contains(id)) custom.add(id);
+        refreshRows();
     }
-
-    private void done() {
-        ClientWindConfig.PARTICLE_FILTER.set(new ArrayList<>(values));
+    @Override protected void onAddEntry() {
+        minecraft.setScreen(new ParticlePickerScreen(this, new HashSet<>(currentEntries()), this::add,
+            Component.literal("Add Particles to Blacklist"), id -> BuiltinParticleBlacklist.contains(id) && !exceptions.contains(id)));
+    }
+    private List<String> currentEntries() { List<String> ids = new ArrayList<>(); for (Entry e: entries()) ids.add(e.id()); return ids; }
+    @Override protected void onSave() {
+        ClientWindConfig.PARTICLE_FILTER.set(new ArrayList<>(custom));
         ClientWindConfig.BUILTIN_BLACKLIST_EXCEPTIONS.set(new ArrayList<>(exceptions));
         ClientWindConfig.PARTICLE_FILTER.save();
         ClientWindConfig.BUILTIN_BLACKLIST_EXCEPTIONS.save();
         ParticleWindFilter.refresh();
         minecraft.setScreen(parent);
-    }
-
-    @Override public void onClose() { minecraft.setScreen(parent); }
-
-    @Override public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
-        if (y >= TOP && y < height - BOTTOM) {
-            scroll = Math.max(0, Math.min(maxScroll(), scroll - scrollY * ROW * 3));
-            rebuildButtons();
-            return true;
-        }
-        return super.mouseScrolled(x, y, scrollX, scrollY);
-    }
-
-    private double maxScroll() {
-        return Math.max(0, visibleItems().size() * ROW - (height - TOP - BOTTOM));
-    }
-
-    private void clamp() { scroll = Math.max(0, Math.min(maxScroll(), scroll)); }
-
-    @Override public void render(GuiGraphics g, int mx, int my, float pt) {
-        // In 1.21.1 the base Screen draws its blurred/dimmed background during render.
-        // Draw our custom rows *after* this, keeping labels crisp like standard config screens.
-        super.render(g, mx, my, pt);
-        g.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
-        g.drawString(font, "Yellow = default  |  Green = custom", width / 2 - 210, 49, 0xAAAAAA, false);
-        List<String> rows = visibleItems();
-        int left = width / 2 - 210;
-        int first = (int)(scroll / ROW);
-        int visible = Math.max(1, (height - TOP - BOTTOM) / ROW + 2);
-        for (int i = first; i < Math.min(rows.size(), first + visible); i++) {
-            int y = TOP + i * ROW - (int)scroll;
-            if (y < TOP || y + 20 > height - BOTTOM) continue;
-            String id = rows.get(i);
-            boolean builtin = showBuiltins() && BuiltinParticleBlacklist.contains(id);
-            g.fill(left, y, left + 385, y + 20, builtin ? 0x80605020 : 0x60303030);
-            g.drawString(font, "✓  " + id, left + 6, y + 6,
-                builtin ? 0xFFDD55 : 0x88DD88, false);
-        }
     }
 }

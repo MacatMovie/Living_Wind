@@ -55,8 +55,17 @@ public final class LivingWindConfigScreen extends Screen {
         number("Global Strength Multiplier", WindConfig.GLOBAL_STRENGTH_MULTIPLIER.get(), v -> WindConfig.GLOBAL_STRENGTH_MULTIPLIER.set(v), .25, 2.5);
 
         header("Weather");
-        number("Rain Strength Bonus", WindConfig.RAIN_STRENGTH_BONUS.get(), v -> WindConfig.RAIN_STRENGTH_BONUS.set(v), 0, 1.5);
-        number("Thunder Strength Bonus", WindConfig.THUNDER_STRENGTH_BONUS.get(), v -> WindConfig.THUNDER_STRENGTH_BONUS.set(v), 0, 1.5);
+        number("Rain Strength Bonus (Legacy)", WindConfig.RAIN_STRENGTH_BONUS.get(), v -> WindConfig.RAIN_STRENGTH_BONUS.set(v), 0, 1.5);
+        number("Thunder Strength Bonus (Legacy)", WindConfig.THUNDER_STRENGTH_BONUS.get(), v -> WindConfig.THUNDER_STRENGTH_BONUS.set(v), 0, 1.5);
+        boolTooltip("Custom Weather Strength Ranges", WindConfig.WEATHER_STRENGTH_RANGES_ENABLED.get(), WindConfig.WEATHER_STRENGTH_RANGES_ENABLED::set,
+            "OFF (default): original wind/weather behavior. ON: set a separate min/max for clear, rain and thunderstorms. Gusts and pre-storm fronts stay independent.");
+        number("Clear Weather Minimum", WindConfig.CLEAR_WEATHER_MIN_STRENGTH.get(), WindConfig.CLEAR_WEATHER_MIN_STRENGTH::set, 0, 2.5);
+        number("Clear Weather Maximum", WindConfig.CLEAR_WEATHER_MAX_STRENGTH.get(), WindConfig.CLEAR_WEATHER_MAX_STRENGTH::set, 0, 2.5);
+        number("Rain Minimum", WindConfig.RAIN_WEATHER_MIN_STRENGTH.get(), WindConfig.RAIN_WEATHER_MIN_STRENGTH::set, 0, 2.5);
+        number("Rain Maximum", WindConfig.RAIN_WEATHER_MAX_STRENGTH.get(), WindConfig.RAIN_WEATHER_MAX_STRENGTH::set, 0, 2.5);
+        number("Thunderstorm Minimum", WindConfig.THUNDER_WEATHER_MIN_STRENGTH.get(), WindConfig.THUNDER_WEATHER_MIN_STRENGTH::set, 0, 2.5);
+        number("Thunderstorm Maximum", WindConfig.THUNDER_WEATHER_MAX_STRENGTH.get(), WindConfig.THUNDER_WEATHER_MAX_STRENGTH::set, 0, 2.5);
+        percentageSlider("Regular Wind Fluctuation", WindConfig.WEATHER_STRENGTH_FLUCTUATION.get(), WindConfig.WEATHER_STRENGTH_FLUCTUATION::set);
 
         header("Wind Events");
         number("Pre-Storm Front Chance", WindConfig.PRE_STORM_FRONT_CHANCE.get(), v -> WindConfig.PRE_STORM_FRONT_CHANCE.set(v), 0, 1);
@@ -69,6 +78,10 @@ public final class LivingWindConfigScreen extends Screen {
         bool("Gust Clusters", WindConfig.GUST_CLUSTERS_ENABLED.get(), WindConfig.GUST_CLUSTERS_ENABLED::set);
         number("Gust Cluster Chance Multiplier", WindConfig.GUST_CLUSTER_CHANCE_MULTIPLIER.get(), WindConfig.GUST_CLUSTER_CHANCE_MULTIPLIER::set, 0, 3);
 
+        header("Seasonal Compatibility (Wind)");
+        bool("Seasonal Wind", WindConfig.SEASONAL_WIND_ENABLED.get(), WindConfig.SEASONAL_WIND_ENABLED::set);
+        number("Seasonal Wind Intensity", WindConfig.SEASONAL_WIND_INTENSITY.get(), WindConfig.SEASONAL_WIND_INTENSITY::set, 0, 2);
+
         header("Create Windmills");
         bool("Wind-Driven Create Windmills", WindConfig.CREATE_WINDMILLS_ENABLED.get(), WindConfig.CREATE_WINDMILLS_ENABLED::set);
         number("Create Minimum Speed Multiplier", WindConfig.CREATE_WINDMILL_MIN_MULTIPLIER.get(), WindConfig.CREATE_WINDMILL_MIN_MULTIPLIER::set, 0.01, 2.0);
@@ -77,6 +90,15 @@ public final class LivingWindConfigScreen extends Screen {
         number("Create Min RPM Difference", WindConfig.CREATE_WINDMILL_MIN_RPM_CHANGE.get(), WindConfig.CREATE_WINDMILL_MIN_RPM_CHANGE::set, 0.25, 8.0);
         number("Create Max RPM Change per Update", WindConfig.CREATE_WINDMILL_MAX_CHANGE_PER_UPDATE.get(), WindConfig.CREATE_WINDMILL_MAX_CHANGE_PER_UPDATE::set, 0.50, 32.0);
         integer("Create Refresh Interval (Ticks)", WindConfig.CREATE_WINDMILL_UPDATE_TICKS.get(), WindConfig.CREATE_WINDMILL_UPDATE_TICKS::set, 20, 200);
+
+        header("Valkyrien Skies 2 / Eureka / Clockwork");
+        boolTooltip("Use Living Wind for VS Ships", WindConfig.VS_WIND_ENABLED.get(), WindConfig.VS_WIND_ENABLED::set,
+            "Adds Living Wind as an aerodynamic wind source to Valkyrien Skies ships, including Eureka and Clockwork. Independent from Entity Wind.");
+        slider("VS Wind Speed Scale", WindConfig.VS_WIND_SPEED_SCALE.get(), WindConfig.VS_WIND_SPEED_SCALE::set, 0, 20);
+        slider("VS Maximum Wind Speed", WindConfig.VS_WIND_MAX_SPEED.get(), WindConfig.VS_WIND_MAX_SPEED::set, 0, 40);
+        integer("VS Wind Update Interval (Ticks)", WindConfig.VS_WIND_UPDATE_TICKS.get(), WindConfig.VS_WIND_UPDATE_TICKS::set, 1, 40);
+        boolTooltip("Combine with Weather2 Wind", WindConfig.VS_WIND_WITH_WEATHER2.get(), WindConfig.VS_WIND_WITH_WEATHER2::set,
+            "OFF: Living Wind will not add wind when Weather2 is installed, avoiding stacked wind sources. ON: both supply wind to VS. Turn off Weather2's VS integration to use only Living Wind.");
 
         header("Small Ships 2.0");
         bool("Use Living Wind for Small Ships", WindConfig.SMALL_SHIPS_WIND_ENABLED.get(), WindConfig.SMALL_SHIPS_WIND_ENABLED::set);
@@ -88,6 +110,37 @@ public final class LivingWindConfigScreen extends Screen {
         header("Treasure Balloons");
         bool("Wind-Driven Treasure Balloons", WindConfig.TREASURE_BALLOONS_WIND_ENABLED.get(), WindConfig.TREASURE_BALLOONS_WIND_ENABLED::set);
         number("Treasure Balloon Wind Multiplier", WindConfig.TREASURE_BALLOONS_WIND_MULTIPLIER.get(), WindConfig.TREASURE_BALLOONS_WIND_MULTIPLIER::set, 0, 5);
+
+        header("Gliders / Reliable Gliders / Paraglider");
+        boolTooltip("Wind Affects Gliding", WindConfig.GLIDER_WIND_ENABLED.get(), WindConfig.GLIDER_WIND_ENABLED::set,
+            "Applies directional wind only while using an active glider, independently of ordinary Entity Wind. Supports Gliders, Reliable Gliders and Paraglider.");
+        slider("Glider Wind Influence", WindConfig.GLIDER_WIND_INFLUENCE.get(), WindConfig.GLIDER_WIND_INFLUENCE::set, 0, 3);
+
+        header("Entity Wind");
+        bool("Enable Entity Wind (Gameplay)", WindConfig.ENTITY_WIND_ENABLED.get(), WindConfig.ENTITY_WIND_ENABLED::set);
+        boolTooltip("Check Entity Shelter", WindConfig.ENTITY_WIND_CHECK_SHELTER.get(), WindConfig.ENTITY_WIND_CHECK_SHELTER::set,
+            "ON (default): wind pushes entities only in exposed areas. OFF: skips per-entity shelter checks for better performance, but entities will also react to wind indoors and underground. Particle and audio shelter remain unchanged.");
+        subheader("Weather-Based Entity Wind Impact");
+        sliderTooltip("Clear Weather Impact", WindConfig.ENTITY_WIND_CLEAR_WEATHER_MULTIPLIER.get(),
+            WindConfig.ENTITY_WIND_CLEAR_WEATHER_MULTIPLIER::set, 0, 5);
+        sliderTooltip("Rain Impact", WindConfig.ENTITY_WIND_RAIN_MULTIPLIER.get(),
+            WindConfig.ENTITY_WIND_RAIN_MULTIPLIER::set, 0, 5);
+        sliderTooltip("Thunderstorm Impact", WindConfig.ENTITY_WIND_THUNDER_MULTIPLIER.get(),
+            WindConfig.ENTITY_WIND_THUNDER_MULTIPLIER::set, 0, 5);
+        subheader("Entity Types");
+        bool("Affect Players", WindConfig.ENTITY_WIND_PLAYERS.get(), WindConfig.ENTITY_WIND_PLAYERS::set);
+        slider("Player Grounded Wind Impact", WindConfig.ENTITY_WIND_PLAYER_GROUNDED_MULTIPLIER.get(), WindConfig.ENTITY_WIND_PLAYER_GROUNDED_MULTIPLIER::set, 0, 5);
+        slider("Player Airborne Wind Impact", WindConfig.ENTITY_WIND_PLAYER_MULTIPLIER.get(), WindConfig.ENTITY_WIND_PLAYER_MULTIPLIER::set, 0, 5);
+        bool("Affect Mobs", WindConfig.ENTITY_WIND_MOBS.get(), WindConfig.ENTITY_WIND_MOBS::set);
+        slider("Mob Grounded Wind Impact", WindConfig.ENTITY_WIND_MOB_GROUNDED_MULTIPLIER.get(), WindConfig.ENTITY_WIND_MOB_GROUNDED_MULTIPLIER::set, 0, 5);
+        slider("Mob Airborne Wind Impact", WindConfig.ENTITY_WIND_MOB_MULTIPLIER.get(), WindConfig.ENTITY_WIND_MOB_MULTIPLIER::set, 0, 5);
+        bool("Affect Projectiles", WindConfig.ENTITY_WIND_PROJECTILES.get(), WindConfig.ENTITY_WIND_PROJECTILES::set);
+        slider("Projectile Wind Impact", WindConfig.ENTITY_WIND_PROJECTILE_MULTIPLIER.get(), WindConfig.ENTITY_WIND_PROJECTILE_MULTIPLIER::set, 0, 5);
+        nav("Projectile Wind Blacklist", () -> minecraft.setScreen(new ProjectileBlacklistScreen(this)));
+        bool("Affect Boats", WindConfig.ENTITY_WIND_BOATS.get(), WindConfig.ENTITY_WIND_BOATS::set);
+        slider("Boat Wind Impact", WindConfig.ENTITY_WIND_BOAT_MULTIPLIER.get(), WindConfig.ENTITY_WIND_BOAT_MULTIPLIER::set, 0, 5);
+        bool("Affect Dropped Items", WindConfig.ENTITY_WIND_DROPPED_ITEMS.get(), WindConfig.ENTITY_WIND_DROPPED_ITEMS::set);
+        slider("Dropped Item Wind Impact", WindConfig.ENTITY_WIND_DROPPED_ITEM_MULTIPLIER.get(), WindConfig.ENTITY_WIND_DROPPED_ITEM_MULTIPLIER::set, 0, 5);
 
         header("Altitude Scaling");
         bool("Altitude Scaling", WindConfig.ALTITUDE_SCALING_ENABLED.get(), WindConfig.ALTITUDE_SCALING_ENABLED::set);
@@ -102,11 +155,11 @@ public final class LivingWindConfigScreen extends Screen {
         header("Particle Wind");
         bool("Affect Existing Particles", ClientWindConfig.AFFECT_EXISTING_PARTICLES.get(), ClientWindConfig.AFFECT_EXISTING_PARTICLES::set);
         number("Particle Wind Force", ClientWindConfig.PARTICLE_WIND_FORCE.get(), ClientWindConfig.PARTICLE_WIND_FORCE::set, 0, .25);
-        enumFilterMode();
-        nav("Particle Blacklist / Whitelist", () -> minecraft.setScreen(new ParticleFilterListScreen(this)));
+        nav("Particle Blacklist", () -> minecraft.setScreen(new ParticleFilterListScreen(this)));
         nav("Particle Response Multipliers", () -> minecraft.setScreen(new ParticleResponseMultiplierListScreen(this)));
 
         header("Ambient Particles");
+        nav("Ambient Pixel Block Emitters", () -> minecraft.setScreen(new AmbientEmitterListScreen(this)));
         bool("Enabled", ClientWindConfig.AMBIENT_PARTICLES.get(), ClientWindConfig.AMBIENT_PARTICLES::set);
         integer("Samples Per Tick", ClientWindConfig.AMBIENT_SAMPLES_PER_TICK.get(), ClientWindConfig.AMBIENT_SAMPLES_PER_TICK::set, 0, 32);
         integer("Sample Radius", ClientWindConfig.AMBIENT_RADIUS.get(), ClientWindConfig.AMBIENT_RADIUS::set, 4, 48);
@@ -140,10 +193,22 @@ public final class LivingWindConfigScreen extends Screen {
         header("Wind Sounds");
         bool("Wind Audio Enabled", ClientWindConfig.WIND_AUDIO_ENABLED.get(), ClientWindConfig.WIND_AUDIO_ENABLED::set);
         slider("Wind Audio Volume", ClientWindConfig.WIND_AUDIO_VOLUME.get(), ClientWindConfig.WIND_AUDIO_VOLUME::set, 0, 3);
+        boolTooltip("Directional Wind Audio", ClientWindConfig.WIND_AUDIO_DIRECTIONAL_ENABLED.get(),
+            ClientWindConfig.WIND_AUDIO_DIRECTIONAL_ENABLED::set,
+            "Adds mono upwind sound above the main stereo wind bed. Can be isolated in Debug > Wind Audio Test Mode.");
+        slider("Directional Wind Volume", ClientWindConfig.WIND_AUDIO_DIRECTIONAL_VOLUME.get(),
+            ClientWindConfig.WIND_AUDIO_DIRECTIONAL_VOLUME::set, 0, 3);
         bool("Gust Accents", ClientWindConfig.WIND_AUDIO_GUSTS.get(), ClientWindConfig.WIND_AUDIO_GUSTS::set);
         bool("Environmental Accents", ClientWindConfig.WIND_AUDIO_ENVIRONMENTAL.get(), ClientWindConfig.WIND_AUDIO_ENVIRONMENTAL::set);
         enumAudioMode();
         enumDynamicSurroundingsAudioMode();
+        enumAmbiWindMode();
+
+        header("Seasonal Compatibility (Particles)");
+        bool("Seasonal Particles", ClientWindConfig.SEASONAL_PARTICLES_ENABLED.get(), ClientWindConfig.SEASONAL_PARTICLES_ENABLED::set);
+        number("Seasonal Particle Intensity", ClientWindConfig.SEASONAL_PARTICLES_INTENSITY.get(), ClientWindConfig.SEASONAL_PARTICLES_INTENSITY::set, 0, 2);
+        bool("Winter Snow Effects", ClientWindConfig.SEASONAL_SNOW_ENABLED.get(), ClientWindConfig.SEASONAL_SNOW_ENABLED::set);
+        enumEclipticLeavesSource();
 
         header("Pretty Rain");
         bool("Pretty Rain Wind", ClientWindConfig.PRETTY_RAIN_COMPAT.get(), ClientWindConfig.PRETTY_RAIN_COMPAT::set);
@@ -177,7 +242,6 @@ public final class LivingWindConfigScreen extends Screen {
         slider("FWA Wind Impact", ClientWindConfig.FWA_WIND_IMPACT.get(), ClientWindConfig.FWA_WIND_IMPACT::set, 0, 12);
         number("FWA Chain Wind", ClientWindConfig.FWA_CHAIN_INTENSITY.get(), ClientWindConfig.FWA_CHAIN_INTENSITY::set, 0, 3);
         number("FWA Lantern Wind", ClientWindConfig.FWA_LANTERN_INTENSITY.get(), ClientWindConfig.FWA_LANTERN_INTENSITY::set, 0, 3);
-        number("FWA Bell Wind", ClientWindConfig.FWA_BELL_INTENSITY.get(), ClientWindConfig.FWA_BELL_INTENSITY::set, 0, 3);
 
 
         header("Windblown");
@@ -195,17 +259,18 @@ public final class LivingWindConfigScreen extends Screen {
 
         header("Debug");
         enumDebugHudMode();
+        enumWindAudioDebugMode();
 
         // GUI navigation only: all config keys, validators, and persisted values stay put.
         final java.util.List<String> clientIntegrations = java.util.List.of(
-            "Pretty Rain", "Particle Rain", "Particular", "Advanced Chimneys",
+            "Seasonal Compatibility (Particles)", "Pretty Rain", "Particle Rain", "Particular", "Advanced Chimneys",
             "Supplementaries", "Swinging Hanging Signs", "Swinging Lanterns", "Chimes", "Fancy World Animations",
             "Windblown", "Interactive Foliage");
 
         String section = "";
         java.util.List<Row> hidden = new ArrayList<>();
         for (Row row : rows) {
-            if (row.header) section = row.label.getString();
+            if (row.header && !row.subheader) section = row.label.getString();
             boolean show = page.equals(section);  // leaf pages and normal settings pages
             if (!show) hidden.add(row);
         }
@@ -222,6 +287,7 @@ public final class LivingWindConfigScreen extends Screen {
                 nav(category, () -> openPage(category));
             }
             nav("Dimension Settings", () -> minecraft.setScreen(new DimensionSettingsScreen(this)));
+            nav("Entity Wind", () -> openPage("Entity Wind"));
             nav("Networking", () -> openPage("Networking"));
             nav("Compatibility", () -> openPage("commonCompatibility"));
         } else if ("client".equals(page)) {
@@ -231,7 +297,7 @@ public final class LivingWindConfigScreen extends Screen {
             }
             nav("Compatibility", () -> openPage("clientCompatibility"));
         } else if ("commonCompatibility".equals(page)) {
-            for (String integration : new String[] {"Create Windmills", "Small Ships 2.0", "Aleki's Nifty Ships", "Treasure Balloons"}) {
+            for (String integration : new String[] {"Seasonal Compatibility (Wind)", "Create Windmills", "Valkyrien Skies 2 / Eureka / Clockwork", "Gliders / Reliable Gliders / Paraglider", "Small Ships 2.0", "Aleki's Nifty Ships", "Treasure Balloons"}) {
                 nav(integration, () -> openPage(integration));
             }
         } else if ("clientCompatibility".equals(page)) {
@@ -246,9 +312,16 @@ public final class LivingWindConfigScreen extends Screen {
     }
 
     private void header(String s) { rows.add(Row.header(Component.literal(s).copy().withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))); }
+    // A visual subsection stays on its parent page instead of becoming a separate navigation page.
+    private void subheader(String s) { rows.add(Row.subheader(Component.literal(s).copy().withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))); }
     private void bool(String label, boolean initial, Consumer<Boolean> setter) {
+        boolTooltip(label, initial, setter, null);
+    }
+    private void boolTooltip(String label, boolean initial, Consumer<Boolean> setter, String help) {
         final boolean[] v={initial};
-        Button b=Button.builder(onOff(v[0]), x->{v[0]=!v[0]; setter.accept(v[0]); x.setMessage(onOff(v[0]));}).bounds(0,0,180,20).build();
+        Button.Builder builder=Button.builder(onOff(v[0]), x->{v[0]=!v[0]; setter.accept(v[0]); x.setMessage(onOff(v[0]));}).bounds(0,0,180,20);
+        if (help != null) builder.tooltip(Tooltip.create(Component.literal(help)));
+        Button b=builder.build();
         rows.add(Row.value(Component.literal(label), b, null)); addRenderableWidget(b);
     }
     private void number(String label, double initial, Consumer<Double> setter, double min, double max) {
@@ -270,6 +343,52 @@ public final class LivingWindConfigScreen extends Screen {
         addRenderableWidget(slider);
     }
 
+    private void sliderTooltip(String label, double initial, Consumer<Double> setter, double min, double max) {
+        double normalized = max <= min ? 0.0 : Math.max(0.0, Math.min(1.0, (initial - min) / (max - min)));
+        AbstractSliderButton slider = new ConfigSlider(initial, normalized, setter, min, max);
+        slider.setTooltip(Tooltip.create(Component.literal(
+            "Scales all enabled entity wind effects only (players, mobs, projectiles, boats and items). " +
+            "0 = no push in this weather, 1.0 = unchanged, higher = stronger. " +
+            "Blends smoothly between weather states. Does not change particles or the shared Wind API.")));
+        rows.add(Row.value(Component.literal(label), slider, null));
+        addRenderableWidget(slider);
+    }
+
+    private void percentageSlider(String label, double initial, Consumer<Double> setter) {
+        AbstractSliderButton slider = new ConfigSlider(initial, Math.max(0.0, Math.min(1.0, initial)),
+            setter, 0.0, 1.0, true);
+        slider.setTooltip(Tooltip.create(Component.literal(
+            "0% = steady ordinary wind, 100% = full natural variation. With custom weather ranges enabled, " +
+            "this controls variation inside each range. Gusts, pre-storm buildup and wind direction remain independent.")));
+        rows.add(Row.value(Component.literal(label), slider, null));
+        addRenderableWidget(slider);
+    }
+
+    private void enumWindAudioDebugMode() {
+        Button button = Button.builder(Component.literal(audioTestLabel(ClientWindConfig.WIND_AUDIO_DEBUG_MODE.get())), b -> {
+            var modes = ClientWindConfig.WindAudioDebugMode.values();
+            var current = ClientWindConfig.WIND_AUDIO_DEBUG_MODE.get();
+            var next = modes[(current.ordinal() + 1) % modes.length];
+            ClientWindConfig.WIND_AUDIO_DEBUG_MODE.set(next);
+            b.setMessage(Component.literal(audioTestLabel(next)));
+        }).bounds(0, 0, 180, 20)
+          .tooltip(Tooltip.create(Component.literal(
+              "NORMAL: regular soundscape. STEREO ONLY: wind beds without positional audio or accents. " +
+              "DIRECTIONAL ONLY: just upwind mono wind and spatial gusts, even if the directional toggle is off. " +
+              "Use headphones; reset to NORMAL after testing.")))
+          .build();
+        rows.add(Row.value(Component.literal("Wind Audio Test Mode"), button, null));
+        addRenderableWidget(button);
+    }
+
+    private static String audioTestLabel(ClientWindConfig.WindAudioDebugMode mode) {
+        return switch (mode) {
+            case NORMAL -> "Normal";
+            case STEREO_ONLY -> "Stereo Only";
+            case DIRECTIONAL_ONLY -> "Directional Only";
+        };
+    }
+
     private void enumDebugHudMode() {
         Button button = Button.builder(Component.literal(ClientWindConfig.debugHudMode().name()), b -> {
             ClientWindConfig.DebugHudMode[] modes = ClientWindConfig.DebugHudMode.values();
@@ -282,6 +401,29 @@ public final class LivingWindConfigScreen extends Screen {
           .build();
         rows.add(Row.value(Component.literal("Debug HUD"), button, null));
         addRenderableWidget(button);
+    }
+
+    private void enumEclipticLeavesSource() {
+        Button button = Button.builder(Component.literal(eclipticLeavesLabel(ClientWindConfig.ECLIPTIC_LEAVES_SOURCE.get())), b -> {
+            var modes = ClientWindConfig.EclipticLeavesSource.values();
+            var current = ClientWindConfig.ECLIPTIC_LEAVES_SOURCE.get();
+            var next = modes[(current.ordinal() + 1) % modes.length];
+            ClientWindConfig.ECLIPTIC_LEAVES_SOURCE.set(next);
+            b.setMessage(Component.literal(eclipticLeavesLabel(next)));
+        }).bounds(0, 0, 180, 20)
+          .tooltip(Tooltip.create(Component.literal(
+              "Living Wind Only (default): disables Ecliptic falling leaves. Ecliptic Seasons Only: disables Living Wind tree leaves. Both: both. Other seasonal particles stay enabled. If Ecliptic is absent, Living Wind leaves remain.")))
+          .build();
+        rows.add(Row.value(Component.literal("Ecliptic Falling Leaves"), button, null));
+        addRenderableWidget(button);
+    }
+
+    private static String eclipticLeavesLabel(ClientWindConfig.EclipticLeavesSource source) {
+        return switch (source) {
+            case LIVING_WIND -> "Living Wind Only";
+            case ECLIPTIC_SEASONS -> "Ecliptic Seasons Only";
+            case BOTH -> "Both";
+        };
     }
 
     private void enumFallingLeavesSource() {
@@ -334,11 +476,30 @@ public final class LivingWindConfigScreen extends Screen {
     }
 
     private static String dynamicSurroundingsAudioLabel(ClientWindConfig.DynamicSurroundingsWindMode mode) {
-        return switch (mode) {
-            case LIVING_WIND -> "Living Wind Only";
-            case DYNAMIC_SURROUNDINGS -> "Dynamic Surroundings Only";
-            case BOTH -> "Both";
-        };
+        // Match NeoForge's enum buttons and the Ambient Sounds selector on Forge.
+        return mode.name();
+    }
+
+    private void enumAmbiWindMode() {
+        Button button = Button.builder(
+            Component.literal(ambiWindAudioLabel(ClientWindConfig.AMBI_WIND_MODE.get())),
+            widget -> {
+                var modes = ClientWindConfig.AmbiWindMode.values();
+                int next = (ClientWindConfig.AMBI_WIND_MODE.get().ordinal() + 1) % modes.length;
+                ClientWindConfig.AMBI_WIND_MODE.set(modes[next]);
+                widget.setMessage(Component.literal(ambiWindAudioLabel(modes[next])));
+            }
+        ).bounds(0, 0, 180, 20)
+          .tooltip(Tooltip.create(Component.literal(
+              "Choose Living Wind only (default), Ambi only, or both wind soundtracks. " +
+              "Other Ambi ambience remains unchanged. Ambient Sounds and Dynamic Surroundings are configured separately.")))
+          .build();
+        rows.add(Row.value(Component.literal("Ambi Wind"), button, null));
+        addRenderableWidget(button);
+    }
+
+    private static String ambiWindAudioLabel(ClientWindConfig.AmbiWindMode mode) {
+        return mode.name();
     }
 
     private void enumNetherWindMode() {
@@ -354,12 +515,6 @@ public final class LivingWindConfigScreen extends Screen {
             int next=(WindConfig.END_WIND_MODE.get().ordinal()+1)%values.length;
             WindConfig.END_WIND_MODE.set(values[next]); x.setMessage(Component.literal(values[next].name()));
         }).bounds(0,0,180,20).build(); rows.add(Row.value(Component.literal("End Wind Mode"),b,null)); addRenderableWidget(b);
-    }
-    private void enumFilterMode() {
-        Button b=Button.builder(Component.literal(ClientWindConfig.PARTICLE_FILTER_MODE.get().name()), x->{
-            var next=ClientWindConfig.PARTICLE_FILTER_MODE.get()==ClientWindConfig.FilterMode.BLACKLIST?ClientWindConfig.FilterMode.WHITELIST:ClientWindConfig.FilterMode.BLACKLIST;
-            ClientWindConfig.PARTICLE_FILTER_MODE.set(next); x.setMessage(Component.literal(next.name()));
-        }).bounds(0,0,180,20).build(); rows.add(Row.value(Component.literal("Filter Mode"),b,null)); addRenderableWidget(b);
     }
     private void nav(String label, Runnable action) {
         Button b=Button.builder(Component.literal("Configure"), x->action.run()).bounds(0,0,180,20).build(); rows.add(Row.value(Component.literal(label),b,null)); addRenderableWidget(b);
@@ -440,17 +595,28 @@ public final class LivingWindConfigScreen extends Screen {
         private final Consumer<Double> setter;
         private final double min;
         private final double max;
+        private final boolean percent;
 
         private ConfigSlider(double initial, double normalized, Consumer<Double> setter, double min, double max) {
-            super(0, 0, 180, 20, Component.literal(String.format(Locale.ROOT, "%.2f", initial)), normalized);
+            this(initial, normalized, setter, min, max, false);
+        }
+
+        private ConfigSlider(double initial, double normalized, Consumer<Double> setter, double min, double max, boolean percent) {
+            super(0, 0, 180, 20, Component.literal(format(initial, percent)), normalized);
             this.setter = setter;
             this.min = min;
             this.max = max;
+            this.percent = percent;
+        }
+
+        private static String format(double actual, boolean percent) {
+            return percent ? String.format(Locale.ROOT, "%.0f%%", actual * 100.0)
+                : String.format(Locale.ROOT, "%.2f", actual);
         }
 
         @Override protected void updateMessage() {
             double actual = min + (max - min) * value;
-            setMessage(Component.literal(String.format(Locale.ROOT, "%.2f", actual)));
+            setMessage(Component.literal(format(actual, percent)));
         }
 
         @Override protected void applyValue() {
@@ -461,5 +627,22 @@ public final class LivingWindConfigScreen extends Screen {
         }
     }
 
-    private static final class Row{final Component label;final AbstractWidget widget;final Runnable commit;final boolean header;Row(Component l,AbstractWidget w,Runnable c,boolean h){label=l;widget=w;commit=c;header=h;}static Row header(Component l){return new Row(l,null,null,true);}static Row value(Component l,AbstractWidget w,Runnable c){return new Row(l,w,c,false);}}
+    private static final class Row {
+        final Component label;
+        final AbstractWidget widget;
+        final Runnable commit;
+        final boolean header, subheader;
+        private Row(Component label, AbstractWidget widget, Runnable commit, boolean header, boolean subheader) {
+            this.label = label;
+            this.widget = widget;
+            this.commit = commit;
+            this.header = header;
+            this.subheader = subheader;
+        }
+        static Row header(Component label) { return new Row(label, null, null, true, false); }
+        static Row subheader(Component label) { return new Row(label, null, null, true, true); }
+        static Row value(Component label, AbstractWidget widget, Runnable commit) {
+            return new Row(label, widget, commit, false, false);
+        }
+    }
 }

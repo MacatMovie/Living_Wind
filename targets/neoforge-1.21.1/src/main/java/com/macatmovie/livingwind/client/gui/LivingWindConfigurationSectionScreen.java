@@ -24,13 +24,13 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Keeps NeoForge's normal config UI for all ordinary settings, but substitutes a purpose-built
- * particle-ID picker for Living Wind's blacklist/whitelist. This avoids the generic list editor's
+ * particle-ID picker for Living Wind's blacklist. This avoids the generic list editor's
  * meaningless up/down ordering controls without adding another config-screen dependency.
  */
 public final class LivingWindConfigurationSectionScreen extends ConfigurationScreen.ConfigurationSectionScreen {
     // UI-only grouping: keep the existing TOML paths untouched for existing worlds.
     private static final List<String> COMMON_COMPAT = List.of(
-        "createWindmills", "aeronautics", "highSeas", "smallShips", "treasureBalloons"
+        "seasonalCompatibility", "createWindmills", "aeronautics", "highSeas", "smallShips", "treasureBalloons", "gliderWind"
     );
     private record SectionInfo(Map<String, Object> specs, Set<? extends Entry> entries, Component title) {}
     private final Map<String, SectionInfo> commonSections = new LinkedHashMap<>();
@@ -104,11 +104,15 @@ public final class LivingWindConfigurationSectionScreen extends ConfigurationScr
     // Keep tooltips brief across all standard NeoForge controls as well as custom ones.
     @Override
     protected Component getTooltipComponent(String key, ModConfigSpec.Range<?> range) {
+        if ("checkShelter".equals(key) && context.keylist().contains("entityWind")) {
+            return Component.translatableWithFallback("livingwind.config.entityWindCheckShelter.tooltip",
+                "ON: Keep entity wind limited to exposed areas. OFF: Skip per-entity shelter checks for better performance, allowing wind to move entities indoors and underground. Particle and sound shelter are unaffected.");
+        }
         String description;
         if ("responseMultipliers".equals(key)) {
             description = "Adjust wind response for individual particles (0 = none, 1 = normal).";
         } else if ("filter".equals(key)) {
-            description = "Edit which particles are included in the blacklist or whitelist.";
+            description = "Edit additional IDs in the particle wind blacklist.";
         } else {
             description = getComment(key);
             if (description == null) description = "";
@@ -169,21 +173,33 @@ public final class LivingWindConfigurationSectionScreen extends ConfigurationScr
         Supplier<Double> source,
         Consumer<Double> target
     ) {
-        if (("volume".equals(key) && context.keylist().contains("windAudio"))
+        if ((("volume".equals(key) || "directionalWindVolume".equals(key)) && context.keylist().contains("windAudio"))
                 || ("windImpact".equals(key) && context.keylist().contains("fancyWorldAnimations"))
                 || ("forceMultiplier".equals(key) && context.keylist().contains("aeronautics"))
-                || ("windMultiplier".equals(key) && context.keylist().contains("treasureBalloons"))) {
-            final double maxVolume = "windImpact".equals(key) ? 12.0
-                    : ("forceMultiplier".equals(key) || "windMultiplier".equals(key)) ? 5.0 : 3.0;
+                || ("windMultiplier".equals(key) && context.keylist().contains("treasureBalloons"))
+                || ("strengthFluctuation".equals(key) && context.keylist().contains("weather"))
+                || (context.keylist().contains("entityWind")
+                    && ("clearWeatherMultiplier".equals(key) || "rainMultiplier".equals(key)
+                        || "thunderMultiplier".equals(key)))) {
+            final boolean percent = "strengthFluctuation".equals(key);
+            final double maxVolume = percent ? 1.0
+                    : "windImpact".equals(key) ? 12.0
+                    : ("forceMultiplier".equals(key) || "windMultiplier".equals(key)
+                        || (context.keylist().contains("entityWind")
+                            && ("clearWeatherMultiplier".equals(key) || "rainMultiplier".equals(key)
+                                || "thunderMultiplier".equals(key)))) ? 5.0 : 3.0;
             double actualInitial = Math.max(0.0, Math.min(maxVolume, source.get()));
             double initial = actualInitial / maxVolume;
-            AbstractSliderButton slider = new AbstractSliderButton(0, 0, 150, 20, Component.literal(String.format(Locale.ROOT, "%.2f", actualInitial)), initial) {
+            AbstractSliderButton slider = new AbstractSliderButton(0, 0, 150, 20,
+                Component.literal(percent ? String.format(Locale.ROOT, "%.0f%%", actualInitial * 100.0)
+                    : String.format(Locale.ROOT, "%.2f", actualInitial)), initial) {
                 private double lastApplied = actualInitial;
 
                 @Override
                 protected void updateMessage() {
                     double actual = Math.round(value * maxVolume * 100.0) / 100.0;
-                    setMessage(Component.literal(String.format(Locale.ROOT, "%.2f", actual)));
+                    setMessage(Component.literal(percent ? String.format(Locale.ROOT, "%.0f%%", actual * 100.0)
+                        : String.format(Locale.ROOT, "%.2f", actual)));
                 }
 
                 @Override
@@ -210,6 +226,15 @@ public final class LivingWindConfigurationSectionScreen extends ConfigurationScr
         ModConfigSpec.ListValueSpec spec,
         ModConfigSpec.ConfigValue<List<T>> list
     ) {
+        if ("projectileBlacklistExceptions".equals(key) && context.keylist().contains("entityWind")) return null;
+        if ("projectileBlacklist".equals(key) && context.keylist().contains("entityWind")) {
+            Component name = getTranslationComponent(key);
+            Component help = Component.literal("Protect selected projectile types from wind deflection; only checked when projectile wind is enabled.");
+            Button open = Button.builder(Component.translatable("livingwind.config.edit"), button ->
+                minecraft.setScreen(new ProjectileBlacklistScreen(this)))
+                .tooltip(Tooltip.create(help)).build();
+            return new Element(name, help, open, false);
+        }
         if ("dimensionModes".equals(key) && context.keylist().contains("dimensions")) {
             Component name = getTranslationComponent(key);
             Button open = Button.builder(Component.translatable("livingwind.config.edit"), button ->
@@ -239,6 +264,14 @@ public final class LivingWindConfigurationSectionScreen extends ConfigurationScr
             ).tooltip(net.minecraft.client.gui.components.Tooltip.create(shortTooltip(key, null)))
              .build();
             return new Element(name, shortTooltip(key, null), open, false);
+        }
+        if ("blockEmitterOverrides".equals(key) && context.keylist().contains("ambientParticles")) {
+            Component name = getTranslationComponent(key);
+            Component help = Component.literal("Customize which blocks emit tiny windblown pixels, including mod compatibility presets.");
+            Button open = Button.builder(Component.translatable("livingwind.config.edit"), button ->
+                minecraft.setScreen(new AmbientEmitterListScreen(this))
+            ).tooltip(Tooltip.create(help)).build();
+            return new Element(name, help, open, false);
         }
         if ("responseMultipliers".equals(key) && context.keylist().contains("particleWind")) {
             Component name = getTranslationComponent(key);

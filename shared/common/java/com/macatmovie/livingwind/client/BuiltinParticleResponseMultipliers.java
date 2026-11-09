@@ -12,6 +12,44 @@ import net.minecraft.resources.ResourceLocation;
  */
 public final class BuiltinParticleResponseMultipliers {
     public static final Map<ResourceLocation, Float> DEFAULTS = Map.ofEntries(
+        // Biome ambience: let genuinely airborne spores, steam and soft natural
+        // particles drift without overpowering their original movement patterns.
+        // Falling-leaf particle types are intentionally left at their normal wind
+        // response; Living Wind's existing leaf compatibility handles them.
+        Map.entry(ResourceLocation.tryParse("biomesoplenty:steam"), 0.65f),
+        Map.entry(ResourceLocation.tryParse("biomesoplenty:end_spore"), 0.70f),
+        Map.entry(ResourceLocation.tryParse("biomesoplenty:falling_blood"), 0.35f),
+        Map.entry(ResourceLocation.tryParse("biomesoplenty:pus"), 0.45f),
+        Map.entry(ResourceLocation.tryParse("biomesoplenty:binary"), 0.55f),
+        // Iron's Spells 'n Spellbooks: affect ambient-looking elemental debris,
+        // not spell trajectories. Most are reduced because they are spawned by
+        // casts and should stay visually close to the intended effect.
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:blood"), 0.20f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:wisp"), 0.40f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:snowflake"), 0.70f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:dragon_fire"), 0.35f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:fire"), 0.35f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:embers"), 0.65f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:spell"), 0.35f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:acid"), 0.20f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:snow_dust"), 0.60f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:fog"), 0.25f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:spark"), 0.35f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:emberous_ash"), 0.35f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:fiery_smoke"), 0.30f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:falling_sparkle"), 0.60f),
+        Map.entry(ResourceLocation.tryParse("irons_spellbooks:soul_fire"), 0.35f),
+        // Cataclysm: a small amount of wind for free-floating cloud/dust/fire,
+        // without altering boss telegraphs or their precise trails.
+        Map.entry(ResourceLocation.tryParse("cataclysm:spark"), 0.40f),
+        Map.entry(ResourceLocation.tryParse("cataclysm:soul_lava"), 0.50f),
+        Map.entry(ResourceLocation.tryParse("cataclysm:rain_cloud"), 0.25f),
+        Map.entry(ResourceLocation.tryParse("cataclysm:rain_fog"), 0.25f),
+        Map.entry(ResourceLocation.tryParse("cataclysm:custom_poof"), 0.35f),
+        Map.entry(ResourceLocation.tryParse("cataclysm:cursed_flame"), 0.35f),
+        Map.entry(ResourceLocation.tryParse("cataclysm:small_cursed_flame"), 0.35f),
+        Map.entry(ResourceLocation.tryParse("cataclysm:dust_blast"), 0.25f),
+        Map.entry(ResourceLocation.tryParse("cataclysm:dust_pillar"), 0.30f),
         Map.entry(ResourceLocation.tryParse("flying_stuff:cloud"), 0.25f),
         Map.entry(ResourceLocation.tryParse("flying_stuff:cloud_smoke"), 0.25f),
         Map.entry(ResourceLocation.tryParse("flying_stuff:cloud_smoke_1"), 0.25f),
@@ -77,6 +115,14 @@ public final class BuiltinParticleResponseMultipliers {
         ResourceLocation id = ResourceLocation.tryParse(rawId);
         return id != null && (DEFAULTS.containsKey(id)
             || ("particular".equals(id.getNamespace()) && id.getPath().endsWith("_leaf")));
+    }
+
+    /** All known presets, including those for mods not installed in this instance. */
+    public static List<String> allDefaults() {
+        List<String> result = new ArrayList<>();
+        for (ResourceLocation id : DEFAULTS.keySet()) result.add(id.toString());
+        result.sort(String::compareTo);
+        return result;
     }
 
     /** Only show optional built-ins when their particle type is actually installed. */

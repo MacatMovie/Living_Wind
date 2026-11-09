@@ -131,6 +131,57 @@ public final class BuiltinParticleBlacklist {
         "particular:water_splash_foam",
         "particular:water_splash_ring",
         "particular:firefly",
+        // Ecliptic Seasons (Forge 1.20.1 / NeoForge 1.21.1): simulated
+        // creatures follow autonomous animation paths; greenhouse effect is
+        // tied to its source. Keep airborne flying_bloom petals wind-responsive.
+        // fallen_leaves is handled by the seasonal leaf-source selector instead.
+        "eclipticseasons:firefly",
+        "eclipticseasons:butterfly",
+        "eclipticseasons:wild_goose",
+        "eclipticseasons:greenhouse",
+        // Aurae! / Ambiance (mod ID: ambiance). Portal frames, End gateways,
+        // ender-eye placement, and trial visuals are fixed or scripted effects.
+        // End-portal ash follows a scripted portal path like vanilla portal particles.
+        // Keep genuine ash/color_ash/fire_ash airborne and wind-responsive.
+        // The legacy 1.20 source also registers reverse_portal; 1.21.1 does not.
+        "ambiance:ender_eye_place",
+        "ambiance:end_portal_ash",
+        "ambiance:end",
+        "ambiance:end_gateway",
+        "ambiance:portal",
+        "ambiance:reverse_portal",
+        "ambiance:empty",
+        // No Man's Land (Forge 1.20.1 / NeoForge 1.21.1): resin, syrup,
+        // milk and oil droplets follow their own source-to-ground path. The flat
+        // variants are stationary landing decals, not airborne dust. Preserve
+        // wind on pale cherry leaves, cave dust, sculk ambience and embers.
+        "nomansland:resin_droplet",
+        "nomansland:resin_droplet_flat",
+        "nomansland:maple_syrup_droplet",
+        "nomansland:maple_syrup_droplet_flat",
+        "nomansland:milk_droplet",
+        "nomansland:milk_droplet_flat",
+        "nomansland:oil",
+        "nomansland:oil_splash",
+        "nomansland:oil_flat",
+        "nomansland:resin_oil_bubble",
+        "nomansland:resin_oil_bubble_pop",
+        // Scripted or source-anchored magical particles, impact markers and
+        // independently simulated pottery shards should keep their own paths.
+        // These are registered only in the newer NML version where available.
+        "nomansland:moonlight_ray",
+        "nomansland:moonlight_spark",
+        "nomansland:deep_sleep",
+        "nomansland:ritual_pick_resonance",
+        "nomansland:stasis_hit",
+        "nomansland:stasis_hit_parry",
+        "nomansland:stasis_break",
+        "nomansland:pot_shatter",
+        "nomansland:living_urn_shard_face",
+        // Subtle Effects sprinting dust clouds are anchored to an entity's movement;
+        // wind must not detach them from the sprinter. Other smoke and airborne dust remain affected.
+        "subtle_effects:small_dust_cloud",
+        "subtle_effects:large_dust_cloud",
         // Subtle Effects: water animations, autonomous fireflies, static/attached effects
         // and gameplay indicators. Keep airborne smoke, pollen, spores, dust, feathers,
         // snow and petals wind-responsive.
@@ -224,6 +275,118 @@ public final class BuiltinParticleBlacklist {
         "streamsreflowing:stream_bubble",
         "streamsreflowing:stream_leaf",
         "streamsreflowing:stream_stick",
+        // Regions Unexplored: floating hyacinth petals are water-surface bound;
+        // ordinary falling leaves, airborne spores and sparkles remain wind-responsive.
+        "regions_unexplored:floating_hyacinth",
+        // Aether: portal swirls, boss doors and whirlwind particles have their own
+        // scripted trajectories (whirlwinds follow their parent entity).
+        "aether:aether_portal",
+        "aether:door",
+        "aether:evil_whirlwind",
+        "aether:passive_whirlwind",
+        // Twilight Forest: wandering fireflies are independently animated;
+        // boss, spell and player-movement effects must stay event-anchored.
+        // Keep naturally falling leaves, leaf runes, snow, clouds and smoke active.
+        "twilightforest:firefly",
+        "twilightforest:wandering_firefly",
+        "twilightforest:particle_spawner_firefly",
+        "twilightforest:boss_tear",
+        "twilightforest:ghast_trap",
+        "twilightforest:protection",
+        "twilightforest:snow_warning",
+        "twilightforest:extended_snow_warning",
+        "twilightforest:ice_beam",
+        "twilightforest:annihilate",
+        "twilightforest:perfect_dodge",
+        "twilightforest:double_jump",
+        "twilightforest:sorting_particle",
+        "twilightforest:transformation_particle",
+        "twilightforest:log_core_particle",
+        "twilightforest:magic_effect",
+        "twilightforest:angry_lich",
+        "twilightforest:twilight_orb",
+        "twilightforest:shield_break",
+        // Iron's Spells 'n Spellbooks (Forge 1.20.1 / NeoForge 1.21.1):
+        // independent orbit/firefly motion, stationary decals, beam/trail geometry,
+        // blast rings and player-facing spell cues must not drift off their effects.
+        // Keep loose snow, embers, ash, fire, fog and minor spell sparks responsive
+        // with restrained values in BuiltinParticleResponseMultipliers.
+        "irons_spellbooks:blood_ground",
+        "irons_spellbooks:electricity",
+        "irons_spellbooks:unstable_ender",
+        "irons_spellbooks:acid_bubble",
+        "irons_spellbooks:ring_smoke",
+        "irons_spellbooks:shockwave",
+        "irons_spellbooks:zap",
+        "irons_spellbooks:firefly",
+        "irons_spellbooks:portal_frame",
+        "irons_spellbooks:blastwave",
+        "irons_spellbooks:cleanse",
+        "irons_spellbooks:flame_strike",
+        "irons_spellbooks:ender_slash",
+        "irons_spellbooks:trace",
+        "irons_spellbooks:falling_block",
+        "irons_spellbooks:swirling_particle",
+        "irons_spellbooks:soulfire_ray",
+        "irons_spellbooks:trial_omen",
+        "irons_spellbooks:tinted_bubble_pop",
+        // L_Ender's Cataclysm: boss telegraphs, entity-relative trails,
+        // ring/lightning/laser geometry, fixed explosion centers and impact glyphs
+        // retain their own animation or origin. Airborne fog, dust and stray
+        // embers remain lightly wind-responsive via reduced multipliers.
+        "cataclysm:after_image",
+        "cataclysm:amethyst_crash",
+        "cataclysm:circle",
+        "cataclysm:circle_lightning",
+        "cataclysm:cursed_algiz",
+        "cataclysm:cursed_mark",
+        "cataclysm:desert_glyph",
+        "cataclysm:em_pulse",
+        "cataclysm:flame_jet",
+        "cataclysm:flare_explode",
+        "cataclysm:gathering_water",
+        "cataclysm:ignis_abyss_explode",
+        "cataclysm:ignis_explode",
+        "cataclysm:ignis_soul_explode",
+        "cataclysm:ignis_soul_swing",
+        "cataclysm:ignis_swing",
+        "cataclysm:light_trail",
+        "cataclysm:lightning",
+        "cataclysm:lightning_explode",
+        "cataclysm:lightning_storm",
+        "cataclysm:lightning_zap",
+        "cataclysm:not_spin_particle",
+        "cataclysm:parry",
+        "cataclysm:phantom_emitter",
+        "cataclysm:phantom_wing_flame",
+        "cataclysm:ring_0",
+        "cataclysm:rising_trail",
+        "cataclysm:roar",
+        "cataclysm:scylla_swing",
+        "cataclysm:shock_wave",
+        "cataclysm:spark_trail",
+        "cataclysm:spin_trail",
+        "cataclysm:storm",
+        "cataclysm:track_lightning",
+        "cataclysm:trap_flame",
+        // Biomes O' Plenty: source-bound blood drips and landing droplets, fluid-bound
+        // glowworms, magical wisp bubbles and its non-rendering placeholder must not
+        // be shifted by atmospheric wind. Falling blood, drifting spores, steam and
+        // falling tree leaves remain eligible for wind.
+        "biomesoplenty:dripping_blood",
+        "biomesoplenty:landing_blood",
+        "biomesoplenty:glowworm",
+        "biomesoplenty:wisp_bubble",
+        "biomesoplenty:null",
+        // Oh The Biomes We've Gone: roaming fireflies and aurora glints have their
+        // own autonomous paths. Its falling leaves remain wind-responsive.
+        "biomeswevegone:firefly",
+        "biomeswevegone:borealis_glint",
+        // 1.21.1-only spirit motes are animated separately from ordinary foliage.
+        "biomeswevegone:spirit",
+        // Nature's Spirit: milk belongs to the original source/splash effect.
+        // Maple falling leaves remain wind-responsive.
+        "natures_spirit:milk",
         // Visuality: crystal sparkles, slime drops, mob hit fragments, and water rings.
         // Some Visuality versions register these in a separate custom registry.
         // Matching particle classes are also protected by BuiltinParticleClassBlacklist.

@@ -1,6 +1,7 @@
 package com.macatmovie.livingwind.mixin;
 
 import com.macatmovie.livingwind.client.ParticularLeafCompat;
+import com.macatmovie.livingwind.client.AtmosphericsDustCompat;
 import com.macatmovie.livingwind.client.access.WindParticleAccess;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
@@ -22,6 +23,22 @@ public abstract class ParticleEngineMixin {
         double xSpeed, double ySpeed, double zSpeed,
         CallbackInfoReturnable<Particle> cir
     ) {
+        // Filter Atmospherics' desert dust before it is constructed, avoiding
+        // stationary clouds in calm weather and reducing the particle workload.
+        ResourceLocation id = BuiltInRegistries.PARTICLE_TYPE.getKey(options.getType());
+        // Ecliptic Seasons' leaves have their own spawn logic. Suppress them at
+        // creation when native leaves are selected, avoiding unnecessary particle
+        // allocations and leaving Ecliptic's other seasonal effects untouched.
+        if (id != null && "eclipticseasons".equals(id.getNamespace())
+                && "fallen_leaves".equals(id.getPath())
+                && !com.macatmovie.livingwind.client.ParticleWindFilter.shouldSpawnEclipticLeaves()) {
+            cir.setReturnValue(null);
+            return;
+        }
+        if (!AtmosphericsDustCompat.shouldSpawn(id, x, y, z)) {
+            cir.setReturnValue(null);
+            return;
+        }
         if (!ParticularLeafCompat.beginCreate(options, x, y, z, xSpeed, ySpeed, zSpeed)) {
             cir.setReturnValue(null);
         }

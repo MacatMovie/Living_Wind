@@ -28,4 +28,6 @@ public interface WindParticleAccess {
     // Position-aware so a second move after collision gets its own measurement.
     float livingwind$cachedExposure(int tick, double x, double y, double z);
     void livingwind$storeExposure(int tick, double x, double y, double z, float exposure);
+    /** Cheap per-particle smoothing of the wind effect, not the shelter measurement. */
+    float livingwind$easeExposure(float target, int tick);
 }

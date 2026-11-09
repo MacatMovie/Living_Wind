@@ -2,7 +2,9 @@ package com.macatmovie.livingwind.mixin;
 
 import com.macatmovie.livingwind.client.ParticleWindFilter;
 import com.macatmovie.livingwind.client.ParticleWaterProtection;
+import com.macatmovie.livingwind.client.ParticleShelterContinuity;
 import com.macatmovie.livingwind.client.JadensNetherExpansionParticleCompat;
+import com.macatmovie.livingwind.client.AtmosphericsDustCompat;
 import com.macatmovie.livingwind.client.access.WindParticleAccess;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.resources.ResourceLocation;
@@ -22,8 +24,10 @@ public abstract class ParticleMixin implements WindParticleAccess {
     @Shadow protected double z;
     @Shadow protected double xd;
     @Shadow protected double zd;
+    @Shadow protected boolean onGround;
 
     @Unique private @Nullable ResourceLocation livingwind$particleType;
+    @Unique private boolean livingwind$particularLeafSettled;
     @Unique private int livingwind$lastShelteredTick = -1;
     @Unique private int livingwind$lastShelteredX;
     @Unique private int livingwind$lastShelteredY;
@@ -31,6 +35,8 @@ public abstract class ParticleMixin implements WindParticleAccess {
     @Unique private int livingwind$exposureTick = -1;
     @Unique private double livingwind$exposureX, livingwind$exposureY, livingwind$exposureZ;
     @Unique private float livingwind$exposureValue;
+    @Unique private float livingwind$visualExposure = Float.NaN;
+    @Unique private int livingwind$visualExposureTick = -1;
 
     @Override
     public void livingwind$setParticleType(@Nullable ResourceLocation id) { livingwind$particleType = id; }
@@ -88,6 +94,22 @@ public abstract class ParticleMixin implements WindParticleAccess {
         livingwind$exposureValue = exposure;
     }
 
+    @Override
+    public float livingwind$easeExposure(float target, int tick) {
+        if (livingwind$visualExposureTick == tick) return livingwind$visualExposure;
+        // Pauses do not advance shelterTick. New or resumed particles start from
+        // their actual state rather than reusing a stale wind envelope.
+        if (livingwind$visualExposureTick < 0 || tick < livingwind$visualExposureTick
+                || tick - livingwind$visualExposureTick > 20) {
+            livingwind$visualExposure = target;
+        } else {
+            livingwind$visualExposure = ParticleShelterContinuity.easeVisualExposure(
+                livingwind$visualExposure, target);
+        }
+        livingwind$visualExposureTick = tick;
+        return livingwind$visualExposure;
+    }
+
     @Inject(method = "tick", at = @At("HEAD"))
     private void livingwind$applyPrettyRainVelocity(CallbackInfo ci) {
         // Generic wind is guarded in ParticleWindFilter; special Pretty Rain movement
@@ -101,6 +123,13 @@ public abstract class ParticleMixin implements WindParticleAccess {
             // keeps both effects aligned with Living Wind without touching Pretty Rain's renderer.
             this.xd = ParticleWindFilter.prettyRainVelocityX(this.x, this.y, this.z);
             this.zd = ParticleWindFilter.prettyRainVelocityZ(this.x, this.y, this.z);
+        } else if (ParticleWindFilter.usesLegacyParticleRainSnowCompat(
+                livingwind$particleType, (Particle) (Object) this)) {
+            // Particle Rain 3.x snow otherwise keeps its hardcoded diagonal
+            // velocity forever. Set the actual velocity once per tick so
+            // strength/direction changes, including gusts, remain visible.
+            this.xd = ParticleWindFilter.legacyParticleRainSnowVelocityX(this.x, this.y, this.z);
+            this.zd = ParticleWindFilter.legacyParticleRainSnowVelocityZ(this.x, this.y, this.z);
         } else if (ParticleWindFilter.usesPrettyRainDirectionOnlyCompat(livingwind$particleType)) {
             // Shrub/tumbleweed speed belongs to Pretty Rain. Rotate its current speed into Living
             // Wind's direction rather than adding force or scaling the magnitude.
@@ -108,8 +137,32 @@ public abstract class ParticleMixin implements WindParticleAccess {
         }
     }
 
+    /**
+     * Particular Reforged does not register separate particles for landed leaves.
+     * Its falling-leaf instance changes into a horizontal, fading ground decal
+     * as soon as it detects a collision. Generic wind should affect it while
+     * airborne, but continuing to move that same instance after landing makes
+     * the near-coplanar decal flicker against the block beneath it.
+     *
+     * Latch the grounded state so subsequent changes in onGround due to movement
+     * or collision interpolation cannot restart wind on a resting leaf. This
+     * touches no other particles and requires no optional Particular classes.
+     */
+    @Unique
+    private boolean livingwind$skipGroundedParticularLeafWind() {
+        if (livingwind$particularLeafSettled) return true;
+        if (this.onGround && ParticleWindFilter.isParticularLeaf(livingwind$particleType)) {
+            livingwind$particularLeafSettled = true;
+            return true;
+        }
+        return false;
+    }
+
     @ModifyVariable(method = "move", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private double livingwind$applyWindX(double movementX) {
+        if (livingwind$skipGroundedParticularLeafWind()) return movementX;
+        double atmospherics = AtmosphericsDustCompat.replacementX(livingwind$particleType, (Particle) (Object) this);
+        if (!Double.isNaN(atmospherics)) return atmospherics;
         double jne = JadensNetherExpansionParticleCompat.replacementX(livingwind$particleType, (Particle) (Object) this);
         if (!Double.isNaN(jne)) return jne;
         return movementX + ParticleWindFilter.offsetX(livingwind$particleType, (Particle) (Object) this);
@@ -117,6 +170,9 @@ public abstract class ParticleMixin implements WindParticleAccess {
 
     @ModifyVariable(method = "move", at = @At("HEAD"), argsOnly = true, ordinal = 2)
     private double livingwind$applyWindZ(double movementZ) {
+        if (livingwind$skipGroundedParticularLeafWind()) return movementZ;
+        double atmospherics = AtmosphericsDustCompat.replacementZ(livingwind$particleType, (Particle) (Object) this);
+        if (!Double.isNaN(atmospherics)) return atmospherics;
         double jne = JadensNetherExpansionParticleCompat.replacementZ(livingwind$particleType, (Particle) (Object) this);
         if (!Double.isNaN(jne)) return jne;
         return movementZ + ParticleWindFilter.offsetZ(livingwind$particleType, (Particle) (Object) this);

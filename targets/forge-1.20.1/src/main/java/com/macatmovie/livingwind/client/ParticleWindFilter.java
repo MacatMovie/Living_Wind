@@ -37,7 +37,6 @@ public final class ParticleWindFilter {
 
     private static volatile Set<ResourceLocation> ids = Set.of();
     private static volatile Map<ResourceLocation, Float> responseMultipliers = Map.of();
-    private static volatile ClientWindConfig.FilterMode mode = ClientWindConfig.FilterMode.BLACKLIST;
     private static volatile boolean enabled = true;
     private static volatile float force = 0.12f;
     private static volatile boolean prettyRainCompat = true;
@@ -46,6 +45,8 @@ public final class ParticleWindFilter {
     private static volatile float prettyRainWindMultiplier = 0.55f;
     private static final ResourceLocation PARTICULAR_LEAVES_MARKER = new ResourceLocation("particular", "oak_leaf");
     private static volatile ClientWindConfig.FallingLeavesSource fallingLeavesSource = ClientWindConfig.FallingLeavesSource.LIVING_WIND;
+    private static volatile ClientWindConfig.EclipticLeavesSource eclipticLeavesSource = ClientWindConfig.EclipticLeavesSource.LIVING_WIND;
+    private static volatile boolean eclipticLeavesInstalled;
     private static volatile boolean particularInstalled;
     private static volatile boolean particularLeavesCompat = true;
     private static volatile float particularLeafMinDensity = 0.15f;
@@ -92,12 +93,13 @@ public final class ParticleWindFilter {
         migrateLegacyStreamsDefaults();
         enabled = ClientWindConfig.AFFECT_EXISTING_PARTICLES.get();
         force = ClientWindConfig.PARTICLE_WIND_FORCE.get().floatValue();
-        mode = ClientWindConfig.PARTICLE_FILTER_MODE.get();
         prettyRainCompat = ClientWindConfig.PRETTY_RAIN_COMPAT.get();
         particleRainCompat = ClientWindConfig.PARTICLE_RAIN_COMPAT.get();
         particleRainWindMultiplier = ClientWindConfig.PARTICLE_RAIN_WIND_MULTIPLIER.get().floatValue();
         prettyRainWindMultiplier = ClientWindConfig.PRETTY_RAIN_WIND_MULTIPLIER.get().floatValue();
         fallingLeavesSource = ClientWindConfig.FALLING_LEAVES_SOURCE.get();
+        eclipticLeavesSource = ClientWindConfig.ECLIPTIC_LEAVES_SOURCE.get();
+        eclipticLeavesInstalled = BuiltInRegistries.PARTICLE_TYPE.containsKey(new ResourceLocation("eclipticseasons", "fallen_leaves"));
         // Avoid repeated registry lookups while sampling canopy emitters each tick.
         particularInstalled = BuiltInRegistries.PARTICLE_TYPE.containsKey(PARTICULAR_LEAVES_MARKER);
         particularLeavesCompat = ClientWindConfig.PARTICULAR_FALLING_LEAVES_COMPAT.get();
@@ -113,9 +115,9 @@ public final class ParticleWindFilter {
             ResourceLocation id = ResourceLocation.tryParse(raw);
             if (id != null) next.add(id);
         }
-        // Built-ins are enabled only in BLACKLIST mode: whitelist means exactly the
-        // player's chosen IDs. Cached once on config refresh, never per particle tick.
-        if (mode == ClientWindConfig.FilterMode.BLACKLIST) {
+        // Built-ins and user additions always form a blacklist. This is cached once
+        // on config refresh, never per particle tick.
+        {
             Set<String> exceptions = new HashSet<>(ClientWindConfig.BUILTIN_BLACKLIST_EXCEPTIONS.get());
             for (String raw : BuiltinParticleBlacklist.installedIds()) {
                 if (exceptions.contains(raw)) continue;
@@ -162,11 +164,22 @@ public final class ParticleWindFilter {
         return passesConfiguredFilter(id);
     }
 
+    /** Optional Atmospherics dust steering honors the same blacklist, API and tags. */
+    public static boolean allowsAtmosphericsDustSteering(@Nullable ResourceLocation id, @Nullable Particle particle) {
+        return enabled && AtmosphericsDustCompat.isDustParticle(id)
+            && !BuiltinParticleClassBlacklist.contains(particle)
+            && !ParticleWindApi.isRuntimeImmune(id) && !ParticleWindApi.isRuntimeImmune(particle)
+            && !isTaggedImmune(id) && passesConfiguredFilter(id);
+    }
+
     public static boolean shouldAffect(@Nullable ResourceLocation id, @Nullable Particle particle) {
         if (!enabled) return false;
         // JNE's self-propelled glacier particles have a replacement movement path.
         // Never add generic wind on top, even when the user excludes that special path.
         if (JadensNetherExpansionParticleCompat.isJneAtmosphericParticle(id)) return false;
+        // Atmospherics dust already has wind velocity; its special movement path
+        // replaces it instead of accumulating a second wind push.
+        if (AtmosphericsDustCompat.isDustParticle(id)) return false;
         // A few visual-effect mods (including Visuality 3.x) use their own particle
         // registry or directly add particle instances, so an ID blacklist alone
         // cannot catch them. Uses a class-name cache; no optional mod is loaded.
@@ -195,6 +208,39 @@ public final class ParticleWindFilter {
     public static boolean usesPrettyRainVelocityCompat(@Nullable ResourceLocation id) {
         if (!enabled || !prettyRainCompat || id == null || !passesConfiguredFilter(id)) return false;
         return PRETTY_RAIN_RAIN_ID.equals(id) || PRETTY_RAIN_DUST_ID.equals(id) || PRETTY_RAIN_DUST_MOTE_ID.equals(id);
+    }
+
+    /**
+     * Particle Rain 3.x snow initializes a fixed +X/+Z velocity and never
+     * queries its successor's WindManager (which exists only in v4.x).
+     * The type AND concrete class ensure we do not compete with v4 wind.
+     */
+    public static boolean usesLegacyParticleRainSnowCompat(@Nullable ResourceLocation id, @Nullable Particle particle) {
+        return enabled && particleRainCompat && ClientWindState.hasServerState()
+            && !ClientWindState.dimensionWindDisabled()
+            && id != null && "particlerain".equals(id.getNamespace())
+            && "snow".equals(id.getPath())
+            && particle != null && "pigcart.particlerain.particle.SnowParticle".equals(particle.getClass().getName())
+            && !BuiltinParticleClassBlacklist.contains(particle)
+            && !ParticleWindApi.isRuntimeImmune(id) && !ParticleWindApi.isRuntimeImmune(particle)
+            && !isTaggedImmune(id) && passesConfiguredFilter(id);
+    }
+
+    /** Original Particle Rain snow uses constant horizontal velocity, not cumulative acceleration. */
+    public static double legacyParticleRainSnowVelocityX(double x, double y, double z) {
+        float strength = ClientWindState.strengthAt(x, y, z);
+        float exposure = ParticleWaterProtection.isSubmerged(x, y, z) ? 0.0f : WindShelter.weatherExposureAt(x, y, z);
+        double drift = WindMath.windX(strength, ClientWindState.directionDegrees())
+            * 0.15 * particleRainWindMultiplier * exposure;
+        return cardinalSafe(drift, ClientWindState.directionDegrees(), true);
+    }
+
+    public static double legacyParticleRainSnowVelocityZ(double x, double y, double z) {
+        float strength = ClientWindState.strengthAt(x, y, z);
+        float exposure = ParticleWaterProtection.isSubmerged(x, y, z) ? 0.0f : WindShelter.weatherExposureAt(x, y, z);
+        double drift = WindMath.windZ(strength, ClientWindState.directionDegrees())
+            * 0.15 * particleRainWindMultiplier * exposure;
+        return cardinalSafe(drift, ClientWindState.directionDegrees(), false);
     }
 
     public static boolean isPrettyRainSand(@Nullable ResourceLocation id) {
@@ -249,9 +295,7 @@ public final class ParticleWindFilter {
     }
 
     private static boolean passesConfiguredFilter(@Nullable ResourceLocation id) {
-        if (id == null) return mode == ClientWindConfig.FilterMode.BLACKLIST;
-        boolean contains = ids.contains(id);
-        return mode == ClientWindConfig.FilterMode.BLACKLIST ? !contains : contains;
+        return id == null || !ids.contains(id);
     }
 
     /** Internal movement multiplier. UI scale 1.0 intentionally equals the previous hand-tuned 3.0. */
@@ -419,8 +463,11 @@ public final class ParticleWindFilter {
             access.livingwind$getLastShelteredX(),
             access.livingwind$getLastShelteredY(),
             access.livingwind$getLastShelteredZ());
-        access.livingwind$storeExposure(now, x, y, z, effective);
-        return effective;
+        // Exact shelter measurements remain unchanged, but an airborne particle
+        // gradually loses/regains wind movement as it crosses a wall or overhang.
+        float visualExposure = access.livingwind$easeExposure(effective, now);
+        access.livingwind$storeExposure(now, x, y, z, visualExposure);
+        return visualExposure;
     }
 
     private static float highWindVisualMultiplier(float localStrength) {
@@ -446,9 +493,16 @@ public final class ParticleWindFilter {
         return fallingLeavesSource != ClientWindConfig.FallingLeavesSource.LIVING_WIND;
     }
 
+    public static boolean shouldSpawnEclipticLeaves() {
+        return eclipticLeavesSource != ClientWindConfig.EclipticLeavesSource.LIVING_WIND;
+    }
+
     public static boolean shouldSpawnNativeLeaves() {
-        // Selecting Particular alone must not erase leaves when it isn't installed.
-        return fallingLeavesSource != ClientWindConfig.FallingLeavesSource.PARTICULAR || !particularInstalled;
+        // Each provider can independently select its own falling leaves. If a selected
+        // optional provider is missing, keep native leaves as a safe fallback.
+        boolean particularAllowsNative = fallingLeavesSource != ClientWindConfig.FallingLeavesSource.PARTICULAR || !particularInstalled;
+        boolean eclipticAllowsNative = eclipticLeavesSource != ClientWindConfig.EclipticLeavesSource.ECLIPTIC_SEASONS || !eclipticLeavesInstalled;
+        return particularAllowsNative && eclipticAllowsNative;
     }
 
     /** Particular Reforged currently registers all falling-leaf particle IDs under particular:*_leaf. */

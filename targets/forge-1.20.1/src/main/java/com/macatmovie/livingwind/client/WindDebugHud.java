@@ -81,10 +81,14 @@ public final class WindDebugHud {
                 WindLeafSpawner.debugReadyCanopyCount(), WindLeafSpawner.debugReadyPlantCount(), WindLeafSpawner.debugReadyGrassCount()));
             lines.add(String.format(Locale.ROOT, "  Emission: %.2f/tick", WindLeafSpawner.debugEmissionRate()));
             lines.add("Audio mode: " + ClientWindConfig.WIND_AUDIO_MODE.get());
+            lines.add("Audio test: " + ClientWindConfig.WIND_AUDIO_DEBUG_MODE.get());
             addSoundLines(lines, "Audio base", WindAudioManager.debugBaseClips());
             addSoundLines(lines, "Audio env", WindAudioManager.debugEnvironmentClips());
             addSoundLines(lines, "Audio gust", WindAudioManager.debugGustClip());
             lines.add(String.format(Locale.ROOT, "Audio gain / pitch: %.3f / %.3fx", WindAudioManager.debugBaseGain(), WindAudioManager.debugBasePitch()));
+            lines.add(String.format(Locale.ROOT, "Audio directional: %s / gain %.3f",
+                ClientWindConfig.WIND_AUDIO_DIRECTIONAL_ENABLED.get() ? "ON" : "OFF",
+                WindAudioManager.debugDirectionalGain()));
         }
 
         Font font = mc.font;

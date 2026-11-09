@@ -1,9 +1,11 @@
 package com.macatmovie.livingwind.server;
 
 import com.macatmovie.livingwind.config.WindConfig;
+import com.macatmovie.livingwind.compat.SeasonalWindCompat;
 import com.macatmovie.livingwind.wind.WindDimensionSettings;
 import com.macatmovie.livingwind.wind.GustPulse;
 import com.macatmovie.livingwind.wind.WindMath;
+import com.macatmovie.livingwind.wind.WeatherWindProfiles;
 import com.macatmovie.livingwind.wind.WindSnapshot;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -82,6 +84,13 @@ public final class WindSavedData extends SavedData {
     private float effectiveGust = 0.0f;
     private boolean effectiveWindyPeriod = false;
     private boolean effectiveStormFront = false;
+
+    // Ephemeral server-side sample used to translate Simple Clouds' local weather cells.
+    // Not persisted or synchronized: all public wind snapshots stay byte-for-byte compatible.
+    private boolean weatherRangesActive = false;
+    private float weatherRangePosition = 0.5f;
+    private float weatherGlobalRain = 0f;
+    private float weatherGlobalThunder = 0f;
 
     public static WindSavedData get(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(
@@ -217,6 +226,7 @@ public final class WindSavedData extends SavedData {
         WindDimensionSettings.Mode dimensionMode = WindDimensionSettings.mode(level);
         boolean windDisabled = dimensionMode == WindDimensionSettings.Mode.DISABLED;
         if (windDisabled) {
+            weatherRangesActive = false;
             effectiveStrength = 0.0f;
             effectiveGust = 0.0f;
             effectiveWindyPeriod = false;
@@ -233,6 +243,9 @@ public final class WindSavedData extends SavedData {
             baseDirection = targetDirection = random.nextFloat() * 360.0f;
         }
 
+        SeasonalWindCompat.Snapshot season = WindConfig.SEASONAL_WIND_ENABLED.get()
+            ? SeasonalWindCompat.snapshot(level) : null;
+        double seasonIntensity = WindConfig.SEASONAL_WIND_INTENSITY.get();
         updateDailyProfile(level, random);
         updateStormProfile(level, random);
         updateStormFront(level, random);
@@ -248,7 +261,7 @@ public final class WindSavedData extends SavedData {
         if (now >= nextTargetTick) chooseNewTargets(level, random, now);
         // Forget expired tails only after their envelopes have reached zero.
         if (!overlappingGusts.isEmpty() && overlappingGusts.removeIf(p -> now >= p.endTick())) setDirty();
-        maybeStartGust(level, random, now);
+        maybeStartGust(level, random, now, season, seasonIntensity);
 
         baseStrength = WindMath.approach(baseStrength, targetBaseStrength, 0.0008f + turbulence * 0.0012f);
         turbulence = WindMath.approach(turbulence, targetTurbulence, 0.0009f);
@@ -257,6 +270,7 @@ public final class WindSavedData extends SavedData {
             (0.08f + directionInstability * 0.18f) * (weakEnd ? 0.07f : 1.0f));
 
         boolean naturalSky = supportsWeather(level);
+        boolean customWeatherRanges = naturalSky && WindConfig.WEATHER_STRENGTH_RANGES_ENABLED.get();
         float nightFactor = naturalSky ? nightFactor(level.getDayTime()) : 0.0f;
         float timeMultiplier = Mth.lerp(nightFactor, 1.0f, nightMultiplier);
 
@@ -273,7 +287,18 @@ public final class WindSavedData extends SavedData {
 
         // Night calm is deliberately only a bias on the ordinary background wind. Weather and
         // wind events can override it, which is how genuinely windy nights still happen.
-        float backgroundWind = Math.max(0.0f, baseStrength + dailyBaseOffset) * timeMultiplier;
+        float seasonalFactor = season == null ? 1.0f : SeasonalWindCompat.backgroundMultiplier(season, seasonIntensity);
+        float backgroundWind = Math.max(0.0f, baseStrength + dailyBaseOffset) * timeMultiplier * seasonalFactor;
+        float fluctuation = WindConfig.WEATHER_STRENGTH_FLUCTUATION.get().floatValue();
+        if (fluctuation < 1.0f && !customWeatherRanges) {
+            // In legacy mode reduce regular target/day-to-day variation as well as sine wobble.
+            // Custom weather ranges instead apply the slider exactly ONCE to their range position.
+            // Gusts
+            // and explicit wind events remain independent of this slider.
+            float ordinaryMidpoint = (WindConfig.MIN_BASE_STRENGTH.get().floatValue()
+                + WindConfig.MAX_BASE_STRENGTH.get().floatValue()) * 0.5f;
+            backgroundWind = Mth.lerp(fluctuation, ordinaryMidpoint * timeMultiplier * seasonalFactor, backgroundWind);
+        }
         float naturalWindyBoost = isWindyPeriod(level.getDayTime()) ? windyBoost : 0.0f;
         float eventBias = Math.max(naturalWindyBoost, manualWindyActive ? manualWindyBoost : 0.0f);
         if (effectiveStormFront) eventBias += stormFrontBoost;
@@ -283,8 +308,27 @@ public final class WindSavedData extends SavedData {
             (float) Math.sin(now * 0.011 + phaseB) * (0.025f + turbulence * 0.045f);
 
         effectiveGust = weakEnd ? 0.0f : currentGust(now);
-        float raw = backgroundWind + weatherBias + activeStormBoost + eventBias;
-        raw += livingVariation * variationScale;
+        float raw;
+        weatherRangesActive = customWeatherRanges;
+        if (weatherRangesActive) {
+            // The weather-specific presets REPLACE vanilla rain/thunder biases only when
+            // explicitly enabled. A range with min == max gives steady background strength,
+            // while gusts, pre-storm buildup and manual commands remain independent.
+            float ordinaryMidpoint = (WindConfig.MIN_BASE_STRENGTH.get().floatValue()
+                + WindConfig.MAX_BASE_STRENGTH.get().floatValue()) * 0.5f;
+            float ordinarySample = backgroundWind + activeStormBoost + naturalWindyBoost
+                + livingVariation * variationScale;
+            weatherRangePosition = WeatherWindProfiles.position(ordinarySample, ordinaryMidpoint, fluctuation);
+            weatherGlobalRain = Mth.clamp(level.getRainLevel(1.0f), 0.0f, 1.0f);
+            weatherGlobalThunder = Mth.clamp(level.getThunderLevel(1.0f), 0.0f, 1.0f);
+            raw = WeatherWindProfiles.sample(weatherRangePosition, weatherGlobalRain, weatherGlobalThunder);
+            if (manualWindyActive) raw += manualWindyBoost;
+            if (effectiveStormFront) raw += stormFrontBoost;
+        } else {
+            // Legacy formula unchanged when the new feature is off and fluctuation = 1.
+            raw = backgroundWind + weatherBias + activeStormBoost + eventBias;
+            raw += livingVariation * variationScale * fluctuation;
+        }
         if (reducedNether) raw *= 0.53f;
         if (weakEnd) raw *= 0.08f;
         raw += effectiveGust * (reducedNether ? 1.55f : 1.0f);
@@ -429,7 +473,8 @@ public final class WindSavedData extends SavedData {
         setDirty();
     }
 
-    private void maybeStartGust(ServerLevel level, RandomSource random, long now) {
+    private void maybeStartGust(ServerLevel level, RandomSource random, long now,
+                                SeasonalWindCompat.Snapshot season, double intensity) {
         if (WindDimensionSettings.mode(level) == WindDimensionSettings.Mode.VERY_WEAK) return;
 
         // A cluster schedules its followers independently of the usual natural gust check.
@@ -442,7 +487,7 @@ public final class WindSavedData extends SavedData {
                 return;
             }
             if (now >= nextClusterGustTick) {
-                startNaturalGust(level, random, now);
+                startNaturalGust(level, random, now, season, intensity);
                 clusterGustsRemaining--;
                 if (clusterGustsRemaining > 0) {
                     scheduleClusterFollower(random, now);
@@ -466,8 +511,9 @@ public final class WindSavedData extends SavedData {
         if (effectiveStormFront) chance += 0.12f;
         if (WindDimensionSettings.mode(level) == WindDimensionSettings.Mode.REDUCED_GUSTY) chance += 0.13f;
 
-        if (random.nextFloat() < chance) {
-            startNaturalGust(level, random, now);
+        if (season != null) chance *= SeasonalWindCompat.gustFrequencyMultiplier(season, intensity);
+        if (random.nextFloat() < Math.min(0.92f, chance)) {
+            startNaturalGust(level, random, now, season, intensity);
             if (WindConfig.GUST_CLUSTERS_ENABLED.get() && now >= clusterCooldownUntilTick) {
                 float clusterChance;
                 if (supportsWeather(level) && level.isThundering()) clusterChance = 0.45f;
@@ -502,7 +548,8 @@ public final class WindSavedData extends SavedData {
         clusterEndTick = -1L;
     }
 
-    private void startNaturalGust(ServerLevel level, RandomSource random, long now) {
+    private void startNaturalGust(ServerLevel level, RandomSource random, long now,
+                                  SeasonalWindCompat.Snapshot season, double intensity) {
         // Move the still-active gust into a bounded tail list before replacing the head.
         // At most four natural pulses can overlap with the 3-second minimum gap.
         if (gustEndTick > now) {
@@ -516,7 +563,8 @@ public final class WindSavedData extends SavedData {
         if (random.nextFloat() < 0.035f) magnitude *= 1.60f;
         gustStartTick = now;
         gustEndTick = now + duration;
-        gustMagnitude = magnitude;
+        gustMagnitude = season == null ? magnitude
+            : magnitude * SeasonalWindCompat.gustIntensityMultiplier(season, intensity);
         gustDirectionOffset = (random.nextFloat() - random.nextFloat()) * (12.0f + directionInstability * 32.0f);
 
         float shapeRoll = random.nextFloat();
@@ -747,6 +795,13 @@ public final class WindSavedData extends SavedData {
         if (t < 14000) return (t - 12000) / 2000.0f;
         if (t < 22000) return 1.0f;
         return 1.0f - (t - 22000) / 2000.0f;
+    }
+
+    /** Only used for Simple Clouds' player-local weather; public WindApi stays unchanged. */
+    public float localWeatherRangeDifference(float localRain, float localThunder) {
+        if (!weatherRangesActive) return 0.0f;
+        return WeatherWindProfiles.sample(weatherRangePosition, localRain, localThunder)
+            - WeatherWindProfiles.sample(weatherRangePosition, weatherGlobalRain, weatherGlobalThunder);
     }
 
     public WindSnapshot snapshot(long gameTime) {

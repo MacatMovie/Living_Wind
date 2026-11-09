@@ -2,7 +2,7 @@
 
 Living Wind is a synchronized wind system for Minecraft, featuring changing wind direction, strength, and gusts. Other mods can read its wind values to drive their own movement, physics, animations, and particle effects.
 
-**Supported versions:** Forge 1.20.1 and NeoForge 1.21.1. The examples below describe the public API in Living Wind **v1.3.5**. Use the JAR for your Minecraft version and mod loader.
+**Supported versions:** Forge 1.20.1 and NeoForge 1.21.1. The examples below describe the public API in Living Wind **v1.4.0**. Use the JAR for your Minecraft version and mod loader.
 
 ## For mod developers
 
@@ -111,7 +111,7 @@ For a simple local-JAR setup, place the appropriate JAR in your project's `libs/
 ```gradle
 // Example for a NeoForge 1.21.1 project. Use the Forge 1.20.1 JAR for Forge.
 dependencies {
-    compileOnly files('libs/LivingWind-NeoForge-1.21.1-v1.3.5.jar')
+    compileOnly files('libs/LivingWind-NeoForge-1.21.1-v1.4.0.jar')
 }
 ```
 
@@ -126,7 +126,7 @@ if (ModList.get().isLoaded("livingwind")) {
 }
 ```
 
-For optional dependency metadata, declare `livingwind` as **optional** rather than required (`mandatory=false` in Forge `mods.toml`, or `type="optional"` in NeoForge `neoforge.mods.toml`). The JAR's filename includes `v`, but the mod metadata version is numeric, such as `1.3.5`.
+For optional dependency metadata, declare `livingwind` as **optional** rather than required (`mandatory=false` in Forge `mods.toml`, or `type="optional"` in NeoForge `neoforge.mods.toml`). The JAR's filename includes `v`, but the mod metadata version is numeric, such as `1.4.0`.
 
 **Do not run `ClientWindApi` or `ParticleWindApi` from common initialization on a dedicated server.** Keep calls to client-only APIs behind your loader's client setup/dist separation.
 

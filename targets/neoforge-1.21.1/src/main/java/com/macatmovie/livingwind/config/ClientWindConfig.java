@@ -1,28 +1,34 @@
 package com.macatmovie.livingwind.config;
 
+import com.macatmovie.livingwind.client.AmbientEmitterBlocks;
 import java.util.List;
 import com.macatmovie.livingwind.client.LeafParticleTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class ClientWindConfig {
-    public enum FilterMode { BLACKLIST, WHITELIST }
     /** Falling tree-leaf particle source when Particular is installed. Flowers and grass stay independent. */
     public enum FallingLeavesSource { LIVING_WIND, PARTICULAR, BOTH }
+    /** Falling tree-leaf source when Ecliptic Seasons is installed. */
+    public enum EclipticLeavesSource { LIVING_WIND, ECLIPTIC_SEASONS, BOTH }
     public enum DebugHudMode { OFF, SIMPLE, ALL }
+    /** Diagnostic-only isolation of Living Wind's stereo and spatial wind audio. */
+    public enum WindAudioDebugMode { NORMAL, STEREO_ONLY, DIRECTIONAL_ONLY }
     /** Which mod should supply the general wind soundscape when AmbientSounds is installed. */
     public enum WindAudioMode { LIVING_WIND, AMBIENT_SOUNDS, BOTH }
     /** Optional Dynamic Surroundings ambient wind source, independent of Ambient Sounds. */
     public enum DynamicSurroundingsWindMode { LIVING_WIND, DYNAMIC_SURROUNDINGS, BOTH }
+    /** Optional AmbiMod wind loop, independent of Ambient Sounds and Dynamic Surroundings. */
+    public enum AmbiWindMode { LIVING_WIND, AMBI, BOTH }
 
     public static final ModConfigSpec SPEC;
     public static final ModConfigSpec.BooleanValue AFFECT_EXISTING_PARTICLES;
     public static final ModConfigSpec.DoubleValue PARTICLE_WIND_FORCE;
-    public static final ModConfigSpec.EnumValue<FilterMode> PARTICLE_FILTER_MODE;
     public static final ModConfigSpec.ConfigValue<List<? extends String>> PARTICLE_FILTER;
     public static final ModConfigSpec.ConfigValue<List<? extends String>> BUILTIN_BLACKLIST_EXCEPTIONS;
     public static final ModConfigSpec.ConfigValue<List<? extends String>> PARTICLE_RESPONSE_MULTIPLIERS;
     public static final ModConfigSpec.BooleanValue STREAMS_REFLOWING_DEFAULTS_MIGRATED;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> AMBIENT_BLOCK_EMITTER_OVERRIDES;
     public static final ModConfigSpec.BooleanValue AMBIENT_PARTICLES;
     public static final ModConfigSpec.IntValue AMBIENT_SAMPLES_PER_TICK;
     public static final ModConfigSpec.IntValue AMBIENT_RADIUS;
@@ -44,6 +50,10 @@ public final class ClientWindConfig {
     public static final ModConfigSpec.DoubleValue CONIFER_SPAWN_MULTIPLIER;
     public static final ModConfigSpec.IntValue LEAF_PARTICLE_RADIUS;
     public static final ModConfigSpec.DoubleValue LEAF_PARTICLE_WIND_RESPONSE;
+    public static final ModConfigSpec.BooleanValue SEASONAL_PARTICLES_ENABLED;
+    public static final ModConfigSpec.DoubleValue SEASONAL_PARTICLES_INTENSITY;
+    public static final ModConfigSpec.BooleanValue SEASONAL_SNOW_ENABLED;
+    public static final ModConfigSpec.EnumValue<EclipticLeavesSource> ECLIPTIC_LEAVES_SOURCE;
     public static final ModConfigSpec.BooleanValue PRETTY_RAIN_COMPAT;
     public static final ModConfigSpec.BooleanValue PARTICLE_RAIN_COMPAT;
     public static final ModConfigSpec.BooleanValue ADVANCED_CHIMNEYS_WIND_COMPAT;
@@ -57,9 +67,13 @@ public final class ClientWindConfig {
     public static final ModConfigSpec.BooleanValue WIND_AUDIO_ENABLED;
     public static final ModConfigSpec.DoubleValue WIND_AUDIO_VOLUME;
     public static final ModConfigSpec.BooleanValue WIND_AUDIO_GUSTS;
+    public static final ModConfigSpec.BooleanValue WIND_AUDIO_DIRECTIONAL_ENABLED;
+    public static final ModConfigSpec.DoubleValue WIND_AUDIO_DIRECTIONAL_VOLUME;
+    public static final ModConfigSpec.EnumValue<WindAudioDebugMode> WIND_AUDIO_DEBUG_MODE;
     public static final ModConfigSpec.BooleanValue WIND_AUDIO_ENVIRONMENTAL;
     public static final ModConfigSpec.EnumValue<WindAudioMode> WIND_AUDIO_MODE;
     public static final ModConfigSpec.EnumValue<DynamicSurroundingsWindMode> DYNAMIC_SURROUNDINGS_WIND_MODE;
+    public static final ModConfigSpec.EnumValue<AmbiWindMode> AMBI_WIND_MODE;
     public static final ModConfigSpec.BooleanValue REDUCE_WIND_INDOORS;
     public static final ModConfigSpec.DoubleValue SHELTER_EFFECTIVENESS;
     public static final ModConfigSpec.DoubleValue INDOOR_AUDIO_ATTENUATION;
@@ -80,48 +94,14 @@ public final class ClientWindConfig {
     public static final ModConfigSpec.DoubleValue FWA_WIND_IMPACT;
     public static final ModConfigSpec.DoubleValue FWA_CHAIN_INTENSITY;
     public static final ModConfigSpec.DoubleValue FWA_LANTERN_INTENSITY;
-    public static final ModConfigSpec.DoubleValue FWA_BELL_INTENSITY;
     public static final ModConfigSpec.BooleanValue DEBUG_HUD; // Legacy showHud value, retained for config migration.
     public static final ModConfigSpec.EnumValue<DebugHudMode> DEBUG_HUD_MODE;
     public static final ModConfigSpec.BooleanValue SHADER_BRIDGE_ENABLED;
     public static final ModConfigSpec.BooleanValue SHADER_AUTO_PATCH;
     public static final ModConfigSpec.DoubleValue SHADER_WAVING_MULTIPLIER;
 
-    private static final List<String> DEFAULT_PARTICLE_RESPONSES = List.of(
-        "particular:oak_leaf=2.5",
-        "particular:birch_leaf=2.5",
-        "particular:spruce_leaf=2.5",
-        "particular:jungle_leaf=2.5",
-        "particular:acacia_leaf=2.5",
-        "particular:dark_oak_leaf=2.5",
-        "particular:azalea_leaf=2.5",
-        "particular:mangrove_leaf=2.5",
-        "particular:white_oak_leaf=2.5",
-        "particular:white_spruce_leaf=2.5",
-        "particular:maple_leaf=2.5",
-        "particular:brimwood_leaf=2.5",
-        "particular:ru_baobab_leaf=2.5",
-        "particular:kapok_leaf=2.5",
-        "particular:eucalyptus_leaf=2.5",
-        "particular:redwood_leaf=2.5",
-        "particular:magnolia_leaf=2.5",
-        "particular:ru_palm_leaf=2.5",
-        "particular:larch_leaf=2.5",
-        "particular:golden_larch_leaf=2.5",
-        "particular:socotra_leaf=2.5",
-        "particular:bamboo_leaf=2.5",
-        "particular:willow_leaf=2.5",
-        "particular:ru_cypress_leaf=2.5",
-        "particular:ww_baobab_leaf=2.5",
-        "particular:ww_cypress_leaf=2.5",
-        "particular:ww_palm_leaf=2.5",
-        // SkyLands' large clouds should drift slowly rather than being blown rapidly away.
-        "flying_stuff:cloud=0.25",
-        "flying_stuff:cloud_smoke=0.25",
-        "flying_stuff:cloud_smoke_1=0.25",
-        "flying_stuff:cloud_barrier_2=0.25",
-        "flying_stuff:cloud_barrier_3=0.25"
-    );
+    // These presets now live in BuiltinParticleResponseMultipliers, not in user overrides.
+    private static final List<String> DEFAULT_PARTICLE_RESPONSES = List.of();
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -137,10 +117,7 @@ public final class ClientWindConfig {
             )
             .translation("livingwind.config.particleWindForce")
             .defineInRange("particleWindForce", 0.12, 0.0, 0.25);
-        PARTICLE_FILTER_MODE = b.comment("Choose whether the particle ID list is a blacklist or whitelist.")
-            .translation("livingwind.config.filterMode")
-            .defineEnum("filterMode", FilterMode.BLACKLIST);
-        PARTICLE_FILTER = b.comment("Your custom particle IDs (blacklist additions, or whitelist entries).", "Living Wind maintains built-in blacklist defaults separately; future updates never replace your custom entries.")
+        PARTICLE_FILTER = b.comment("Your extra particle blacklist IDs.", "Living Wind maintains built-in blacklist defaults separately; future updates never replace your custom entries.")
             .translation("livingwind.config.filter")
             .defineListAllowEmpty(
                 "filter",
@@ -175,6 +152,14 @@ public final class ClientWindConfig {
         b.comment("Tiny world particles emitted by exposed blocks when wind is present.")
             .translation("livingwind.config.section.ambientParticles")
             .push("ambientParticles");
+        AMBIENT_BLOCK_EMITTER_OVERRIDES = b.comment(
+                "Override ambient 1x1 pixel particle emitters per block as modid:block=TYPE.",
+                "Types: GRASS, DUST, SAND, SNOW, LEAF, NETHER_DUST, NONE (disable).",
+                "Built-in vanilla tag and mod compatibility defaults are used unless overridden.",
+                "Choose blocks in the Ambient Pixel Block Emitters editor; missing mods are harmless."
+            )
+            .translation("livingwind.config.ambientBlockEmitterOverrides")
+            .defineListAllowEmpty("blockEmitterOverrides", List.of(), () -> "minecraft:grass_block=GRASS", AmbientEmitterBlocks::validEntry);
         AMBIENT_PARTICLES = b.comment("Enable ambient wind particles emitted by nearby blocks.")
             .translation("livingwind.config.ambientEnabled")
             .define("enabled", true);
@@ -288,6 +273,28 @@ public final class ClientWindConfig {
         b.comment("Optional integrations with other mods.")
             .translation("livingwind.config.section.compatibility")
             .push("compatibility");
+        b.comment("Serene Seasons / Ecliptic Seasons seasonal foliage and snow effects. Uses the existing particle budgets and the current world season.")
+            .translation("livingwind.config.section.seasonalCompatibility")
+            .push("seasonalCompatibility");
+        SEASONAL_PARTICLES_ENABLED = b.comment("Make native leaf, petal, grass and ambient particles react to the current season. Respects normal leaf-source selection and emitter limits.")
+            .translation("livingwind.config.seasonalParticlesEnabled")
+            .define("seasonalParticlesEnabled", true);
+        SEASONAL_PARTICLES_INTENSITY = b.comment("Seasonal foliage/snow variation: 0 = unchanged, 1 = normal seasons, 2 = exaggerated seasonal particles. Native particle limits stay in effect.")
+            .translation("livingwind.config.seasonalParticlesIntensity")
+            .defineInRange("seasonalParticlesIntensity", 1.0, 0.0, 2.0);
+        SEASONAL_SNOW_ENABLED = b.comment("Boost blowing snow above real snow-covered ground during winter. No snow is generated just from the calendar season.")
+            .translation("livingwind.config.seasonalSnowEnabled")
+            .define("seasonalSnowEnabled", true);
+        ECLIPTIC_LEAVES_SOURCE = b.comment(
+                "Choose falling tree-leaf particles when Ecliptic Seasons is installed.",
+                "LIVING_WIND (default): Living Wind only. ECLIPTIC_SEASONS: Ecliptic Seasons only. BOTH: both.",
+                "Flowers, flying blooms, grass and other seasonal effects are not changed.",
+                "Living Wind's leaves remain enabled if Ecliptic Seasons is not installed.",
+                "If Particular Reforged is also installed, its separate leaf-source option still applies."
+            )
+            .translation("livingwind.config.eclipticLeavesSource")
+            .defineEnum("eclipticLeavesSource", EclipticLeavesSource.LIVING_WIND);
+        b.pop();
         b.comment("Pretty Rain integration.").translation("livingwind.config.section.prettyRain")
             .push("prettyRain");
         PRETTY_RAIN_COMPAT = b.comment(
@@ -369,9 +376,9 @@ public final class ClientWindConfig {
             .translation("livingwind.config.section.shaderBridge")
             .push("shaderBridge");
         SHADER_AUTO_PATCH = b.comment(
-                "Automatically patch existing compatible Complementary shader ZIPs and folders at startup.",
-                "Keeps original shader backups in config/livingwind/shader-backups.",
-                "Compatible packs are patched locally after backup. Restart after changing this option."
+                "Apply compatible Complementary GLSL changes only in memory when shaders load.",
+                "Never modifies original shaderpacks. Legacy v1.3.x backups are restored safely if verified.",
+                "Restart after changing this option."
             )
             .translation("livingwind.config.shaderAutoPatch")
             .define("autoPatchEuphoriaShaders", true);
@@ -389,13 +396,13 @@ public final class ClientWindConfig {
             .defineInRange("wavingMultiplier", 1.0, 0.0, 3.0);
         b.pop();
 
-        b.comment("Fancy World Animations wind-responsive chains, lanterns and bells.")
+        b.comment("Fancy World Animations wind-responsive chains and lanterns.")
             .translation("livingwind.config.section.fwa")
             .push("fancyWorldAnimations");
         FWA_WIND_COMPAT = b.comment("Link FWA swing animations to Living Wind strength, direction, gusts and shelter. Requires Fancy World Animations.")
             .translation("livingwind.config.fwaEnabled")
             .define("enabled", true);
-        FWA_WIND_IMPACT = b.comment("Overall impact of Living Wind on Fancy World Animations swinging objects. 0 = original FWA motion; 6 = visibly stronger wind-driven swings. Individual chain, lantern and bell intensities are additional multipliers.")
+        FWA_WIND_IMPACT = b.comment("Overall impact of Living Wind on Fancy World Animations swinging objects. 0 = original FWA motion; 6 = visibly stronger wind-driven swings. Individual chain and lantern intensities are additional multipliers.")
             .translation("livingwind.config.fwaWindImpact")
             .defineInRange("windImpact", 6.0, 0.0, 12.0);
         FWA_CHAIN_INTENSITY = b.comment("Strength of wind-driven chain movement; zero keeps chains mostly still while Living Wind is active.")
@@ -404,9 +411,6 @@ public final class ClientWindConfig {
         FWA_LANTERN_INTENSITY = b.comment("Strength of wind-driven lantern movement.")
             .translation("livingwind.config.fwaLanternIntensity")
             .defineInRange("lanternIntensity", 1.0, 0.0, 3.0);
-        FWA_BELL_INTENSITY = b.comment("Strength of wind-driven idle bell rocking (does not affect bell ringing).")
-            .translation("livingwind.config.fwaBellIntensity")
-            .defineInRange("bellIntensity", 1.0, 0.0, 3.0);
         b.pop();
 
         b.comment("Chimes 2.1.1 optional wind-driven animation and ambient chime sounds.")
@@ -486,6 +490,12 @@ public final class ClientWindConfig {
             )
             .translation("livingwind.config.windAudioVolume")
             .defineInRange("volume", 1.00, 0.0, 3.0);
+        WIND_AUDIO_DIRECTIONAL_ENABLED = b.comment("Layer subtle, spatialized mono airflow and wind gusts over the full stereo wind soundscape. Turning toward the wind changes their direction. Stereo ambience remains unchanged.")
+            .translation("livingwind.config.windAudioDirectional")
+            .define("directionalWind", true);
+        WIND_AUDIO_DIRECTIONAL_VOLUME = b.comment("Strength of the quiet upwind spatial layer and its directional gust accents. Set to 0 for no directional layer (gusts stay centered only when directional wind is disabled).")
+            .translation("livingwind.config.windAudioDirectionalVolume")
+            .defineInRange("directionalWindVolume", 1.0, 0.0, 3.0);
         WIND_AUDIO_GUSTS = b.comment("Allow occasional gust accents synchronized to server gusts.")
             .translation("livingwind.config.windAudioGusts")
             .define("gustAccents", true);
@@ -503,6 +513,14 @@ public final class ClientWindConfig {
             )
             .translation("livingwind.config.dynamicSurroundingsWindMode")
             .defineEnum("dynamicSurroundingsWindMode", DynamicSurroundingsWindMode.LIVING_WIND);
+        AMBI_WIND_MODE = b.comment(
+                "Choose which mod supplies wind audio when AmbiMod is installed.",
+                "LIVING_WIND (default): only Living Wind wind. AMBI: only Ambi wind. BOTH: both wind soundtracks.",
+                "Only Ambi's wind loop is affected. Its birds, weather, ocean, caves and other ambience stay enabled.",
+                "This selection is independent of the Ambient Sounds and Dynamic Surroundings wind modes."
+            )
+            .translation("livingwind.config.ambiWindMode")
+            .defineEnum("ambiWindMode", AmbiWindMode.LIVING_WIND);
         b.pop();
 
         b.comment("Reduce effective visual wind in enclosed spaces.")
@@ -534,6 +552,12 @@ public final class ClientWindConfig {
         DEBUG_HUD_MODE = b.comment("OFF: no overlay; SIMPLE: wind strength, direction and gust status; ALL: full diagnostic overlay.")
             .translation("livingwind.config.hudMode")
             .defineEnum("hudMode", DebugHudMode.OFF);
+        WIND_AUDIO_DEBUG_MODE = b.comment(
+                "Diagnostic audio isolation for Living Wind only. NORMAL: regular stereo and directional mix; STEREO_ONLY: stereo wind beds, without extra accents; DIRECTIONAL_ONLY: spatial mono wind and gusts only.",
+                "Reset to NORMAL after testing. This does not affect other ambience mods."
+            )
+            .translation("livingwind.config.windAudioDebugMode")
+            .defineEnum("windAudioDebugMode", WindAudioDebugMode.NORMAL);
         b.pop();
         SPEC = b.build();
     }

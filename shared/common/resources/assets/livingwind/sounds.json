@@ -1,80 +1,4 @@
 {
-  "wind.gentle": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/gentle_01",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/gentle_02",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/gentle_03",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/gentle_04",
-        "stream": false
-      }
-    ]
-  },
-  "wind.moderate": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/moderate_01",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/moderate_02",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/moderate_03",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/moderate_04",
-        "stream": false
-      }
-    ]
-  },
-  "wind.strong": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/strong_01",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/strong_02",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/strong_04",
-        "stream": false
-      }
-    ]
-  },
-  "wind.gust": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/gust_01",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/gust_02",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/gust_03",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/gust_04",
-        "stream": false
-      }
-    ]
-  },
   "wind.leaves": {
     "sounds": [
       {
@@ -111,19 +35,39 @@
     "sounds": [
       {
         "name": "livingwind:wind/mountain_01",
-        "stream": false
+        "stream": true
       },
       {
         "name": "livingwind:wind/mountain_02",
-        "stream": false
+        "stream": true
       },
       {
         "name": "livingwind:wind/mountain_03",
-        "stream": false
+        "stream": true
       },
       {
         "name": "livingwind:wind/mountain_04",
-        "stream": false
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/mountain_05",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/mountain_06",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/mountain_07",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/mountain_08",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/mountain_09",
+        "stream": true
       }
     ]
   },
@@ -135,162 +79,6 @@
       },
       {
         "name": "livingwind:wind/mountain_gust_02",
-        "stream": false
-      }
-    ]
-  },
-  "wind.snowy": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/snowy_01",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/snowy_02",
-        "stream": false
-      }
-    ]
-  },
-  "wind.desert": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/desert_01",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/desert_02",
-        "stream": false
-      }
-    ]
-  },
-  "wind.nether": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/nether_01",
-        "stream": false
-      },
-      {
-        "name": "livingwind:wind/nether_02",
-        "stream": false
-      }
-    ]
-  },
-  "wind.gentle_01": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/gentle_01",
-        "stream": false
-      }
-    ]
-  },
-  "wind.gentle_02": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/gentle_02",
-        "stream": false
-      }
-    ]
-  },
-  "wind.gentle_03": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/gentle_03",
-        "stream": false
-      }
-    ]
-  },
-  "wind.gentle_04": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/gentle_04",
-        "stream": false
-      }
-    ]
-  },
-  "wind.moderate_01": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/moderate_01",
-        "stream": false
-      }
-    ]
-  },
-  "wind.moderate_02": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/moderate_02",
-        "stream": false
-      }
-    ]
-  },
-  "wind.moderate_03": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/moderate_03",
-        "stream": false
-      }
-    ]
-  },
-  "wind.moderate_04": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/moderate_04",
-        "stream": false
-      }
-    ]
-  },
-  "wind.strong_01": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/strong_01",
-        "stream": false
-      }
-    ]
-  },
-  "wind.strong_02": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/strong_02",
-        "stream": false
-      }
-    ]
-  },
-  "wind.strong_04": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/strong_04",
-        "stream": false
-      }
-    ]
-  },
-  "wind.gust_01": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/gust_01",
-        "stream": false
-      }
-    ]
-  },
-  "wind.gust_02": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/gust_02",
-        "stream": false
-      }
-    ]
-  },
-  "wind.gust_03": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/gust_03",
-        "stream": false
-      }
-    ]
-  },
-  "wind.gust_04": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/gust_04",
         "stream": false
       }
     ]
@@ -351,38 +139,6 @@
       }
     ]
   },
-  "wind.mountain_01": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/mountain_01",
-        "stream": false
-      }
-    ]
-  },
-  "wind.mountain_02": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/mountain_02",
-        "stream": false
-      }
-    ]
-  },
-  "wind.mountain_03": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/mountain_03",
-        "stream": false
-      }
-    ]
-  },
-  "wind.mountain_04": {
-    "sounds": [
-      {
-        "name": "livingwind:wind/mountain_04",
-        "stream": false
-      }
-    ]
-  },
   "wind.mountain_gust_01": {
     "sounds": [
       {
@@ -399,11 +155,479 @@
       }
     ]
   },
+  "wind.gentle": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gentle_01",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/gentle_02",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/gentle_03",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/gentle_04",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/gentle_05",
+        "stream": true
+      }
+    ]
+  },
+  "wind.gentle_01": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gentle_01",
+        "stream": true
+      }
+    ]
+  },
+  "wind.gentle_02": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gentle_02",
+        "stream": true
+      }
+    ]
+  },
+  "wind.moderate": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/moderate_01",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/moderate_02",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/moderate_03",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/moderate_04",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/moderate_05",
+        "stream": true
+      }
+    ]
+  },
+  "wind.moderate_01": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/moderate_01",
+        "stream": true
+      }
+    ]
+  },
+  "wind.moderate_02": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/moderate_02",
+        "stream": true
+      }
+    ]
+  },
+  "wind.moderate_03": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/moderate_03",
+        "stream": true
+      }
+    ]
+  },
+  "wind.moderate_04": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/moderate_04",
+        "stream": true
+      }
+    ]
+  },
+  "wind.moderate_05": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/moderate_05",
+        "stream": true
+      }
+    ]
+  },
+  "wind.strong": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/strong_01",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/strong_02",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/strong_03",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/strong_04",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/strong_05",
+        "stream": true
+      }
+    ]
+  },
+  "wind.strong_01": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/strong_01",
+        "stream": true
+      }
+    ]
+  },
+  "wind.strong_02": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/strong_02",
+        "stream": true
+      }
+    ]
+  },
+  "wind.strong_03": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/strong_03",
+        "stream": true
+      }
+    ]
+  },
+  "wind.strong_04": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/strong_04",
+        "stream": true
+      }
+    ]
+  },
+  "wind.strong_05": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/strong_05",
+        "stream": true
+      }
+    ]
+  },
+  "wind.extreme": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/extreme_01",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/extreme_02",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/extreme_03",
+        "stream": true
+      }
+    ]
+  },
+  "wind.extreme_01": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/extreme_01",
+        "stream": true
+      }
+    ]
+  },
+  "wind.extreme_02": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/extreme_02",
+        "stream": true
+      }
+    ]
+  },
+  "wind.extreme_03": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/extreme_03",
+        "stream": true
+      }
+    ]
+  },
+  "wind.gust": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gust_01",
+        "stream": false
+      },
+      {
+        "name": "livingwind:wind/gust_02",
+        "stream": false
+      },
+      {
+        "name": "livingwind:wind/gust_03",
+        "stream": false
+      },
+      {
+        "name": "livingwind:wind/gust_04",
+        "stream": false
+      },
+      {
+        "name": "livingwind:wind/gust_05",
+        "stream": false
+      },
+      {
+        "name": "livingwind:wind/gust_06",
+        "stream": false
+      },
+      {
+        "name": "livingwind:wind/gust_07",
+        "stream": false
+      },
+      {
+        "name": "livingwind:wind/gust_08",
+        "stream": false
+      },
+      {
+        "name": "livingwind:wind/gust_09",
+        "stream": false
+      },
+      {
+        "name": "livingwind:wind/gust_10",
+        "stream": false
+      },
+      {
+        "name": "livingwind:wind/gust_11",
+        "stream": false
+      }
+    ]
+  },
+  "wind.gust_01": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gust_01",
+        "stream": false
+      }
+    ]
+  },
+  "wind.gust_02": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gust_02",
+        "stream": false
+      }
+    ]
+  },
+  "wind.gust_03": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gust_03",
+        "stream": false
+      }
+    ]
+  },
+  "wind.gust_04": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gust_04",
+        "stream": false
+      }
+    ]
+  },
+  "wind.gust_05": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gust_05",
+        "stream": false
+      }
+    ]
+  },
+  "wind.gust_06": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gust_06",
+        "stream": false
+      }
+    ]
+  },
+  "wind.gust_07": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gust_07",
+        "stream": false
+      }
+    ]
+  },
+  "wind.gust_08": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gust_08",
+        "stream": false
+      }
+    ]
+  },
+  "wind.gust_09": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gust_09",
+        "stream": false
+      }
+    ]
+  },
+  "wind.gust_10": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gust_10",
+        "stream": false
+      }
+    ]
+  },
+  "wind.gust_11": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gust_11",
+        "stream": false
+      }
+    ]
+  },
+  "wind.forest": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/forest_01",
+        "stream": true
+      }
+    ]
+  },
+  "wind.forest_01": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/forest_01",
+        "stream": true
+      }
+    ]
+  },
+  "wind.mountain_01": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/mountain_01",
+        "stream": true
+      }
+    ]
+  },
+  "wind.mountain_02": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/mountain_02",
+        "stream": true
+      }
+    ]
+  },
+  "wind.mountain_03": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/mountain_03",
+        "stream": true
+      }
+    ]
+  },
+  "wind.mountain_04": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/mountain_04",
+        "stream": true
+      }
+    ]
+  },
+  "wind.mountain_05": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/mountain_05",
+        "stream": true
+      }
+    ]
+  },
+  "wind.mountain_06": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/mountain_06",
+        "stream": true
+      }
+    ]
+  },
+  "wind.mountain_07": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/mountain_07",
+        "stream": true
+      }
+    ]
+  },
+  "wind.mountain_08": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/mountain_08",
+        "stream": true
+      }
+    ]
+  },
+  "wind.mountain_09": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/mountain_09",
+        "stream": true
+      }
+    ]
+  },
+  "wind.snowy": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/snowy_01",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/snowy_02",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/snowy_03",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/snowy_04",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/snowy_05",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/snowy_06",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/snowy_07",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/snowy_08",
+        "stream": true
+      }
+    ]
+  },
   "wind.snowy_01": {
     "sounds": [
       {
         "name": "livingwind:wind/snowy_01",
-        "stream": false
+        "stream": true
       }
     ]
   },
@@ -411,7 +635,91 @@
     "sounds": [
       {
         "name": "livingwind:wind/snowy_02",
-        "stream": false
+        "stream": true
+      }
+    ]
+  },
+  "wind.snowy_03": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/snowy_03",
+        "stream": true
+      }
+    ]
+  },
+  "wind.snowy_04": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/snowy_04",
+        "stream": true
+      }
+    ]
+  },
+  "wind.snowy_05": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/snowy_05",
+        "stream": true
+      }
+    ]
+  },
+  "wind.snowy_06": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/snowy_06",
+        "stream": true
+      }
+    ]
+  },
+  "wind.snowy_07": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/snowy_07",
+        "stream": true
+      }
+    ]
+  },
+  "wind.snowy_08": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/snowy_08",
+        "stream": true
+      }
+    ]
+  },
+  "wind.desert": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/desert_01",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/desert_02",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/desert_03",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/desert_04",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/desert_05",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/desert_06",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/desert_07",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/desert_08",
+        "stream": true
       }
     ]
   },
@@ -419,7 +727,7 @@
     "sounds": [
       {
         "name": "livingwind:wind/desert_01",
-        "stream": false
+        "stream": true
       }
     ]
   },
@@ -427,7 +735,87 @@
     "sounds": [
       {
         "name": "livingwind:wind/desert_02",
-        "stream": false
+        "stream": true
+      }
+    ]
+  },
+  "wind.desert_03": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/desert_03",
+        "stream": true
+      }
+    ]
+  },
+  "wind.desert_04": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/desert_04",
+        "stream": true
+      }
+    ]
+  },
+  "wind.desert_05": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/desert_05",
+        "stream": true
+      }
+    ]
+  },
+  "wind.desert_06": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/desert_06",
+        "stream": true
+      }
+    ]
+  },
+  "wind.desert_07": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/desert_07",
+        "stream": true
+      }
+    ]
+  },
+  "wind.desert_08": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/desert_08",
+        "stream": true
+      }
+    ]
+  },
+  "wind.nether": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/nether_01",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/nether_02",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/nether_03",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/nether_04",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/nether_05",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/nether_06",
+        "stream": true
+      },
+      {
+        "name": "livingwind:wind/nether_07",
+        "stream": true
       }
     ]
   },
@@ -435,7 +823,7 @@
     "sounds": [
       {
         "name": "livingwind:wind/nether_01",
-        "stream": false
+        "stream": true
       }
     ]
   },
@@ -443,7 +831,175 @@
     "sounds": [
       {
         "name": "livingwind:wind/nether_02",
-        "stream": false
+        "stream": true
+      }
+    ]
+  },
+  "wind.nether_03": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/nether_03",
+        "stream": true
+      }
+    ]
+  },
+  "wind.nether_04": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/nether_04",
+        "stream": true
+      }
+    ]
+  },
+  "wind.nether_05": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/nether_05",
+        "stream": true
+      }
+    ]
+  },
+  "wind.nether_06": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/nether_06",
+        "stream": true
+      }
+    ]
+  },
+  "wind.nether_07": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/nether_07",
+        "stream": true
+      }
+    ]
+  },
+  "wind.directional_01": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/directional_01",
+        "stream": true
+      }
+    ]
+  },
+  "wind.directional_02": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/directional_02",
+        "stream": true
+      }
+    ]
+  },
+  "wind.directional_03": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/directional_03",
+        "stream": true
+      }
+    ]
+  },
+  "wind.nether_directional_01": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/nether_directional_01",
+        "stream": true
+      }
+    ]
+  },
+  "wind.directional_04": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/directional_04",
+        "stream": true
+      }
+    ]
+  },
+  "wind.directional_05": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/directional_05",
+        "stream": true
+      }
+    ]
+  },
+  "wind.directional_06": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/directional_06",
+        "stream": true
+      }
+    ]
+  },
+  "wind.directional_07": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/directional_07",
+        "stream": true
+      }
+    ]
+  },
+  "wind.directional_08": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/directional_08",
+        "stream": true
+      }
+    ]
+  },
+  "wind.nether_directional_02": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/nether_directional_02",
+        "stream": true
+      }
+    ]
+  },
+  "wind.gentle_03": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gentle_03",
+        "stream": true
+      }
+    ]
+  },
+  "wind.gentle_04": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gentle_04",
+        "stream": true
+      }
+    ]
+  },
+  "wind.gentle_05": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/gentle_05",
+        "stream": true
+      }
+    ]
+  },
+  "wind.directional_09": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/directional_09",
+        "stream": true
+      }
+    ]
+  },
+  "wind.directional_10": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/directional_10",
+        "stream": true
+      }
+    ]
+  },
+  "wind.directional_11": {
+    "sounds": [
+      {
+        "name": "livingwind:wind/directional_11",
+        "stream": true
       }
     ]
   }

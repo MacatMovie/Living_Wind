@@ -14,7 +14,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class WindNetworking {
-    private static final String PROTOCOL = "3";
+    private static final String PROTOCOL = "7";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
         new ResourceLocation(LivingWind.MOD_ID, "main"),
         () -> PROTOCOL,

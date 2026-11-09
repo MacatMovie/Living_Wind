@@ -18,6 +18,19 @@ public final class ParticleShelterContinuity {
 
     private ParticleShelterContinuity() {}
 
+    /**
+     * A cached shelter reading changes at block boundaries, but airborne motes
+     * should not lose all their momentum in one frame. Apply this cheap visual-
+     * only envelope once per active particle tick. World exposure / API readings
+     * remain exact and underwater protection still overrides movement instantly.
+     */
+    public static float easeVisualExposure(float previous, float target) {
+        if (Float.isNaN(previous)) return target;
+        float step = target < previous ? 0.18f : 0.26f;
+        float result = previous + (target - previous) * step;
+        return Math.abs(target - result) < 0.005f ? target : result;
+    }
+
     /** measured: -1 for unknown, otherwise adjusted exposure [0, 1]. */
     public static float resolve(float measured, int now, int lastShelteredTick,
                                 int x, int y, int z, int shelteredX, int shelteredY, int shelteredZ) {

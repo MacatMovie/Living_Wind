@@ -34,7 +34,8 @@ public final class LivingWindClient {
                 () -> new ConfigScreenHandler.ConfigScreenFactory((mc, parent) -> new LivingWindConfigScreen(parent))
             );
             CosyCrittersCompat.register();
-            com.macatmovie.livingwind.client.shader.LivingWindShaderAutoPatcher.patchInstalledPacks(
+            com.macatmovie.livingwind.client.compat.FwaSwingDriverCompat.register();
+            com.macatmovie.livingwind.client.shader.LivingWindShaderBridge.recoverPreviouslyPatchedPacks(
                 net.minecraft.client.Minecraft.getInstance().gameDirectory.toPath().resolve("shaderpacks"));
         });
     }

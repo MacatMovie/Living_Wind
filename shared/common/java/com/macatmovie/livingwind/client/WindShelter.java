@@ -16,6 +16,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.levelgen.Heightmap;
 
 /**
  * Tiny, bounded, demand-driven shelter grid. Particle threads only read published numbers and
@@ -186,12 +187,9 @@ public final class WindShelter {
         // boundary fails this test, and keeps using precise shelter rays.
         if (skyBlockedAround(level, minX, minZ, cx, cz,
                 minY + (1 << CAVE_SHIFT) - 1, probe)) {
-            // Leaf-only canopies are porous. They should use the existing canopy
-            // logic, rather than becoming windless indoor rooms.
-            BlockPos center = new BlockPos(cx, minY + 1, cz);
-            if (!openLeafCanopyAbove(level, center, 16)) {
-                return new CaveRegion(true, 0, now);
-            }
+            // skyBlockedAround now treats #minecraft:leaves as transparent.
+            // Leaf-only canopies cannot become protected indoor/cave regions.
+            return new CaveRegion(true, 0, now);
         }
 
         // The wide sky perimeter above is deliberately strict, but in a REAL house
@@ -256,7 +254,7 @@ public final class WindShelter {
                 for (int dx = 0; dx < 2; dx++) {
                     probe.set(x + dx, y + dy, z + dz);
                     if (level.isOutsideBuildHeight(probe) || !level.hasChunkAt(probe)
-                        || level.canSeeSky(probe)) return false;
+                        || canSeeSkyIgnoringLeaves(level, probe)) return false;
                 }
             }
         }
@@ -297,7 +295,7 @@ public final class WindShelter {
                     int dy = levelIndex == 0 ? 0 : (1 << CAVE_SHIFT) - 1;
                     probe.set(x + dx, y + dy, z + dz);
                     if (level.isOutsideBuildHeight(probe) || !level.hasChunkAt(probe)
-                        || level.canSeeSky(probe)) return false;
+                        || canSeeSkyIgnoringLeaves(level, probe)) return false;
                 }
             }
         }
@@ -333,13 +331,13 @@ public final class WindShelter {
             for (int dz = 0; dz < (1 << CAVE_SHIFT); dz++) {
                 probe.set(minX + dx, y, minZ + dz);
                 if (level.isOutsideBuildHeight(probe) || !level.hasChunkAt(probe)
-                        || level.canSeeSky(probe)) return false;
+                        || canSeeSkyIgnoringLeaves(level, probe)) return false;
             }
         }
         for (int i = 0; i < CAVE_PROBE_OFFSETS.length; i += 2) {
             probe.set(cx + CAVE_PROBE_OFFSETS[i], y, cz + CAVE_PROBE_OFFSETS[i + 1]);
             if (level.isOutsideBuildHeight(probe) || !level.hasChunkAt(probe)
-                    || level.canSeeSky(probe)) return false;
+                    || canSeeSkyIgnoringLeaves(level, probe)) return false;
         }
         return true;
     }
@@ -474,7 +472,7 @@ public final class WindShelter {
         if (exposure >= 0.0f) return exposure;
         BlockPos at = BlockPos.containing(x, y, z);
         if (!level.isOutsideBuildHeight(at) && level.hasChunkAt(at)
-            && level.dimensionType().hasSkyLight() && level.canSeeSky(at)) {
+            && level.dimensionType().hasSkyLight() && canSeeSkyIgnoringLeaves(level, at)) {
             // A sky-visible emitter is definitively outdoors. Publish that already
             // verified result so its newly spawned particle can read it even when
             // the background shelter queue is saturated. No extra world queries.
@@ -589,7 +587,7 @@ public final class WindShelter {
     }
 
     /**
-     * Stable, exact-block shelter exposure for FWA chains, lanterns and bells.
+     * Stable, exact-block shelter exposure for FWA chains and lanterns.
      * Only reads published values during rendering. Surveys run on the client tick;
      * the last measured exposure survives periods of heavy particle-cache turnover.
      * Requests are throttled so repeated shader passes do not trigger extra work.
@@ -852,7 +850,7 @@ public final class WindShelter {
             return level.dimension() == Level.NETHER ? surveyNetherEnclosure(level, at, cheap) : 1.0f;
         }
         if (!level.hasChunkAt(at)) return 1.0f;
-        if (level.canSeeSky(at)) return 1.0f;
+        if (canSeeSkyIgnoringLeaves(level, at)) return 1.0f;
         int distance = cheap ? 4 : 6;
         float open = 0.0f;
         int visible = 0;
@@ -869,7 +867,7 @@ public final class WindShelter {
                 boolean porous = state.is(BlockTags.LEAVES)
                     || (state.getBlock() instanceof DoorBlock && state.getValue(DoorBlock.OPEN));
                 if (!porous && !state.getCollisionShape(level, sample).isEmpty()) break;
-                if (level.canSeeSky(sample)) {
+                if (canSeeSkyIgnoringLeaves(level, sample)) {
                     visible++;
                     openness = 1.0f - (step - 1) * 0.055f;
                     break;
@@ -883,14 +881,6 @@ public final class WindShelter {
         float lateral = open / 4.0f;
         // Fully sealed house ~0, covered porch / cave entrance partial, uncovered sky 1.
         float exposure = Mth.clamp(lateral * (0.72f + visible * 0.06f), 0.0f, 0.95f);
-        // Leaves block Minecraft's regular canSeeSky check, even though a canopy
-        // is porous rather than a house roof. Only check ambiguous low-exposure
-        // cells, and only during this already budgeted shelter survey. A non-leaf
-        // collision block encountered overhead vetoes the canopy exception, so
-        // actual ceilings, caves and houses remain sheltered.
-        if (exposure < 0.60f && openLeafCanopyAbove(level, at, cheap ? 9 : 16)) {
-            exposure = 0.60f;
-        }
         return exposure;
     }
 
@@ -953,27 +943,31 @@ public final class WindShelter {
     }
 
     /**
-     * Detect an open, leaf-only canopy directly above a shaded particle cell.
-     * No extra cache, requests, or per-particle world access: this runs solely
-     * inside the existing bounded client-thread shelter survey.
+     * Minecraft's canSeeSky() considers leaves a roof, even when they belong to
+     * #minecraft:leaves. A small 9/16-block canopy exception missed tall trees,
+     * dense Twilight Forest crowns and tag-based modded leaves, and the shared
+     * cave-region shortcut could then incorrectly cache the area as indoors.
+     *
+     * Treat *every* tagged leaf as transparent during all client-thread sky
+     * surveys, including the cave/wall classifiers. Solid non-leaf roofs still
+     * block wind. The motion-blocking heightmap bounds the walk at the topmost
+     * candidate roof; a typical real ceiling therefore exits after 1-3 checks.
+     * Never invoked by particle worker threads or per rendered frame.
      */
-    private static boolean openLeafCanopyAbove(ClientLevel level, BlockPos at, int maxRise) {
-        BlockPos.MutableBlockPos probe = at.mutable();
-        boolean passedLeaves = false;
-        for (int dy = 1; dy <= maxRise; dy++) {
-            probe.move(Direction.UP);
-            if (level.isOutsideBuildHeight(probe) || !level.hasChunkAt(probe)) return false;
-            BlockState state = level.getBlockState(probe);
-            if (state.is(BlockTags.LEAVES)) {
-                passedLeaves = true;
-                continue;
-            }
-            // Do not let trees above a solid house roof turn indoor shelter off.
-            if (!state.getCollisionShape(level, probe).isEmpty()) return false;
-            // Only a leaf canopy with actual open sky beyond it is an exception;
-            // decorative indoor leaves beneath a roof do not count.
-            if (passedLeaves && level.canSeeSky(probe)) return true;
+    private static boolean canSeeSkyIgnoringLeaves(ClientLevel level, BlockPos at) {
+        if (level.canSeeSky(at)) return true;
+        if (level.isOutsideBuildHeight(at) || !level.hasChunkAt(at)) return false;
+        final int x = at.getX(), z = at.getZ();
+        final int roofTop = Math.min(level.getMaxBuildHeight(),
+            level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z));
+        BlockPos.MutableBlockPos probe = new BlockPos.MutableBlockPos();
+        for (int y = at.getY(); y < roofTop; y++) {
+            probe.set(x, y, z);
+            BlockState block = level.getBlockState(probe);
+            if (block.is(BlockTags.LEAVES)) continue;
+            if (!block.getCollisionShape(level, probe).isEmpty() || block.canOcclude()) return false;
         }
-        return false;
+        return true;
     }
+
 }

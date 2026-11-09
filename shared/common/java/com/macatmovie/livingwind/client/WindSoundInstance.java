@@ -14,10 +14,20 @@ final class WindSoundInstance extends AbstractTickableSoundInstance {
     private final int fadeTicks;
     private final long playbackStartTick;
     private int ageTicks;
-    private int fadeStopAt = Integer.MAX_VALUE;
+    // A reversible fade-out envelope. Do not replace this with an instantaneous
+    // fadeStopAt reset: fluctuating shelter used to revive almost-silent clips
+    // at full amplitude in a single tick.
+    private boolean stopRequested;
+    private float stopEnvelope = 1.0f;
     private float requestedGain;
     private float shelterMultiplier = 1.0f;
     private float smoothedGain;
+    private boolean windDirectional;
+    private boolean gustSweep;
+    // A short, click-free diagnostic gate. This is separate from the normal
+    // 2.5-second crossfade and shelter fade so A/B testing is easy to hear.
+    private boolean debugAudible = true;
+    private float debugGate = 1.0f;
 
     WindSoundInstance(String event, float pitch, float seconds, int fadeTicks, long playbackStartTick) {
         super(SoundEvent.createVariableRangeEvent(LivingWind.id(event)),
@@ -41,6 +51,35 @@ final class WindSoundInstance extends AbstractTickableSoundInstance {
         z = pos.getZ() + 0.5;
     }
 
+    /** OpenAL spatialization requires mono OGGs; stereo beds do not call this. */
+    void enableDirectionalWind(boolean sweepPastListener) {
+        this.windDirectional = true;
+        this.gustSweep = sweepPastListener;
+        // Keep a reliable, consistent gain while still allowing binaural panning.
+        // Linear distance attenuation here causes loudness fluctuations while
+        // walking and can make a moving source disappear unexpectedly.
+        this.relative = false;
+        this.attenuation = SoundInstance.Attenuation.NONE;
+    }
+
+    /** Position upwind, following a moving listener without changing ambience loudness.
+     * A short gust traverses gradually from upwind to just downwind.
+     * Direction convention: 0 = wind blowing south (+Z), 90 = west (-X).
+     */
+    void updateWindPosition(double listenerX, double listenerY, double listenerZ, float directionDegrees) {
+        if (!windDirectional) return;
+        double angle = Math.toRadians(directionDegrees);
+        double windX = -Math.sin(angle);
+        double windZ = Math.cos(angle);
+        float progress = Mth.clamp(ageTicks / (float) durationTicks, 0.0f, 1.0f);
+        float smoothProgress = Mth.clamp((progress - 0.08f) / 0.84f, 0.0f, 1.0f);
+        smoothProgress = smoothProgress * smoothProgress * (3.0f - 2.0f * smoothProgress);
+        double distance = gustSweep ? -5.5 + 9.0 * smoothProgress : -5.5;
+        this.x = listenerX + windX * distance;
+        this.y = listenerY;
+        this.z = listenerZ + windZ * distance;
+    }
+
     @Override
     public boolean canStartSilent() {
         return true;
@@ -53,16 +92,30 @@ final class WindSoundInstance extends AbstractTickableSoundInstance {
         if (ageTicks == 0 && smoothedGain == 0.0f) smoothedGain = requestedGain;
     }
 
+    void setDebugAudible(boolean audible) {
+        debugAudible = audible;
+    }
+
+    boolean isDirectionalWind() {
+        return windDirectional;
+    }
+
     void setShelterMultiplier(float value) {
         shelterMultiplier = Mth.clamp(value, 0.0f, 1.0f);
     }
 
     void fadeOut() {
-        fadeStopAt = Math.min(fadeStopAt, ageTicks + fadeTicks);
+        stopRequested = true;
+    }
+
+    // A recovering track ramps back up instead of instantly jumping to the
+    // full remaining playback envelope. The same sample is reused safely.
+    void cancelFadeOut() {
+        stopRequested = false;
     }
 
     boolean fadingOut() {
-        return fadeStopAt != Integer.MAX_VALUE;
+        return stopRequested;
     }
 
     int remainingTicks() {
@@ -88,16 +141,22 @@ final class WindSoundInstance extends AbstractTickableSoundInstance {
     @Override
     public void tick() {
         ageTicks++;
-        if (ageTicks >= durationTicks || ageTicks >= fadeStopAt) {
+        if (ageTicks >= durationTicks) {
             stop();
             return;
         }
         smoothedGain = Mth.lerp(0.15f, smoothedGain, requestedGain);
+        // The envelope can move by at most 1/fadeTicks each tick in either
+        // direction. In particular a fade cancellation cannot spike loudly.
+        float fadeStep = 1.0f / fadeTicks;
+        stopEnvelope = Mth.clamp(stopEnvelope + (stopRequested ? -fadeStep : fadeStep), 0.0f, 1.0f);
+        if (stopRequested && stopEnvelope <= 0.0f) {
+            stop();
+            return;
+        }
         float fadeIn = Mth.clamp(ageTicks / (float) fadeTicks, 0.0f, 1.0f);
         float fadeOut = Mth.clamp((durationTicks - ageTicks) / (float) fadeTicks, 0.0f, 1.0f);
-        if (fadeStopAt != Integer.MAX_VALUE) {
-            fadeOut = Math.min(fadeOut, Mth.clamp((fadeStopAt - ageTicks) / (float) fadeTicks, 0.0f, 1.0f));
-        }
-        this.volume = Math.max(0.0001f, smoothedGain * shelterMultiplier * fadeIn * fadeOut);
+        debugGate = Mth.lerp(0.35f, debugGate, debugAudible ? 1.0f : 0.0f);
+        this.volume = Math.max(0.0001f, smoothedGain * shelterMultiplier * fadeIn * fadeOut * stopEnvelope * debugGate);
     }
 }

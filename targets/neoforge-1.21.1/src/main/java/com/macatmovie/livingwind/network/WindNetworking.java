@@ -13,7 +13,7 @@ public final class WindNetworking {
     private WindNetworking() {}
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("2");
+        PayloadRegistrar registrar = event.registrar("6");
         registrar.playToClient(
             WindSyncPayload.TYPE,
             WindSyncPayload.STREAM_CODEC,

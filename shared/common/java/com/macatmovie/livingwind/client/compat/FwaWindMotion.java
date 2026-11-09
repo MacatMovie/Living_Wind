@@ -10,12 +10,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Optional FWA animation math. Never accesses FWA classes and never walks the world.
- * Rotations are in DEGREES for FWA chains/lanterns and RADIANS for FWA bells.
- * FWA remains responsible for all rendering, chain-length limits and bell ringing.
+ * Rotations are in degrees for FWA chains and lanterns.
+ * FWA remains responsible for rendering and chain-length limits.
  */
 public final class FwaWindMotion {
     public record Angles(float x, float z, float spin) {}
-    public enum ObjectType { CHAIN, LANTERN, BELL }
+    public enum ObjectType { CHAIN, LANTERN }
 
     // FWA can replace an animation object following block/chunk updates. A per-instance
     // smoother starts at native FWA angles and briefly looks like wind has vanished.
@@ -57,10 +57,10 @@ public final class FwaWindMotion {
     private FwaWindMotion() {}
 
     /**
-     * Render-time low-pass filter, kept on each FWA animation instance rather than globally.
-     * This prevents abrupt shelter-cache changes, packet updates, and the first appearance of
-     * a block animation from snapping between FWA's original and Living Wind's orientations.
-     * It does not query the world or allocate during rendering.
+     * Render-time low-pass filter, retained per block and animation type across
+     * FWA animation instance replacements. It prevents abrupt shelter-cache changes
+     * and packet updates from snapping between different swing orientations.
+     * The filter itself does not query the world.
      */
     public static final class Smoother {
         private boolean initialized;
@@ -69,6 +69,24 @@ public final class FwaWindMotion {
         private boolean phaseInitialized;
         private double phase;
         private float x, z, spin;
+        // FWA calls the swing driver for multiple passes within a single frame.
+        // Reuse the exact same result for an identical animation tick.
+        private boolean cachedSwingTick;
+        private long swingTickBits;
+        private Angles cachedSwing;
+
+        public Angles swingAtTick(BlockPos pos, float baseX, float baseZ, float baseSpin,
+                                  ObjectType type, double nowTick) {
+            long tickBits = Double.doubleToLongBits(nowTick);
+            if (cachedSwingTick && swingTickBits == tickBits) return cachedSwing;
+            Angles original = new Angles(baseX, baseZ, baseSpin);
+            begin(original);
+            Angles updated = update(swinging(pos, baseX, baseZ, baseSpin, type, this));
+            swingTickBits = tickBits;
+            cachedSwing = updated;
+            cachedSwingTick = true;
+            return updated;
+        }
 
         /**
          * Integrate phase incrementally. Never multiply a massive absolute nanoTime by a
@@ -127,7 +145,20 @@ public final class FwaWindMotion {
             return new Angles(x, z, spin);
         }
 
-        public void reset() { initialized = false; phaseInitialized = false; }
+        public void reset() { initialized = false; phaseInitialized = false; cachedSwingTick = false; }
+    }
+
+    /**
+     * FWA's render-pass-safe entry point. The same tick must return the same
+     * angles even if a shadow pass immediately re-evaluates the same block.
+     */
+    public static Angles swingingForTick(BlockPos pos, float originalX, float originalZ,
+                                         float originalSpin, ObjectType type, double nowTick) {
+        if (!ClientWindConfig.FWA_WIND_COMPAT.get() || !ClientWindState.hasServerState()
+                || ClientWindConfig.FWA_WIND_IMPACT.get() <= 0.0) {
+            return new Angles(originalX, originalZ, originalSpin);
+        }
+        return smootherFor(pos, type).swingAtTick(pos, originalX, originalZ, originalSpin, type, nowTick);
     }
 
     public static Angles swinging(BlockPos pos, float originalX, float originalZ, float originalSpin, ObjectType type, Smoother motion) {
@@ -168,27 +199,6 @@ public final class FwaWindMotion {
         float z = originalZ * secondary + wx * amplitude * pulse;
         float spin = originalSpin * (0.18f + magnitude * 0.35f);
         return new Angles(x, z, spin);
-    }
-
-    /** Modify only FWA's idle rocking; its placement and actual bell-ring paths are untouched. */
-    public static float bellIdle(BlockPos pos, float original, float signedWindProjection, Smoother motion) {
-        if (!ClientWindConfig.FWA_WIND_COMPAT.get() || !ClientWindState.hasServerState()) return original;
-        float multiplier = ClientWindConfig.FWA_BELL_INTENSITY.get().floatValue();
-        float impact = ClientWindConfig.FWA_WIND_IMPACT.get().floatValue();
-        if (impact <= 0.0f) return original;
-        float wind = localWind(pos);
-        float magnitude = Mth.clamp(wind / 2.0f, 0.0f, 1.2f);
-        // Projection is calculated from FWA's facing and attachment geometry by the
-        // bell Mixin. It is the displacement of the bell's tip for a positive 'rot'.
-        float alongAxis = signedWindProjection;
-        // Heavy bells respond only along their hinge, with much less motion than lanterns.
-        float phaseOffset = pos.getX() * 0.21f + pos.getZ() * 0.17f;
-        float oscillation = motion.pulse(phaseOffset, 0.75f + magnitude * 0.55f);
-        // FWA bell rotations are RADIANS. Sixfold default response remains restrained
-        // compared with chains/lanterns; clamp to protect bell mounts at extreme values.
-        float windRock = alongAxis * multiplier * impact * magnitude * (0.024f + 0.018f * oscillation);
-        windRock = Mth.clamp(windRock, -0.26f, 0.26f);
-        return original * (0.22f + 0.45f * magnitude) + windRock;
     }
 
     private static float localWind(BlockPos pos) {

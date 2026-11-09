@@ -2,6 +2,8 @@ package com.macatmovie.livingwind.client;
 
 import com.macatmovie.livingwind.network.WindSyncPayload;
 import com.macatmovie.livingwind.wind.WindMath;
+import com.macatmovie.livingwind.wind.EntityWindWeather;
+import net.minecraft.world.level.Level;
 import com.macatmovie.livingwind.wind.WindBiomeModifiers;
 import net.minecraft.util.Mth;
 
@@ -36,12 +38,34 @@ public final class ClientWindState {
     private static volatile float alekiShipsWindScale = 0.2f;
     private static volatile boolean treasureBalloonsWindEnabled;
     private static volatile float treasureBalloonsWindMultiplier;
+    private static volatile boolean entityWindCheckShelter = true;
+    private static volatile float entityWindClearWeatherMultiplier = 1.0f;
+    private static volatile float entityWindRainMultiplier = 1.0f;
+    private static volatile float entityWindThunderMultiplier = 1.0f;
+    private static volatile boolean gliderWindEnabled;
+    private static volatile float gliderWindInfluence;
+    private static volatile boolean entityWindPlayers;
+    private static volatile float entityWindPlayerMultiplier;
+    private static volatile float entityWindPlayerGroundedMultiplier;
+    private static volatile boolean entityWindBoats;
+    private static volatile float entityWindBoatMultiplier;
     private static volatile boolean hasServerState;
     private static volatile boolean dimensionWindDisabled;
 
     private ClientWindState() {}
 
     public static void accept(WindSyncPayload payload) {
+        entityWindCheckShelter = payload.entityWindCheckShelter();
+        entityWindClearWeatherMultiplier = payload.entityWindClearWeatherMultiplier();
+        entityWindRainMultiplier = payload.entityWindRainMultiplier();
+        entityWindThunderMultiplier = payload.entityWindThunderMultiplier();
+        gliderWindEnabled = payload.gliderWindEnabled();
+        gliderWindInfluence = payload.gliderWindInfluence();
+        entityWindPlayers = payload.entityWindPlayers();
+        entityWindPlayerMultiplier = payload.entityWindPlayerMultiplier();
+        entityWindPlayerGroundedMultiplier = payload.entityWindPlayerGroundedMultiplier();
+        entityWindBoats = payload.entityWindBoats();
+        entityWindBoatMultiplier = payload.entityWindBoatMultiplier();
         dimensionWindDisabled = payload.windDisabled();
         targetStrength = dimensionWindDisabled ? 0.0f : payload.strength();
         targetDirection = WindMath.normalizeDegrees(payload.directionDegrees());
@@ -75,7 +99,31 @@ public final class ClientWindState {
         currentDirection = WindMath.normalizeDegrees(currentDirection + delta * 0.10f);
     }
 
+    public static boolean entityWindCheckShelter() { return entityWindCheckShelter; }
+    /** Evaluated only during enabled client-predicted entity movement. */
+    public static double entityWindWeatherMultiplier(Level level) {
+        return EntityWindWeather.interpolate(entityWindClearWeatherMultiplier,
+            entityWindRainMultiplier, entityWindThunderMultiplier,
+            level.getRainLevel(1.0f), level.getThunderLevel(1.0f));
+    }
+    public static boolean entityWindPlayers() { return entityWindPlayers && hasServerState && !dimensionWindDisabled; }
+    public static float entityWindPlayerMultiplier() { return entityWindPlayerMultiplier; }
+    public static float entityWindPlayerGroundedMultiplier() { return entityWindPlayerGroundedMultiplier; }
+    public static boolean entityWindBoats() { return entityWindBoats && hasServerState && !dimensionWindDisabled; }
+    public static float entityWindBoatMultiplier() { return entityWindBoatMultiplier; }
+
     public static void reset() {
+        entityWindCheckShelter = true;
+        entityWindClearWeatherMultiplier = 1.0f;
+        entityWindRainMultiplier = 1.0f;
+        entityWindThunderMultiplier = 1.0f;
+        gliderWindEnabled = false;
+        gliderWindInfluence = 0.0f;
+        entityWindPlayers = false;
+        entityWindPlayerMultiplier = 0.0f;
+        entityWindPlayerGroundedMultiplier = 0.0f;
+        entityWindBoats = false;
+        entityWindBoatMultiplier = 0.0f;
         targetStrength = currentStrength = 0.0f;
         targetDirection = currentDirection = 0.0f;
         turbulence = directionInstability = gustStrength = 0.0f;
@@ -121,6 +169,8 @@ public final class ClientWindState {
     public static boolean stormFront() { return stormFront; }
     public static boolean createWindmillsEnabled() { return hasServerState && !dimensionWindDisabled && createWindmillsEnabled; }
     public static boolean hasServerState() { return hasServerState; }
+    public static boolean gliderWindEnabled() { return hasServerState && !dimensionWindDisabled && gliderWindEnabled; }
+    public static float gliderWindInfluence() { return gliderWindInfluence; }
     public static boolean dimensionWindDisabled() { return dimensionWindDisabled; }
     public static boolean highSeasWindEnabled() { return hasServerState && !dimensionWindDisabled && highSeasWindEnabled; }
     public static boolean treasureBalloonsWindEnabled() { return hasServerState && !dimensionWindDisabled && treasureBalloonsWindEnabled; }

@@ -110,6 +110,9 @@ public final class WindFoliageColorCache {
         if (isNearlyGray(raw)) return false;
 
         float[] rawHsv = hsv(raw);
+        // Blue-grey tint masks must use the registered block foliage tint,
+        // including orange/yellow values supplied by season mods in autumn.
+        if (isBlueGreyFoliageMask(rawHsv)) return false;
         float[] tintHsv = hsv(tint);
         boolean rawSaturated = rawHsv[1] >= 0.18f && rawHsv[2] >= 0.22f;
         if (!rawSaturated) return false;
@@ -121,6 +124,11 @@ public final class WindFoliageColorCache {
         float hueDiff = Math.abs(rawHsv[0] - tintHsv[0]);
         hueDiff = Math.min(hueDiff, 360.0f - hueDiff);
         return !rawIsGreenish && tintHsv[1] >= 0.18f && hueDiff >= 40.0f;
+    }
+
+    private static boolean isBlueGreyFoliageMask(float[] hsv) {
+        return hsv[0] >= 180.0f && hsv[0] <= 255.0f
+            && hsv[1] <= 0.42f && hsv[2] >= 0.20f;
     }
 
     private static boolean isGreenHue(float hue) {

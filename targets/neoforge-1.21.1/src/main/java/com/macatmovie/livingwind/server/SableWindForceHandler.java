@@ -83,6 +83,8 @@ public final class SableWindForceHandler implements SubLevelObserver {
     private final Map<ServerLevel, WindSnapshot> windByLevel = new ConcurrentHashMap<>();
     // High Seas / Deep Seas already simulate sail thrust. Never add Living Wind's
     // own sail-only push on top of that system; balloon-based airships still work.
+    private final boolean kineticBearingInstalled =
+            net.neoforged.fml.ModList.get().isLoaded("aeronautics_utility_objects");
     private final boolean marineSailPhysicsInstalled =
             net.neoforged.fml.ModList.get().isLoaded("create_submarine")
             || net.neoforged.fml.ModList.get().isLoaded("deepseas")
@@ -169,6 +171,7 @@ public final class SableWindForceHandler implements SubLevelObserver {
     @Override
     public void onSubLevelRemoved(SubLevel subLevel, SubLevelRemovalReason reason) {
         profiles.remove(subLevel.getUniqueId());
+        if (kineticBearingInstalled) AeronauticsKineticBearingWind.onRotorRemoved(subLevel);
     }
 
     private void onPrePhysicsTick(ForgeSablePrePhysicsTickEvent event) {
@@ -196,6 +199,9 @@ public final class SableWindForceHandler implements SubLevelObserver {
     }
 
     private void apply(ServerSubLevel ship, ServerLevel level, WindSnapshot wind, double setting) {
+        // A kinetic-conversion rotor receives angular wind drive through its
+        // own bearing. Do not also push its entire Sable body sideways.
+        if (kineticBearingInstalled && AeronauticsKineticBearingWind.isDrivenRotor(ship, level.getGameTime())) return;
         SailProfile profile = profiles.computeIfAbsent(ship.getUniqueId(), ignored -> inspect(ship));
         if (profile == SailProfile.EMPTY || (marineSailPhysicsInstalled && !profile.hasEnvelope())) return;
 

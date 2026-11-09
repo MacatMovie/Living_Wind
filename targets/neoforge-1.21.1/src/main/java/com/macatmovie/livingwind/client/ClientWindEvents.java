@@ -30,6 +30,7 @@ public final class ClientWindEvents {
             WindShelter.clear();
             ParticleWaterProtection.clear();
             FwaWindMotion.reset();
+            com.macatmovie.livingwind.client.compat.GliderWindCompat.reset();
             tickCounter = 0;
             shelterTickCounter = 0;
             smoothedExposure = 1.0f;
@@ -76,6 +77,14 @@ public final class ClientWindEvents {
         }
 
         if (!mc.isPaused()) {
+            // Gliders use their own optional wind influence, without double-applying Entity Wind.
+            if (!com.macatmovie.livingwind.client.compat.GliderWindCompat.tickClientPlayer(player)) {
+                com.macatmovie.livingwind.wind.EntityWindMotion.tickClientPlayer(player);
+            }
+            if (player.getVehicle() instanceof net.minecraft.world.entity.vehicle.Boat boat
+                    && boat.getControllingPassenger() == player) {
+                com.macatmovie.livingwind.wind.EntityWindMotion.tickClientBoat(boat);
+            }
             AmbientWindParticles.tick(level, player);
             WindStreakSpawner.tick(level, player);
             WindLeafSpawner.tick(level, player);

@@ -48,8 +48,11 @@ public final class LivingWindClient {
         modBus.addListener(LivingWindClient::registerGuiLayers);
         CosyCrittersCompat.register();
         modBus.addListener((net.neoforged.fml.event.lifecycle.FMLClientSetupEvent event) ->
-            event.enqueueWork(() -> com.macatmovie.livingwind.client.shader.LivingWindShaderAutoPatcher.patchInstalledPacks(
-                net.minecraft.client.Minecraft.getInstance().gameDirectory.toPath().resolve("shaderpacks"))));
+            event.enqueueWork(() -> {
+                com.macatmovie.livingwind.client.compat.FwaSwingDriverCompat.register();
+                com.macatmovie.livingwind.client.shader.LivingWindShaderBridge.recoverPreviouslyPatchedPacks(
+                    net.minecraft.client.Minecraft.getInstance().gameDirectory.toPath().resolve("shaderpacks"));
+            }));
         com.macatmovie.livingwind.compat.SableInstrumentSetup.client();
     }
 

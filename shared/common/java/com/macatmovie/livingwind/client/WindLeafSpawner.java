@@ -1,6 +1,7 @@
 package com.macatmovie.livingwind.client;
 
 import com.macatmovie.livingwind.config.ClientWindConfig;
+import com.macatmovie.livingwind.compat.SeasonalWindCompat;
 import com.macatmovie.livingwind.registry.ModParticles;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -51,6 +52,8 @@ public final class WindLeafSpawner {
     private static int grassCursor;
     private static float spawnCredit;
     private static float currentRate;
+    private static SeasonalWindCompat.Snapshot seasonalState;
+    private static SeasonalWindCompat.Season previousSeason;
     private static BlockPos lastSurveyCenter;
     private static int neighborhoodSurveys;
     private static final Map<net.minecraft.world.level.block.Block, Profile> PROFILE_CACHE = new IdentityHashMap<>();
@@ -81,6 +84,8 @@ public final class WindLeafSpawner {
         grassCursor = 0;
         spawnCredit = 0;
         currentRate = 0;
+        seasonalState = null;
+        previousSeason = null;
         lastSurveyCenter = null;
         neighborhoodSurveys = 0;
         PROFILE_CACHE.clear();
@@ -134,11 +139,23 @@ public final class WindLeafSpawner {
             prune(level, center, radius, GRASS, Kind.GRASS, random);
         }
 
+        seasonalState = ClientWindConfig.SEASONAL_PARTICLES_ENABLED.get()
+            ? SeasonalWindCompat.snapshot(level) : null;
+        SeasonalWindCompat.Season currentSeason = seasonalState == null ? null : seasonalState.season();
+        if (currentSeason != previousSeason) {
+            previousSeason = currentSeason;
+            // Seasonal texture replacements may select a different baked palette; tint
+            // colors themselves are still sampled at every actual particle emission.
+            WindFoliageColorCache.clear();
+        }
         float wind = ClientWindState.altitudeStrength();
         float strength = Mth.clamp((wind - 0.10f) / 1.15f, 0, 1);
         float density = ClientWindConfig.LEAF_PARTICLE_DENSITY.get().floatValue();
         // Keep the same *maximum* total budget as v0.2.6, not an emission quota per block.
         currentRate = wind < 0.10f ? 0f : (0.09f + 1.65f * (float)Math.pow(strength, 1.55)) * density;
+        if (seasonalState != null) currentRate *= Mth.clamp(
+            0.35f + 0.65f * SeasonalWindCompat.particleMultiplier(seasonalState, "canopy",
+                ClientWindConfig.SEASONAL_PARTICLES_INTENSITY.get()), 0.40f, 1.40f);
         ParticleStatus status = Minecraft.getInstance().options.particles().get();
         if (status == ParticleStatus.DECREASED) currentRate *= 0.55f;
         else if (status == ParticleStatus.MINIMAL) currentRate *= 0.22f;
@@ -400,11 +417,16 @@ public final class WindLeafSpawner {
         };
     }
 
+    private static float seasonalFactor(String kind) {
+        return seasonalState == null ? 1.0f : SeasonalWindCompat.particleMultiplier(
+            seasonalState, kind, ClientWindConfig.SEASONAL_PARTICLES_INTENSITY.get());
+    }
+
     private static void spawnOne(ClientLevel level, BlockPos center, int radius,
                                  RandomSource random, boolean sheltered) {
-        float wc = availableWeight(Kind.CANOPY);
-        float wp = availableWeight(Kind.PLANT);
-        float wg = availableWeight(Kind.GRASS);
+        float wc = availableWeight(Kind.CANOPY) * seasonalFactor("canopy");
+        float wp = availableWeight(Kind.PLANT) * seasonalFactor("petal");
+        float wg = availableWeight(Kind.GRASS) * seasonalFactor("grass");
         float total = wc + wp + wg;
         if (total <= 0) return;
         float roll = random.nextFloat() * total;
@@ -497,12 +519,19 @@ public final class WindLeafSpawner {
 
             // Advance fairness cursor and cooldown only for real emissions.
             setCursor(kind, (index + 1) % count);
-            emitter.nextEmissionTick = ticks + switch (kind) {
+            int cooldown = switch (kind) {
                 case CANOPY -> 12 + random.nextInt(19);
                 case PLANT -> 45 + random.nextInt(46);
                 case GRASS -> 20 + random.nextInt(25);
                 default -> 50;
             };
+            float seasonalEmission = seasonalFactor(kind == Kind.CANOPY ? "canopy"
+                : kind == Kind.GRASS ? "grass" : "petal");
+            // Winter leaf shedding is minimal for deciduous trees; evergreens keep
+            // a restrained needle trickle. Never leave sources at zero cooldown.
+            if (kind == Kind.CANOPY && LeafParticleTypes.resolve(foliage) == LeafParticleTypes.Type.CONIFER)
+                seasonalEmission = Math.max(0.65f, seasonalEmission);
+            emitter.nextEmissionTick = ticks + Math.max(6, Math.round(cooldown / seasonalEmission));
             Profile profile = profile(level, emissionPos, foliage);
             int color = emitterColor(level, emissionPos, foliage, kind, profile, random);
             float shade = 0.84f + random.nextFloat() * 0.22f;

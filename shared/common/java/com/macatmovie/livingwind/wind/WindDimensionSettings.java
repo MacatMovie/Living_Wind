@@ -13,6 +13,13 @@ import net.minecraft.world.level.Level;
 public final class WindDimensionSettings {
     public enum Mode { NORMAL, REDUCED_GUSTY, VERY_WEAK, DISABLED }
 
+    /** Optional dimension presets. They apply at runtime without polluting the user config. */
+    public static final Map<String, Mode> BUILTIN_MOD_MODES = Map.of(
+        "aether:the_aether", Mode.NORMAL,
+        "aether_ii:aether_highlands", Mode.NORMAL,
+        "twilightforest:twilight_forest", Mode.NORMAL
+    );
+
     private static volatile List<? extends String> lastEntries;
     private static volatile Map<String, Mode> lastModes = Map.of();
 
@@ -73,7 +80,7 @@ public final class WindDimensionSettings {
                 case NORMAL -> Mode.NORMAL;
             };
         }
-        return WindConfig.DEFAULT_DIMENSION_MODE.get();
+        return BUILTIN_MOD_MODES.getOrDefault(id, WindConfig.DEFAULT_DIMENSION_MODE.get());
     }
 
     public static Mode legacyNetherMode() {

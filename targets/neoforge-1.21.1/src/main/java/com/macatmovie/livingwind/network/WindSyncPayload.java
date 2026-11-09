@@ -21,7 +21,17 @@ public record WindSyncPayload(
     int altitudeMaxY,
     float altitudeMinMultiplier,
     float altitudeMaxMultiplier,
-    float treasureBalloonsWindMultiplier
+    float treasureBalloonsWindMultiplier,
+    boolean entityWindPlayers,
+    float entityWindClearWeatherMultiplier,
+    float entityWindRainMultiplier,
+    float entityWindThunderMultiplier,
+    float entityWindPlayerMultiplier,
+    float entityWindPlayerGroundedMultiplier,
+    boolean entityWindBoats,
+    float entityWindBoatMultiplier,
+    boolean gliderWindEnabled,
+    float gliderWindInfluence
 ) implements CustomPacketPayload {
     public static final Type<WindSyncPayload> TYPE = new Type<>(LivingWind.id("wind_sync"));
 
@@ -32,7 +42,7 @@ public record WindSyncPayload(
                 buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_LONG.decode(buf), buf.readBoolean(),
                 ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_INT.decode(buf),
-                buf.readFloat(), buf.readFloat(), buf.readFloat()
+                buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readBoolean(), buf.readFloat()
             );
         }
 
@@ -51,6 +61,16 @@ public record WindSyncPayload(
             buf.writeFloat(value.altitudeMinMultiplier());
             buf.writeFloat(value.altitudeMaxMultiplier());
             buf.writeFloat(value.treasureBalloonsWindMultiplier());
+            buf.writeBoolean(value.entityWindPlayers());
+            buf.writeFloat(value.entityWindClearWeatherMultiplier());
+            buf.writeFloat(value.entityWindRainMultiplier());
+            buf.writeFloat(value.entityWindThunderMultiplier());
+            buf.writeFloat(value.entityWindPlayerMultiplier());
+            buf.writeFloat(value.entityWindPlayerGroundedMultiplier());
+            buf.writeBoolean(value.entityWindBoats());
+            buf.writeFloat(value.entityWindBoatMultiplier());
+            buf.writeBoolean(value.gliderWindEnabled());
+            buf.writeFloat(value.gliderWindInfluence());
         }
     };
 
@@ -60,7 +80,8 @@ public record WindSyncPayload(
             | (WindConfig.HIGH_SEAS_WIND_ENABLED.get() ? 8 : 0)
             | (WindConfig.SMALL_SHIPS_WIND_ENABLED.get() ? 16 : 0)
             | (WindConfig.TREASURE_BALLOONS_WIND_ENABLED.get() ? 32 : 0)
-            | (windDisabled ? 64 : 0);
+            | (windDisabled ? 64 : 0)
+            | (WindConfig.ENTITY_WIND_CHECK_SHELTER.get() ? 256 : 0);
         return new WindSyncPayload(
             s.strength(), s.directionDegrees(), s.turbulence(), s.directionInstability(),
             s.gustStrength(), flags, s.gameTime(),
@@ -69,11 +90,22 @@ public record WindSyncPayload(
             WindConfig.ALTITUDE_MAX_Y.get(),
             WindConfig.ALTITUDE_MIN_MULTIPLIER.get().floatValue(),
             WindConfig.ALTITUDE_MAX_MULTIPLIER.get().floatValue(),
-            WindConfig.TREASURE_BALLOONS_WIND_MULTIPLIER.get().floatValue()
+            WindConfig.TREASURE_BALLOONS_WIND_MULTIPLIER.get().floatValue(),
+            WindConfig.ENTITY_WIND_ENABLED.get() && WindConfig.ENTITY_WIND_PLAYERS.get(),
+            WindConfig.ENTITY_WIND_CLEAR_WEATHER_MULTIPLIER.get().floatValue(),
+            WindConfig.ENTITY_WIND_RAIN_MULTIPLIER.get().floatValue(),
+            WindConfig.ENTITY_WIND_THUNDER_MULTIPLIER.get().floatValue(),
+            WindConfig.ENTITY_WIND_PLAYER_MULTIPLIER.get().floatValue(),
+            WindConfig.ENTITY_WIND_PLAYER_GROUNDED_MULTIPLIER.get().floatValue(),
+            WindConfig.ENTITY_WIND_ENABLED.get() && WindConfig.ENTITY_WIND_BOATS.get(),
+            WindConfig.ENTITY_WIND_BOAT_MULTIPLIER.get().floatValue(),
+            WindConfig.GLIDER_WIND_ENABLED.get(),
+            WindConfig.GLIDER_WIND_INFLUENCE.get().floatValue()
         );
     }
 
     public boolean windDisabled() { return (flags & 64) != 0; }
+    public boolean entityWindCheckShelter() { return (flags & 256) != 0; }
     public boolean windyPeriod() { return (flags & 1) != 0; }
     public boolean stormFront() { return (flags & 2) != 0; }
     public boolean createWindmillsEnabled() { return (flags & 4) != 0; }

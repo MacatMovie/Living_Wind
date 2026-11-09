@@ -1,6 +1,7 @@
 package com.macatmovie.livingwind.client;
 
 import com.macatmovie.livingwind.config.ClientWindConfig;
+import com.macatmovie.livingwind.compat.SeasonalWindCompat;
 import com.macatmovie.livingwind.registry.ModParticles;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -38,21 +39,37 @@ public final class AmbientWindParticles {
         int radius = ClientWindConfig.AMBIENT_RADIUS.get();
         BlockPos origin = player.blockPosition();
         boolean nether = level.dimension() == Level.NETHER;
+        boolean twilightForest = "twilightforest".equals(level.dimension().location().getNamespace());
+        SeasonalWindCompat.Snapshot season = ClientWindConfig.SEASONAL_PARTICLES_ENABLED.get()
+            ? SeasonalWindCompat.snapshot(level) : null;
 
         for (int i = 0; i < samples; i++) {
             // Most attempts sample exposed terrain/canopy tops. A smaller share samples the nearby
             // volume so leaf/plant particles can also originate from visible tree and plant faces.
             boolean surfaceSample = !nether && random.nextFloat() < 0.68f;
+            // The Twilight Forest canopy is frequently much higher than the player.
+            // Half its surface attempts use the ground heightmap, which ignores leaves.
+            // The usual shelter check still prevents pixels inside enclosed buildings.
+            boolean underCanopy = surfaceSample && twilightForest && random.nextBoolean();
             BlockPos pos = nether
                 ? (i % 2 == 0 ? randomNetherSurfacePosition(level, origin, radius, random)
                     : randomNearbyPosition(level, origin, radius, random))
-                : surfaceSample ? randomSurfacePosition(level, origin, radius, random)
+                : surfaceSample ? randomSurfacePosition(level, origin, radius, random, underCanopy)
                     : randomNearbyPosition(level, origin, radius, random);
             if (pos == null) continue;
             BlockState state = level.getBlockState(pos);
             if (state.isAir()) continue;
 
             EmitterKind kind = classify(state, nether);
+            // Ecliptic's winter snow coverage can be a rendered overlay, not a
+            // physical snow-layer block. Use its public API only for exposed
+            // sampled surfaces and only in winter (no additional world searches).
+            if (!nether && surfaceSample && season != null && season.ecliptic()
+                    && season.season() == SeasonalWindCompat.Season.WINTER
+                    && ClientWindConfig.SEASONAL_SNOW_ENABLED.get()
+                    && SeasonalWindCompat.snowCoveredAt(level, state, pos)) {
+                kind = EmitterKind.SNOW;
+            }
             if (kind == EmitterKind.NONE) continue;
             // Keep the existing overworld eligibility exactly as it was.
             if (!nether && !surfaceSample && kind != EmitterKind.LEAF && kind != EmitterKind.GRASS) continue;
@@ -69,6 +86,16 @@ public final class AmbientWindParticles {
             float windActivity = (float) Math.pow(normalized, 1.45);
             float density = ClientWindConfig.AMBIENT_DENSITY_MULTIPLIER.get().floatValue();
             float chance = kind.baseChance * density * (0.02f + windActivity * 2.98f);
+            if (season != null && !nether) {
+                String category = switch (kind) {
+                    case LEAF -> "canopy";
+                    case GRASS -> "grass";
+                    case SNOW -> ClientWindConfig.SEASONAL_SNOW_ENABLED.get() ? "snow" : "none";
+                    default -> "none";
+                };
+                chance *= SeasonalWindCompat.particleMultiplier(season, category,
+                    ClientWindConfig.SEASONAL_PARTICLES_INTENSITY.get());
+            }
             if (random.nextFloat() > chance) continue;
 
             double[] spawn = spawnOnFace(pos, face, random);
@@ -79,7 +106,8 @@ public final class AmbientWindParticles {
             if (exposure < 0.20f) continue;
             if (ParticleWaterProtection.isSubmergedAtEmitter(level, spawn[0], spawn[1], spawn[2])) continue;
 
-            int color = kind == EmitterKind.LEAF
+            int color = kind == EmitterKind.SNOW ? 0xECF6FF
+                : kind == EmitterKind.LEAF
                 ? WindFoliageColorCache.leafColor(state, level, pos, random,
                     ClientWindConfig.LEAF_TEXTURE_COLORS.get())
                 : emitterColor(level, pos, state);
@@ -88,19 +116,33 @@ public final class AmbientWindParticles {
             double green = Mth.clamp(((color >> 8) & 0xFF) / 255.0f * brightness, 0.0f, 1.0f);
             double blue = Mth.clamp((color & 0xFF) / 255.0f * brightness, 0.0f, 1.0f);
             level.addParticle(ModParticles.AMBIENT_PIXEL.get(), spawn[0], spawn[1], spawn[2], red, green, blue);
+            // Real exposed snow only: reuse the same sampled surface and particle type,
+            // with at most one extra tiny pixel per successful snow sample in a winter gust.
+            if (season != null && kind == EmitterKind.SNOW
+                    && ClientWindConfig.SEASONAL_SNOW_ENABLED.get()
+                    && season.season() == SeasonalWindCompat.Season.WINTER
+                    && wind > 0.85f && random.nextFloat() < 0.40f) {
+                level.addParticle(ModParticles.AMBIENT_PIXEL.get(),
+                    spawn[0] + (random.nextFloat() - 0.5f) * 0.6,
+                    spawn[1] + random.nextFloat() * 0.65,
+                    spawn[2] + (random.nextFloat() - 0.5f) * 0.6,
+                    0.91, 0.95, 1.0);
+            }
         }
     }
 
-    private static BlockPos randomSurfacePosition(ClientLevel level, BlockPos origin, int radius, RandomSource random) {
+    private static BlockPos randomSurfacePosition(ClientLevel level, BlockPos origin, int radius,
+                                                   RandomSource random, boolean underCanopy) {
         int x = origin.getX() + random.nextInt(radius * 2 + 1) - radius;
         int z = origin.getZ() + random.nextInt(radius * 2 + 1) - radius;
         BlockPos columnCheck = new BlockPos(x, origin.getY(), z);
         if (!level.hasChunkAt(columnCheck)) return null;
 
-        int y = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
+        int y = level.getHeight(underCanopy ? Heightmap.Types.MOTION_BLOCKING_NO_LEAVES
+            : Heightmap.Types.WORLD_SURFACE, x, z) - 1;
         if (Math.abs(y - origin.getY()) > 16) return null;
         BlockPos pos = new BlockPos(x, y, z);
-        return level.canSeeSky(pos.above()) ? pos : null;
+        return underCanopy || level.canSeeSky(pos.above()) ? pos : null;
     }
 
     /**
@@ -119,7 +161,7 @@ public final class AmbientWindParticles {
             probe.set(x, startY - step, z);
             if (level.isOutsideBuildHeight(probe) || !level.hasChunkAt(probe)) break;
             BlockState state = level.getBlockState(probe);
-            if (!state.is(WindBlockTags.NETHER_AMBIENT_EMITTERS)) continue;
+            if (classify(state, true) != EmitterKind.NETHER_DUST) continue;
             // This also prevents choosing blocks buried in a solid Nether wall.
             BlockPos above = probe.above();
             if (level.hasChunkAt(above) && level.getBlockState(above).getCollisionShape(level, above).isEmpty()) {
@@ -178,6 +220,8 @@ public final class AmbientWindParticles {
     }
 
     private static EmitterKind classify(BlockState state, boolean nether) {
+        AmbientEmitterBlocks.Kind configured = AmbientEmitterBlocks.resolve(state);
+        if (configured != null) return EmitterKind.valueOf(configured.name());
         if (nether && state.is(WindBlockTags.NETHER_AMBIENT_EMITTERS)) return EmitterKind.NETHER_DUST;
         if (state.is(WindBlockTags.LEAF_EMITTERS)) return EmitterKind.LEAF;
         // The default grass tag explicitly contains grass_block, short_grass, tall_grass, fern and large_fern.

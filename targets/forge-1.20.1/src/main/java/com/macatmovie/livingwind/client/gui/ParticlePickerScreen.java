@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -33,6 +34,7 @@ public final class ParticlePickerScreen extends Screen {
     private final Screen parent;
     private final Set<String> selected;
     private final Consumer<String> onSelect;
+    private final Predicate<String> builtinActive;
     private final List<String> allParticles = new ArrayList<>();
     private final List<String> filtered = new ArrayList<>();
 
@@ -49,7 +51,13 @@ public final class ParticlePickerScreen extends Screen {
     }
 
     public ParticlePickerScreen(Screen parent, Set<String> selected, Consumer<String> onSelect, Component title) {
+        this(parent, selected, onSelect, title, BuiltinParticleBlacklist::contains);
+    }
+
+    public ParticlePickerScreen(Screen parent, Set<String> selected, Consumer<String> onSelect,
+            Component title, Predicate<String> builtinActive) {
         super(title);
+        this.builtinActive = builtinActive;
         this.parent = parent;
         this.selected = new HashSet<>(selected);
         this.onSelect = onSelect;
@@ -172,9 +180,8 @@ public final class ParticlePickerScreen extends Screen {
         }
     }
 
-    private static boolean isBuiltinActive(String id) {
-        return ClientWindConfig.PARTICLE_FILTER_MODE.get() == ClientWindConfig.FilterMode.BLACKLIST
-            && BuiltinParticleBlacklist.contains(id);
+    private boolean isBuiltinActive(String id) {
+        return builtinActive.test(id);
     }
 
     @Override

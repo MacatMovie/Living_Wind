@@ -2,6 +2,7 @@ package com.macatmovie.livingwind.mixin;
 
 import com.macatmovie.livingwind.client.ClientWindState;
 import com.macatmovie.livingwind.client.ParticleWindFilter;
+import com.macatmovie.livingwind.client.access.WindParticleAccess;
 import net.minecraft.client.Camera;
 import net.minecraft.client.particle.Particle;
 import org.joml.Quaternionf;
@@ -16,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Optional Atmospherics 2.6.5 compatibility. Its wind streaks normally travel
+ * Optional Atmospherics 2.6.5 compatibility. Its regular and strong streaks travel
  * along a fixed +X axis and render with a fixed horizontal quaternion. Rotate
  * BOTH the drift and the quad to Living Wind, preserving Atmospherics' speed,
  * animation, spawn rate, and particle lifetime.
@@ -29,7 +30,7 @@ public abstract class AtmosphericsWindStreakMixin {
 
     @Inject(method = "tick", at = @At("HEAD"), require = 0, remap = false)
     private void livingwind$steerStreak(CallbackInfo ci) {
-        if (!ParticleWindFilter.usesAtmosphericsStreakCompat() || !ClientWindState.hasServerState()) return;
+        if (!ParticleWindFilter.usesAtmosphericsStreakCompat(((WindParticleAccess) (Object) this).livingwind$getParticleType()) || !ClientWindState.hasServerState()) return;
         double speed = Math.hypot(driftX, driftZ);
         if (speed < 1.0e-8) return;
         double x = ClientWindState.altitudeWindX();
@@ -44,7 +45,7 @@ public abstract class AtmosphericsWindStreakMixin {
         target = "Lcom/beash/atmospherics/particle/WindStreakParticle;renderRotatedQuad(Lcom/mojang/blaze3d/vertex/VertexConsumer;Lnet/minecraft/client/Camera;Lorg/joml/Quaternionf;F)V",
         remap = false), index = 2, require = 0, remap = false)
     private Quaternionf livingwind$rotateStreakQuad(Quaternionf original) {
-        if (!ParticleWindFilter.usesAtmosphericsStreakCompat() || !ClientWindState.hasServerState()) return original;
+        if (!ParticleWindFilter.usesAtmosphericsStreakCompat(((WindParticleAccess) (Object) this).livingwind$getParticleType()) || !ClientWindState.hasServerState()) return original;
         double x = driftX;
         double z = driftZ;
         if (x * x + z * z < 1.0e-12) return original;

@@ -1,6 +1,7 @@
 package com.macatmovie.livingwind.compat;
 
 import com.macatmovie.livingwind.config.WindConfig;
+import com.macatmovie.livingwind.server.WindSavedData;
 import com.macatmovie.livingwind.wind.WindSnapshot;
 import dev.nonamecrackers2.simpleclouds.api.SimpleCloudsAPI;
 import dev.nonamecrackers2.simpleclouds.api.common.cloud.weather.WeatherType;
@@ -31,6 +32,19 @@ public final class SimpleCloudsWindCompat {
         float rain = weather.includesRain() ? Mth.clamp(clouds.getRainLevel(x, y, z), 0.0f, 1.0f) : 0.0f;
         // The same weather-cell fade controls lightning-only storm areas too.
         float thunder = weather.includesThunder() ? Mth.clamp((0.7f - local.getRight()) / 0.1f, 0.0f, 1.0f) : 0.0f;
+        if (WindConfig.WEATHER_STRENGTH_RANGES_ENABLED.get()) {
+            // Compute only the change from the global weather range to the local weather
+            // cell. Preserve the same ordinary fluctuation position, gusts and API values.
+            // Direct strength commands must remain authoritative even under a local storm.
+            WindSavedData state = WindSavedData.get(level);
+            if (state.commandForcedStrengthTicksRemaining(level.getGameTime()) > 0L) return wind;
+            float difference = state.localWeatherRangeDifference(rain, thunder);
+            float globalScale = WindConfig.GLOBAL_STRENGTH_MULTIPLIER.get().floatValue();
+            float limit = WindConfig.MAX_EFFECTIVE_STRENGTH.get().floatValue() * globalScale;
+            float strength = Mth.clamp(wind.strength() + difference * globalScale, 0.0f, limit);
+            return new WindSnapshot(strength, wind.directionDegrees(), wind.turbulence(),
+                wind.directionInstability(), wind.gustStrength(), wind.windyPeriod(), wind.stormFront(), wind.gameTime());
+        }
         float localBias = rain * WindConfig.RAIN_STRENGTH_BONUS.get().floatValue()
             + thunder * WindConfig.THUNDER_STRENGTH_BONUS.get().floatValue();
         // When Simple Clouds replaces vanilla weather, global rain/thunder bonuses do not

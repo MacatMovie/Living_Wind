@@ -1,6 +1,7 @@
 package com.macatmovie.livingwind.client.gui;
 
 import com.macatmovie.livingwind.client.BuiltinParticleResponseMultipliers;
+import com.macatmovie.livingwind.client.DefaultEntryVisibility;
 import com.macatmovie.livingwind.client.ParticleWindFilter;
 import com.macatmovie.livingwind.config.ClientWindConfig;
 import java.util.ArrayList;
@@ -10,159 +11,91 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
-/** Read-only built-in response rows with opt-in editing and persistent user overrides. */
-public final class ParticleResponseMultiplierListScreen extends Screen {
-    private static final int TOP = 63, BOTTOM = 45, ROW = 25;
-    private final Screen parent;
-    // Only user-supplied or pre-existing config entries are serialized, never synthesized defaults.
+/** Per-particle wind strength, preserving only actual user overrides. */
+public final class ParticleResponseMultiplierListScreen extends GroupedConfigListScreen {
     private final Map<String, String> overrides = new LinkedHashMap<>();
-    private final Map<Integer, EditBox> boxes = new LinkedHashMap<>();
-    private boolean editDefaults;
-    private double scroll;
-
+    private final Map<String, EditBox> boxes = new LinkedHashMap<>();
     public ParticleResponseMultiplierListScreen(Screen parent) {
-        super(Component.literal("Particle Wind Response Multipliers"));
-        this.parent = parent;
+        super(parent, "Particle Wind Response Multipliers");
         ParticleWindFilter.migrateLegacyStreamsDefaults();
-        for (String s : ClientWindConfig.PARTICLE_RESPONSE_MULTIPLIERS.get()) {
-            int eq = s.lastIndexOf('=');
-            if (eq > 0) overrides.put(s.substring(0, eq).trim(), s.substring(eq + 1).trim());
-        }
-    }
-
-    @Override protected void init() { rebuild(); }
-
-    private List<String> rows() {
-        Set<String> ids = new LinkedHashSet<>(BuiltinParticleResponseMultipliers.installedDefaults());
-        ids.addAll(overrides.keySet());
-        return new ArrayList<>(ids);
-    }
-
-    private String valueFor(String id) {
-        return overrides.getOrDefault(id, Float.toString(BuiltinParticleResponseMultipliers.defaultValue(id)));
-    }
-
-    private void rebuild() {
-        clearWidgets();
-        boxes.clear();
-        int left = width / 2 - 230;
-        addRenderableWidget(Button.builder(Component.literal(editDefaults ? "Lock Defaults" : "Unlock Defaults"), b -> {
-            commitVisible();
-            editDefaults = !editDefaults;
-            rebuild();
-        }).bounds(width / 2 + 100, 27, 130, 20).build());
-
-        List<String> all = rows();
-        int first = (int)(scroll / ROW);
-        int visible = Math.max(1, (height - TOP - BOTTOM) / ROW + 2);
-        for (int i = first; i < Math.min(all.size(), first + visible); i++) {
-            final String id = all.get(i);
-            boolean builtin = BuiltinParticleResponseMultipliers.isDefault(id);
-            int y = TOP + i * ROW - (int)scroll;
-            if (y < TOP || y + 20 > height - BOTTOM) continue;
-
-            EditBox box = new EditBox(font, left + 305, y, 80, 20, Component.literal("Multiplier"));
-            box.setValue(valueFor(id));
-            box.setFilter(v -> v.isEmpty() || v.matches("\\d*(?:\\.\\d*)?"));
-            box.setEditable(!builtin || editDefaults);
-            box.setResponder(v -> updateMultiplier(id, v));
-            boxes.put(i, box);
-            addRenderableWidget(box);
-
-            if (!builtin || editDefaults) {
-                addRenderableWidget(Button.builder(Component.literal(builtin ? "↺" : "×"), b -> {
-                    commitVisible();
-                    overrides.remove(id);
-                    clamp();
-                    rebuild();
-                }).bounds(left + 394, y, 20, 20).build());
+        for (String raw : ClientWindConfig.PARTICLE_RESPONSE_MULTIPLIERS.get()) {
+            int eq = raw.lastIndexOf('=');
+            if (eq > 0) {
+                String id = raw.substring(0, eq).trim();
+                String value = raw.substring(eq + 1).trim();
+                // Previous config versions pre-filled stock preset values into the user's
+                // override list. Treat an exactly matching default as an unmodified preset.
+                try {
+                    if (BuiltinParticleResponseMultipliers.isDefault(id)
+                            && Float.parseFloat(value) == BuiltinParticleResponseMultipliers.defaultValue(id)) continue;
+                } catch (NumberFormatException ignored) {}
+                overrides.put(id, value);
             }
         }
-        addRenderableWidget(Button.builder(Component.literal("Add More..."), b -> {
-            commitVisible();
-            minecraft.setScreen(new ParticlePickerScreen(this, new HashSet<>(rows()), this::add,
-                Component.literal("Add Particle Response")));
-        }).bounds(width / 2 - 154, height - 30, 150, 20).build());
-        addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> done())
-            .bounds(width / 2 + 4, height - 30, 150, 20).build());
     }
-
-    private void updateMultiplier(String id, String raw) {
-        if (raw == null || raw.isBlank()) return;
-        try {
-            double value = Double.parseDouble(raw);
-            if (Double.isFinite(value) && value >= 0.0 && value <= 10.0)
-                overrides.put(id, raw);
-        } catch (NumberFormatException ignored) {}
+    @Override protected String helpText() { return "1.0 = normal response, 0 = stationary, 10 = maximum response."; }
+    @Override protected List<Entry> entries() {
+        Set<String> all = new LinkedHashSet<>(DefaultEntryVisibility.installedOnly()
+            ? BuiltinParticleResponseMultipliers.installedDefaults() : BuiltinParticleResponseMultipliers.allDefaults());
+        all.addAll(overrides.keySet());
+        List<Entry> result = new ArrayList<>();
+        for (String id : all) result.add(new Entry(id, BuiltinParticleResponseMultipliers.isDefault(id), overrides.containsKey(id)));
+        return result;
     }
-
-    private void commitVisible() {
-        List<String> all = rows();
-        for (Map.Entry<Integer, EditBox> e : boxes.entrySet()) {
-            if (e.getKey() < 0 || e.getKey() >= all.size()) continue;
-            String id = all.get(e.getKey());
-            // Showing or scrolling past an unchanged built-in must not turn it
-            // into a saved override; actual edits are recorded by its responder.
-            if (BuiltinParticleResponseMultipliers.isDefault(id) && !overrides.containsKey(id)) continue;
-            updateMultiplier(id, e.getValue().getValue());
+    private String value(String id) { return overrides.getOrDefault(id, Float.toString(BuiltinParticleResponseMultipliers.defaultValue(id))); }
+    @Override protected void addEntryWidgets(Entry e, int left, int y) {
+        EditBox box = new EditBox(font, left + 301, y, 80, 20, Component.literal("Multiplier"));
+        box.setFilter(v -> v.isEmpty() || v.matches("\\d*(?:\\.\\d*)?"));
+        box.setValue(value(e.id()));
+        box.setEditable(!e.builtin() || editDefaults);
+        box.setResponder(v -> update(e.id(), v));
+        boxes.put(e.id(), addRowWidget(box));
+        if (!e.builtin() || editDefaults) {
+            Button.OnPress reset = b -> {
+                commitVisible();
+                overrides.remove(e.id());
+                refreshRows();
+            };
+            addRowWidget(e.builtin()
+                ? new RestoreDefaultButton(left + 413, y, 25, 20, reset, "Reset to default multiplier")
+                : Button.builder(Component.literal("×"), reset)
+                    .tooltip(Tooltip.create(Component.literal("Remove custom multiplier")))
+                    .bounds(left + 413, y, 25, 20).build());
         }
     }
-
-    private void add(String id) {
-        if (!overrides.containsKey(id)) overrides.put(id, "1.0");
-        rebuild();
+    private void update(String id, String raw) {
+        if (raw == null || raw.isBlank()) return;
+        try {
+            double n = Double.parseDouble(raw);
+            if (Double.isFinite(n) && n >= 0 && n <= 10) overrides.put(id, raw);
+        } catch (NumberFormatException ignored) {}
     }
-
-    private void done() {
-        commitVisible();
-        List<String> serialized = new ArrayList<>();
-        for (Map.Entry<String, String> entry : overrides.entrySet())
-            serialized.add(entry.getKey() + "=" + entry.getValue());
-        ClientWindConfig.PARTICLE_RESPONSE_MULTIPLIERS.set(serialized);
+    @Override protected void beforeRowsChange() { commitVisible(); }
+    private void commitVisible() {
+        for (var e : boxes.entrySet()) {
+            if (BuiltinParticleResponseMultipliers.isDefault(e.getKey()) && !overrides.containsKey(e.getKey())) continue;
+            update(e.getKey(), e.getValue().getValue());
+        }
+        boxes.clear();
+    }
+    private void add(String id) { overrides.putIfAbsent(id, "1.0"); refreshRows(); }
+    @Override protected void onAddEntry() {
+        minecraft.setScreen(new ParticlePickerScreen(this, new HashSet<>(allIds()), this::add,
+            Component.literal("Add Particle Response"), id -> false));
+    }
+    private List<String> allIds() { List<String> ids = new ArrayList<>(); for (Entry e : entries()) ids.add(e.id()); return ids; }
+    @Override protected void onSave() {
+        List<String> encoded = new ArrayList<>();
+        for (var e : overrides.entrySet()) encoded.add(e.getKey() + "=" + e.getValue());
+        ClientWindConfig.PARTICLE_RESPONSE_MULTIPLIERS.set(encoded);
         ClientWindConfig.PARTICLE_RESPONSE_MULTIPLIERS.save();
         ParticleWindFilter.refresh();
         minecraft.setScreen(parent);
-    }
-
-    @Override public void onClose() { minecraft.setScreen(parent); }
-
-    @Override public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
-        if (y >= TOP && y < height - BOTTOM) {
-            commitVisible();
-            scroll = Math.max(0, Math.min(maxScroll(), scroll - scrollY * ROW * 3));
-            rebuild();
-            return true;
-        }
-        return super.mouseScrolled(x, y, scrollX, scrollY);
-    }
-
-    private double maxScroll() { return Math.max(0, rows().size() * ROW - (height - TOP - BOTTOM)); }
-    private void clamp() { scroll = Math.max(0, Math.min(maxScroll(), scroll)); }
-
-    @Override public void render(GuiGraphics g, int mx, int my, float pt) {
-        // In 1.21.1 the base Screen draws its blurred/dimmed background during render.
-        // Draw our custom rows *after* this, keeping labels crisp like standard config screens.
-        super.render(g, mx, my, pt);
-        g.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
-        g.drawString(font, "Yellow = default  |  Green = custom  |  ↺ resets", width / 2 - 230, 49, 0xAAAAAA, false);
-        int left = width / 2 - 230;
-        List<String> all = rows();
-        int first = (int)(scroll / ROW);
-        int visible = Math.max(1, (height - TOP - BOTTOM) / ROW + 2);
-        for (int i = first; i < Math.min(all.size(), first + visible); i++) {
-            int y = TOP + i * ROW - (int)scroll;
-            if (y < TOP || y + 20 > height - BOTTOM) continue;
-            String id = all.get(i);
-            boolean builtin = BuiltinParticleResponseMultipliers.isDefault(id);
-            g.fill(left, y, left + 291, y + 20, builtin ? 0x80605020 : 0x60303030);
-            g.drawString(font, id, left + 5, y + 6, builtin ? 0xFFDD55 : 0x88DD88, false);
-        }
     }
 }

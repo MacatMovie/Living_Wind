@@ -18,13 +18,23 @@ public record WindSyncPayload(
     float altitudeMinMultiplier,
     float altitudeMaxMultiplier,
     float treasureBalloonsWindMultiplier,
-    float alekiShipsWindScale
+    float alekiShipsWindScale,
+    boolean entityWindPlayers,
+    float entityWindClearWeatherMultiplier,
+    float entityWindRainMultiplier,
+    float entityWindThunderMultiplier,
+    float entityWindPlayerMultiplier,
+    float entityWindPlayerGroundedMultiplier,
+    boolean entityWindBoats,
+    float entityWindBoatMultiplier,
+    boolean gliderWindEnabled,
+    float gliderWindInfluence
 ) {
     public static WindSyncPayload decode(FriendlyByteBuf buf) {
         return new WindSyncPayload(
             buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
             buf.readVarInt(), buf.readVarLong(), buf.readBoolean(),
-            buf.readVarInt(), buf.readVarInt(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat()
+            buf.readVarInt(), buf.readVarInt(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readBoolean(), buf.readFloat()
         );
     }
 
@@ -43,6 +53,16 @@ public record WindSyncPayload(
         buf.writeFloat(altitudeMaxMultiplier);
         buf.writeFloat(treasureBalloonsWindMultiplier);
         buf.writeFloat(alekiShipsWindScale);
+        buf.writeBoolean(entityWindPlayers);
+        buf.writeFloat(entityWindClearWeatherMultiplier);
+        buf.writeFloat(entityWindRainMultiplier);
+        buf.writeFloat(entityWindThunderMultiplier);
+        buf.writeFloat(entityWindPlayerMultiplier);
+        buf.writeFloat(entityWindPlayerGroundedMultiplier);
+        buf.writeBoolean(entityWindBoats);
+        buf.writeFloat(entityWindBoatMultiplier);
+        buf.writeBoolean(gliderWindEnabled);
+        buf.writeFloat(gliderWindInfluence);
     }
 
     public static WindSyncPayload from(WindSnapshot s, boolean windDisabled) {
@@ -51,7 +71,8 @@ public record WindSyncPayload(
             | (WindConfig.SMALL_SHIPS_WIND_ENABLED.get() ? 16 : 0)
             | (WindConfig.TREASURE_BALLOONS_WIND_ENABLED.get() ? 32 : 0)
             | (WindConfig.ALEKI_SHIPS_WIND_ENABLED.get() ? 128 : 0)
-            | (windDisabled ? 64 : 0);
+            | (windDisabled ? 64 : 0)
+            | (WindConfig.ENTITY_WIND_CHECK_SHELTER.get() ? 256 : 0);
         return new WindSyncPayload(
             s.strength(), s.directionDegrees(), s.turbulence(), s.directionInstability(),
             s.gustStrength(), flags, s.gameTime(),
@@ -61,11 +82,22 @@ public record WindSyncPayload(
             WindConfig.ALTITUDE_MIN_MULTIPLIER.get().floatValue(),
             WindConfig.ALTITUDE_MAX_MULTIPLIER.get().floatValue(),
             WindConfig.TREASURE_BALLOONS_WIND_MULTIPLIER.get().floatValue(),
-            WindConfig.ALEKI_SHIPS_WIND_SCALE.get().floatValue()
+            WindConfig.ALEKI_SHIPS_WIND_SCALE.get().floatValue(),
+            WindConfig.ENTITY_WIND_ENABLED.get() && WindConfig.ENTITY_WIND_PLAYERS.get(),
+            WindConfig.ENTITY_WIND_CLEAR_WEATHER_MULTIPLIER.get().floatValue(),
+            WindConfig.ENTITY_WIND_RAIN_MULTIPLIER.get().floatValue(),
+            WindConfig.ENTITY_WIND_THUNDER_MULTIPLIER.get().floatValue(),
+            WindConfig.ENTITY_WIND_PLAYER_MULTIPLIER.get().floatValue(),
+            WindConfig.ENTITY_WIND_PLAYER_GROUNDED_MULTIPLIER.get().floatValue(),
+            WindConfig.ENTITY_WIND_ENABLED.get() && WindConfig.ENTITY_WIND_BOATS.get(),
+            WindConfig.ENTITY_WIND_BOAT_MULTIPLIER.get().floatValue(),
+            WindConfig.GLIDER_WIND_ENABLED.get(),
+            WindConfig.GLIDER_WIND_INFLUENCE.get().floatValue()
         );
     }
 
     public boolean windDisabled() { return (flags & 64) != 0; }
+    public boolean entityWindCheckShelter() { return (flags & 256) != 0; }
     public boolean windyPeriod() { return (flags & 1) != 0; }
     public boolean stormFront() { return (flags & 2) != 0; }
     public boolean createWindmillsEnabled() { return (flags & 4) != 0; }

@@ -22,6 +22,8 @@ final class WindSoundInstance extends AbstractTickableSoundInstance {
     private float requestedGain;
     private float shelterMultiplier = 1.0f;
     private float smoothedGain;
+    private float unmutedVolume = 0.001f;
+    private boolean fluidMuted;
     private boolean windDirectional;
     private boolean gustSweep;
     // A short, click-free diagnostic gate. This is separate from the normal
@@ -100,8 +102,25 @@ final class WindSoundInstance extends AbstractTickableSoundInstance {
         return windDirectional;
     }
 
+    /** Reversible output mute: never restart the sample or reset its fade. */
+    void setFluidMuted(boolean muted) {
+        if (fluidMuted == muted) return;
+        fluidMuted = muted;
+        // Restore the last full, normally mixed volume on resurfacing, rather
+        // than waiting for a new fade-in or starting a duplicate sound.
+        volume = muted ? 0.0f : unmutedVolume;
+    }
+
     void setShelterMultiplier(float value) {
         shelterMultiplier = Mth.clamp(value, 0.0f, 1.0f);
+    }
+
+    /** Immediate stop for world unload/disconnect; fluid muting does not stop clips. */
+    void stopImmediately() {
+        requestedGain = 0.0f;
+        smoothedGain = 0.0f;
+        volume = 0.0f;
+        stop();
     }
 
     void fadeOut() {
@@ -157,6 +176,7 @@ final class WindSoundInstance extends AbstractTickableSoundInstance {
         float fadeIn = Mth.clamp(ageTicks / (float) fadeTicks, 0.0f, 1.0f);
         float fadeOut = Mth.clamp((durationTicks - ageTicks) / (float) fadeTicks, 0.0f, 1.0f);
         debugGate = Mth.lerp(0.35f, debugGate, debugAudible ? 1.0f : 0.0f);
-        this.volume = Math.max(0.0001f, smoothedGain * shelterMultiplier * fadeIn * fadeOut * stopEnvelope * debugGate);
+        unmutedVolume = Math.max(0.0001f, smoothedGain * shelterMultiplier * fadeIn * fadeOut * stopEnvelope * debugGate);
+        this.volume = fluidMuted ? 0.0f : unmutedVolume;
     }
 }

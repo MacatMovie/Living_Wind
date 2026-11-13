@@ -18,13 +18,11 @@ echo ============================================================
 echo.
 echo   A) Forge    1.20.1
 echo   B) NeoForge 1.21.1
-echo   C) BOTH versions
+echo   C) Fabric   1.20.1
+echo   D) Fabric   1.21.1
 echo.
-echo Enter A, B, C, or multiple selections separated by commas.
-echo Example: A
-echo Example: B
-echo Example: A,B
-echo Example: C
+echo Enter A-D, or combine letters to select multiple targets.
+echo Example: A,C
 echo.
 
 if "%~1"=="" (

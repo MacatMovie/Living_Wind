@@ -1,0 +1,35 @@
+plugins {
+    id 'fabric-loom' version '1.11.8'
+    id 'java-library'
+    id 'maven-publish'
+}
+version = mod_version
+group = mod_group_id
+base { archivesName = "LivingWind-Fabric-${minecraft_version}" }
+java { toolchain.languageVersion = JavaLanguageVersion.of(21) }
+repositories {
+    maven { url 'https://maven.fabricmc.net/' }
+    maven { name = 'Terraformers'; url = 'https://maven.terraformersmc.com/releases/' }
+}
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+    // Optional: Mod Menu is not required to use Living Wind or the F8 config screen.
+    modCompileOnly "com.terraformersmc:modmenu:${modmenu_version}"
+}
+sourceSets {
+    main {
+        java.srcDir file('../../shared/common/java')
+        resources.srcDir file('../../shared/common/resources')
+    }
+}
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand 'version': project.version, 'minecraft_version': minecraft_version }
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release.set(21) }
+// Development jar stays distinguishable; only remapJar is shipped as a playable Fabric mod.
+tasks.named('jar') { archiveFileName = "LivingWind-Fabric-${minecraft_version}-v${mod_version}-dev.jar" }
+tasks.named('remapJar') { archiveFileName = "LivingWind-Fabric-${minecraft_version}-v${mod_version}.jar" }

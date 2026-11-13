@@ -60,7 +60,7 @@ public final class WindmillBlock extends Block implements EntityBlock {
     @Override public int getSignal(BlockState state, BlockGetter level, BlockPos pos, Direction direction) {
         return redstone && direction.getAxis().isHorizontal() ? state.getValue(POWER) : 0;
     }
-    @Override public boolean canConnectRedstone(BlockState state, BlockGetter level, BlockPos pos, @Nullable Direction direction) {
+    public boolean canConnectRedstone(BlockState state, BlockGetter level, BlockPos pos, @Nullable Direction direction) {
         return redstone && direction != null && direction.getAxis().isHorizontal();
     }
 

@@ -10,37 +10,32 @@ $LogsDir = Join-Path $Root 'logs'
 New-Item -ItemType Directory -Force -Path $LogsDir | Out-Null
 
 $map = [ordered]@{
-    'A' = @('forge-1.20.1')
-    'B' = @('neoforge-1.21.1')
-    'C' = @('forge-1.20.1', 'neoforge-1.21.1')
+    'A' = 'forge-1.20.1'
+    'B' = 'neoforge-1.21.1'
+    'C' = 'fabric-1.20.1'
+    'D' = 'fabric-1.21.1'
 }
 
-$tokens = $Selection -split '[,\s]+' | Where-Object { $_ -and $_.Trim() }
+# Accept A, A,C, A C, or AC. Each letter builds one target.
+$tokens = $Selection.ToUpperInvariant() -split '[,;\s]+' | Where-Object { $_ }
 $targets = New-Object System.Collections.Generic.List[string]
 $invalid = New-Object System.Collections.Generic.List[string]
 
-foreach ($raw in $tokens) {
-    $token = $raw.Trim()
-    $upper = $token.ToUpperInvariant()
-
-    if ($map.Contains($upper)) {
-        foreach ($mapped in $map[$upper]) {
-            if (-not $targets.Contains($mapped)) { $targets.Add($mapped) }
-        }
+foreach ($token in $tokens) {
+    if ($token -notmatch '^[A-D]+$') {
+        $invalid.Add($token)
         continue
     }
-
-    if (Test-Path (Join-Path $Root "targets\$token")) {
-        if (-not $targets.Contains($token)) { $targets.Add($token) }
-        continue
+    foreach ($letter in $token.ToCharArray()) {
+        $mapped = $map[[string]$letter]
+        if (-not $targets.Contains($mapped)) { $targets.Add($mapped) }
     }
-
-    $invalid.Add($token)
 }
 
-if ($targets.Count -eq 0) {
+# Refuse an invalid selection instead of silently building only part of it.
+if ($targets.Count -eq 0 -or $invalid.Count -gt 0) {
     Write-Host ""
-    Write-Host "No valid targets were selected." -ForegroundColor Red
+    Write-Host "Choose A, B, C, or D (multiple letters are allowed)." -ForegroundColor Red
     if ($invalid.Count -gt 0) {
         Write-Host ("Unknown selection(s): " + ($invalid -join ', ')) -ForegroundColor Red
     }
@@ -98,9 +93,6 @@ foreach ($target in $targets) {
 
 Write-Host ""
 Write-Host "============================================================"
-if ($invalid.Count -gt 0) {
-    Write-Host ("Ignored unknown selection(s): " + ($invalid -join ', ')) -ForegroundColor Yellow
-}
 if ($failures.Count -eq 0) {
     Write-Host "ALL SELECTED BUILDS FINISHED SUCCESSFULLY." -ForegroundColor Green
     Write-Host "Built $built target(s)."

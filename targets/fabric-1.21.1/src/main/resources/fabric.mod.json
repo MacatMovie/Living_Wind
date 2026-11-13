@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "livingwind",
+  "version": "${version}",
+  "name": "Living Wind",
+  "description": "Synchronized wind simulation, particles, foliage, audio and environmental physics.",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.macatmovie.livingwind.LivingWind"
+    ],
+    "client": [
+      "com.macatmovie.livingwind.LivingWindClient"
+    ],
+    "modmenu": [
+      "com.macatmovie.livingwind.fabric.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    "livingwind.fabric.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "${minecraft_version}",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "license": "All Rights Reserved",
+  "icon": "livingwind-icon.png",
+  "suggests": {
+    "modmenu": "*"
+  }
+}

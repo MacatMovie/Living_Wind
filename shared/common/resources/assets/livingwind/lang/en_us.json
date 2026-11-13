@@ -1,4 +1,7 @@
 {
+  "key.livingwind.open_settings": "Open Living Wind Settings",
+  "key.categories.livingwind": "Living Wind",
+  "livingwind.config.title": "Living Wind Settings",
   "mod.livingwind.name": "Living Wind",
   "livingwind.config.section.wind": "Wind Simulation",
   "livingwind.config.section.weather": "Weather",

@@ -265,8 +265,8 @@ public final class WindFoliageColorCache {
             int y = (iy * height + height / 2) / sy;
             for (int ix = 0; ix < sx; ix++) {
                 int x = (ix * width + width / 2) / sx;
-                // Vanilla 1.20.1 / 1.21.1 getPixelRGBA() returns ABGR.
-                int rgba = sprite.getPixelRGBA(0, x, y);
+                // Both versions return ABGR. The vanilla Fabric 1.21.1 sprite requires an accessor.
+                int rgba = SpritePixelReader.getPixelRGBA(sprite, 0, x, y);
                 if ((rgba >>> 24) < 120) continue;
                 int r = rgba & 255, g = (rgba >>> 8) & 255, b = (rgba >>> 16) & 255;
                 if (Math.max(r, Math.max(g, b)) < 72) continue;

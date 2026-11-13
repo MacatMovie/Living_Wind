@@ -35,6 +35,15 @@ public final class BuiltinParticleClassBlacklist {
         "plus.dragons.visuality.particle.FeatherParticle",
         "plus.dragons.visuality.particle.ChargeParticle",
         "plus.dragons.visuality.particle.WaterCircleParticle",
+        // Original Fabric Visuality (1.20.5/1.21.x sources) uses a DIFFERENT Java
+        // package from Visuality Reforged. These directly constructed particles
+        // can bypass particle-ID capture, so retain the same immunity by class.
+        "visuality.particle.SparkleParticle",
+        "visuality.particle.SlimeParticle",
+        "visuality.particle.SolidFallingParticle",
+        "visuality.particle.FeatherParticle",
+        "visuality.particle.ChargeParticle",
+        "visuality.particle.WaterCircleParticle",
         // Footprint Particle can create particles directly, without ParticleEngine ID capture.
         "com.rimo.footprintparticle.particle.FootprintParticle",
         "com.rimo.footprintparticle.particle.WatermarkParticle",

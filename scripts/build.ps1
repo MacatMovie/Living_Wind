@@ -102,7 +102,7 @@ function Collect-TargetJars([string]$Name) {
     $mcVersion = ($mcLine -split '=', 2)[1].Trim()
     $releaseVersion = if ($modVersion.StartsWith('v')) { $modVersion } else { "v$modVersion" }
     $unprefixedVersion = $releaseVersion.Substring(1)
-    $loaderName = if ($Name -eq 'forge-1.20.1') { 'Forge' } else { 'NeoForge' }
+    $loaderName = if ($Name -like 'forge-*') { 'Forge' } elseif ($Name -like 'fabric-*') { 'Fabric' } else { 'NeoForge' }
     $namePrefix = "LivingWind-$loaderName-$mcVersion"
     $releaseName = "$namePrefix-$releaseVersion.jar"
     $oldName = "$namePrefix-$unprefixedVersion.jar"
@@ -177,7 +177,7 @@ function Build-Target([string]$Name) {
 }
 
 try {
-    $allTargets = @('forge-1.20.1', 'neoforge-1.21.1')
+    $allTargets = @('forge-1.20.1', 'neoforge-1.21.1', 'fabric-1.20.1', 'fabric-1.21.1')
 
     if ($CollectOnly) {
         Write-Host "Rebuilding dist from existing target build outputs (no compilation)..." -ForegroundColor Cyan
@@ -221,6 +221,8 @@ try {
         $allTargets | ForEach-Object { Write-Host "  $_" }
         Write-Host "`nUsage: .\scripts\build.ps1 forge-1.20.1 [-Clean]"
         Write-Host "       .\scripts\build.ps1 neoforge-1.21.1 [-Clean]"
+        Write-Host "       .\scripts\build.ps1 fabric-1.20.1 [-Clean]"
+        Write-Host "       .\scripts\build.ps1 fabric-1.21.1 [-Clean]"
         Write-Host "       .\scripts\build.ps1 -All [-Clean]"
         Write-Host "       .\scripts\build.ps1 -CollectOnly"
         exit 0

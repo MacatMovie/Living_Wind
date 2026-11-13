@@ -72,7 +72,7 @@ public final class RedstoneWindVaneBlock extends Block implements EntityBlock {
         return (mask & bit) != 0 ? 15 : 0;
     }
 
-    @Override public boolean canConnectRedstone(BlockState state, BlockGetter level, BlockPos pos,
+    public boolean canConnectRedstone(BlockState state, BlockGetter level, BlockPos pos,
                                                 @Nullable Direction direction) {
         return direction != null && direction.getAxis().isHorizontal();
     }

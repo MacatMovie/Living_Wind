@@ -17,6 +17,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.material.FluidState;
 
 /**
  * Client-only wind sound mixer. No second wind simulation: all intensity comes from
@@ -30,6 +31,8 @@ public final class WindAudioManager {
     // not every tick, and allow new sounds time to enter the playback queue.
     private static final int PLAYBACK_CHECK_INTERVAL_TICKS = 40;
     private static final int PLAYBACK_START_GRACE_TICKS = 20;
+    // Prevent float/double rounding at the surface from toggling audio early.
+    private static final double FLUID_SURFACE_EPSILON = 1.0e-5;
     // The default 1.0 wind volume now has the gain of the previous 0.7 setting.
     // Keep this multiplier in the common mixer so it applies to both loaders,
     // directional audio, gusts and environmental accents without touching assets.
@@ -101,6 +104,10 @@ public final class WindAudioManager {
     private static boolean stormy;
     private static BlockPos leafSoundPosition;
     private static Level previousLevel;
+    // A reversible, edge-triggered output gate on Living Wind-owned sounds.
+    // Unlike stopping the mixer, it preserves each clip's playback position,
+    // crossfade, and normal wind volume while the player's eyes are in fluid.
+    private static boolean fluidAudioMuted;
     // Each directional track is a very quiet mono layer. The stereo ambience
     // remains listener-relative and wide, avoiding hard-panned constant wind.
     // The old 0.60 maximum was rarely reached, while the low-wind fade gate
@@ -117,16 +124,26 @@ public final class WindAudioManager {
     public static void reset() {
         Minecraft mc = Minecraft.getInstance();
         for (Track track : TRACKS.values()) {
-            if (track.current != null) mc.getSoundManager().stop(track.current);
-            if (track.next != null) mc.getSoundManager().stop(track.next);
+            if (track.current != null) {
+                track.current.stopImmediately();
+                mc.getSoundManager().stop(track.current);
+            }
+            if (track.next != null) {
+                track.next.stopImmediately();
+                mc.getSoundManager().stop(track.next);
+            }
             track.current = track.next = null;
             track.lastIndex = -1;
             track.lastEvent = null;
             track.targetGain = 0;
         }
-        for (WindSoundInstance accent : liveAccents) mc.getSoundManager().stop(accent);
+        for (WindSoundInstance accent : liveAccents) {
+            accent.stopImmediately();
+            mc.getSoundManager().stop(accent);
+        }
         liveAccents.clear();
         previousLevel = null;
+        fluidAudioMuted = false;
         tickCount = nextGustTick = nextLeavesTick = nextMountainGustTick = nextForestAccentTick = 0;
         previousGust = 0;
         audioExposure = 1.0f;
@@ -138,11 +155,36 @@ public final class WindAudioManager {
         environment = Environment.NONE;
     }
 
+    private static boolean areEyesInFluid(ClientLevel level, Player player) {
+        double eyeY = player.getEyeY();
+        BlockPos eyePos = BlockPos.containing(player.getX(), eyeY, player.getZ());
+        FluidState fluid = level.getFluidState(eyePos);
+        return !fluid.isEmpty()
+            && eyeY < eyePos.getY() + fluid.getHeight(level, eyePos) - FLUID_SURFACE_EPSILON;
+    }
+
+    private static void setFluidAudioMuted(boolean muted) {
+        if (fluidAudioMuted == muted) return;
+        fluidAudioMuted = muted;
+        for (Track track : TRACKS.values()) {
+            if (track.current != null) track.current.setFluidMuted(muted);
+            if (track.next != null) track.next.setFluidMuted(muted);
+        }
+        for (WindSoundInstance accent : liveAccents) accent.setFluidMuted(muted);
+    }
+
     public static void tick(ClientLevel level, Player player) {
         if (previousLevel != level) {
             reset();
             previousLevel = level;
         }
+        // Gate just Living Wind-owned tracks, with no mixer reset. Continue
+        // advancing/crossfading samples while submerged so they are at their
+        // normal current volume immediately when the eyes leave the liquid.
+        // Query the actual fluid surface rather than WATER/LAVA tags: modded
+        // registered fluids are included, while water at the player's feet
+        // or a shallow flowing fluid below eye height does not mute the wind.
+        setFluidAudioMuted(areEyesInFluid(level, player));
         tickCount++;
         liveAccents.removeIf(WindSoundInstance::isStopped);
         // Follow the player's location while staying physically upwind, so
@@ -502,6 +544,8 @@ public final class WindAudioManager {
         float indoorVolume = Mth.lerp(1.0f - audioExposure,
             ClientWindConfig.INDOOR_AUDIO_ATTENUATION.get().floatValue(), 1.0f);
         sound.setShelterMultiplier(indoorVolume);
+        // New one-shots must start silent if a gust triggers while submerged.
+        sound.setFluidMuted(fluidAudioMuted);
         Minecraft.getInstance().getSoundManager().play(sound);
         liveAccents.add(sound);
     }
@@ -556,6 +600,8 @@ public final class WindAudioManager {
             Player player = Minecraft.getInstance().player;
             if (player != null) sound.updateWindPosition(player.getX(), player.getEyeY(), player.getZ(), ClientWindState.directionDegrees());
         }
+        // canStartSilent() lets the engine retain clips created during submersion.
+        sound.setFluidMuted(fluidAudioMuted);
         Minecraft.getInstance().getSoundManager().play(sound);
         return sound;
     }

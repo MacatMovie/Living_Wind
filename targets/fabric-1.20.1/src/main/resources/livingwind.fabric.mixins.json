@@ -1,0 +1,45 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.macatmovie.livingwind.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "EntityWindMovementMixin",
+    "CreateWindmillBearingMixin"
+  ],
+  "client": [
+    "ParticleEngineMixin",
+    "ParticleMixin",
+    "SpriteContentsOriginalImageAccessor",
+    "FabricWindblownFrameMixin",
+    "WindblownShaderMixin",
+    "FabricSwingingLanternsWindMixin",
+    "SwingingLanternsPhysicsWindLimitMixin",
+    "SwingingLanternsExposureAccess",
+    "SwingingSignsSwayMixin",
+    "ChimesIronRendererMixin",
+    "ChimesCopperRendererMixin",
+    "ChimesBambooRendererMixin",
+    "ChimesAmethystRendererMixin",
+    "ChimesGlassRendererMixin",
+    "ChimesIronAmbientMixin",
+    "ChimesCopperAmbientMixin",
+    "ChimesBambooAmbientMixin",
+    "ChimesAmethystAmbientMixin",
+    "ChimesGlassAmbientMixin",
+    "OfficialParticleRainWindMixin",
+    "OfficialParticleRainSnowWindMixin",
+    "OfficialParticleRainDataAccess",
+    "InteractiveFoliageWindMixin",
+    "InteractiveFoliageSwayShaderMixin",
+    "FabricInteractiveFoliageLegacyShaderMixin",
+    "FabricInteractiveFoliageShelterMixin",
+    "AmbientSoundsWindCategoryMixin",
+    "AmbiWindSoundMixin",
+    "SupplementariesWindVaneMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "plugin": "com.macatmovie.livingwind.mixin.FabricCompatMixinPlugin"
+}

@@ -4,6 +4,9 @@ import com.macatmovie.livingwind.client.ClientWindState;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
@@ -26,6 +29,8 @@ public final class GliderWindCompat {
     private static Method paragliderStateActive;
     private static Object paragliderFlag;
     private static boolean paragliderUsesFlag;
+    private static Method skylandsPlayerData;
+    private static final ResourceLocation SKYLANDS_GLIDER = ResourceLocation.tryParse("skylands:glider");
 
     // The previous tick's separate wind contribution is removed after approximate
     // vanilla air friction before the new one is applied. This prevents wind from
@@ -104,6 +109,13 @@ public final class GliderWindCompat {
 
     private static boolean isUsingSupportedGlider(Player player) {
         if (!initialized) initialize();
+        if (skylandsPlayerData != null
+                && SKYLANDS_GLIDER.equals(BuiltInRegistries.ITEM.getKey(player.getMainHandItem().getItem()))) {
+            try {
+                Object tag = skylandsPlayerData.invoke(player);
+                if (tag instanceof CompoundTag data && data.getBoolean("skylands_glider_active")) return true;
+            } catch (ReflectiveOperationException | LinkageError e) { skylandsPlayerData = null; }
+        }
         if (vcGliderActive != null) {
             try {
                 if (Boolean.TRUE.equals(vcGliderActive.invoke(null, player))) return true;
@@ -128,6 +140,10 @@ public final class GliderWindCompat {
 
     private static void initialize() {
         initialized = true;
+        // Only Forge/NeoForge expose this method. Fabric targets load the same
+        // shared class but leave this optional check disabled.
+        try { skylandsPlayerData = Player.class.getMethod("getPersistentData"); }
+        catch (ReflectiveOperationException | LinkageError ignored) { /* Fabric or unpatched player */ }
         try {
             vcGliderActive = Class.forName("net.venturecraft.gliders.util.GliderUtil")
                     .getMethod("isGlidingWithActiveGlider", LivingEntity.class);

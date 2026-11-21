@@ -4,6 +4,7 @@ import com.macatmovie.livingwind.server.WindSavedData;
 import com.macatmovie.livingwind.wind.WindSnapshot;
 import com.macatmovie.livingwind.wind.WindDimensionBlacklist;
 import com.macatmovie.livingwind.wind.WindBiomeModifiers;
+import com.macatmovie.livingwind.wind.BeyondEndWindCompat;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -15,7 +16,8 @@ public final class WindApi {
     private WindApi() {}
     public static WindSnapshot get(ServerLevel level) {
         if (WindDimensionBlacklist.contains(level)) return WindDimensionBlacklist.calm(level.getGameTime());
-        return WindSavedData.get(level).snapshot(level.getGameTime());
+        WindSnapshot raw = WindSavedData.get(level).snapshot(level.getGameTime());
+        return BeyondEndWindCompat.global(level, raw);
     }
 
     /**
@@ -24,7 +26,11 @@ public final class WindApi {
      * Call from the server thread with a loaded position, never on async worker threads.
      */
     public static WindSnapshot getAt(ServerLevel level, BlockPos pos) {
-        WindSnapshot base = get(level);
+        // The Beyond needs a position-aware snapshot even while the End's
+        // ordinary atmosphere is off. Do not derive it from the calm global API.
+        WindSnapshot base = BeyondEndWindCompat.scopedEnd(level)
+            ? BeyondEndWindCompat.at(level, pos, WindSavedData.get(level).snapshot(level.getGameTime()))
+            : get(level);
         float strength = base.strength() * altitudeMultiplier(level, pos.getY());
         if (level.dimension() == Level.NETHER && !WindDimensionBlacklist.contains(level)
                 && level.getBiome(pos).is(WindBiomeModifiers.BLACK_ICE_GLACIERS)) {

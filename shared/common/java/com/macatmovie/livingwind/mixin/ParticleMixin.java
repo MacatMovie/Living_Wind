@@ -1,10 +1,13 @@
 package com.macatmovie.livingwind.mixin;
 
 import com.macatmovie.livingwind.client.ParticleWindFilter;
+import com.macatmovie.livingwind.client.BiomeParticleWeatherWindCompat;
+import com.macatmovie.livingwind.client.SkyLandsParticleWindCompat;
 import com.macatmovie.livingwind.client.ParticleWaterProtection;
 import com.macatmovie.livingwind.client.ParticleShelterContinuity;
 import com.macatmovie.livingwind.client.JadensNetherExpansionParticleCompat;
 import com.macatmovie.livingwind.client.AtmosphericsDustCompat;
+import com.macatmovie.livingwind.client.ScorchfulDustCompat;
 import com.macatmovie.livingwind.client.access.WindParticleAccess;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.resources.ResourceLocation;
@@ -27,6 +30,21 @@ public abstract class ParticleMixin implements WindParticleAccess {
     @Shadow protected boolean onGround;
 
     @Unique private @Nullable ResourceLocation livingwind$particleType;
+    @Unique private boolean livingwind$skylandsSourceAnchored;
+    @Unique private boolean livingwind$scorchfulStormDust;
+
+    @Override public void livingwind$setSkylandsSourceAnchored(boolean anchored) {
+        livingwind$skylandsSourceAnchored = anchored;
+    }
+    @Override public void livingwind$setScorchfulStormDust(boolean value) {
+        livingwind$scorchfulStormDust = value;
+    }
+    @Override public boolean livingwind$isScorchfulStormDust() {
+        return livingwind$scorchfulStormDust;
+    }
+    @Override public boolean livingwind$isSkylandsSourceAnchored() {
+        return livingwind$skylandsSourceAnchored;
+    }
     @Unique private boolean livingwind$particularLeafSettled;
     @Unique private int livingwind$lastShelteredTick = -1;
     @Unique private int livingwind$lastShelteredX;
@@ -58,6 +76,12 @@ public abstract class ParticleMixin implements WindParticleAccess {
 
     @Override
     public double livingwind$getVelocityZ() { return this.zd; }
+
+    // Required by Falling Leaves Plus's 1.21.1 particle movement hook. Without
+    // this implementation the Particle class implements WindParticleAccess but
+    // leaves the interface method abstract at runtime (AbstractMethodError).
+    @Override
+    public boolean livingwind$isOnGround() { return this.onGround; }
 
     @Override
     public void livingwind$setHorizontalVelocity(double x, double z) {
@@ -161,6 +185,19 @@ public abstract class ParticleMixin implements WindParticleAccess {
     @ModifyVariable(method = "move", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private double livingwind$applyWindX(double movementX) {
         if (livingwind$skipGroundedParticularLeafWind()) return movementX;
+        // Falling Leaves Plus has a separate move override; its dedicated 1.21.1
+        // mixin adds wind exactly once, even when it delegates to Particle.move.
+        if (livingwind$particleType != null && "fallingleavesplus".equals(livingwind$particleType.getNamespace())) return movementX;
+        // Biome Particle Weather 1.20.x hardcodes rain/blizzard/sand movement each
+        // tick; redirect its move argument so direction and speed truly follow wind.
+        double skylands = SkyLandsParticleWindCompat.replacementX(
+            livingwind$particleType, (Particle) (Object) this);
+        if (!Double.isNaN(skylands)) return skylands;
+        double biomeWeather = BiomeParticleWeatherWindCompat.replacementX(
+            livingwind$particleType, (Particle) (Object) this);
+        if (!Double.isNaN(biomeWeather)) return biomeWeather;
+        double scorchful = ScorchfulDustCompat.replacementX(livingwind$particleType, (Particle) (Object) this);
+        if (!Double.isNaN(scorchful)) return scorchful;
         double atmospherics = AtmosphericsDustCompat.replacementX(livingwind$particleType, (Particle) (Object) this);
         if (!Double.isNaN(atmospherics)) return atmospherics;
         double jne = JadensNetherExpansionParticleCompat.replacementX(livingwind$particleType, (Particle) (Object) this);
@@ -171,6 +208,17 @@ public abstract class ParticleMixin implements WindParticleAccess {
     @ModifyVariable(method = "move", at = @At("HEAD"), argsOnly = true, ordinal = 2)
     private double livingwind$applyWindZ(double movementZ) {
         if (livingwind$skipGroundedParticularLeafWind()) return movementZ;
+        if (livingwind$particleType != null && "fallingleavesplus".equals(livingwind$particleType.getNamespace())) return movementZ;
+        // Biome Particle Weather 1.20.x hardcodes rain/blizzard/sand movement each
+        // tick; redirect its move argument so direction and speed truly follow wind.
+        double skylands = SkyLandsParticleWindCompat.replacementZ(
+            livingwind$particleType, (Particle) (Object) this);
+        if (!Double.isNaN(skylands)) return skylands;
+        double biomeWeather = BiomeParticleWeatherWindCompat.replacementZ(
+            livingwind$particleType, (Particle) (Object) this);
+        if (!Double.isNaN(biomeWeather)) return biomeWeather;
+        double scorchful = ScorchfulDustCompat.replacementZ(livingwind$particleType, (Particle) (Object) this);
+        if (!Double.isNaN(scorchful)) return scorchful;
         double atmospherics = AtmosphericsDustCompat.replacementZ(livingwind$particleType, (Particle) (Object) this);
         if (!Double.isNaN(atmospherics)) return atmospherics;
         double jne = JadensNetherExpansionParticleCompat.replacementZ(livingwind$particleType, (Particle) (Object) this);

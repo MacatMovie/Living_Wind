@@ -15,8 +15,13 @@ public final class ServerWindEvents {
     public static void onLevelTick(LevelTickEvent.Post event) {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
 
+        // Set availability before dimension mode lookup. Never changes other
+        // loader targets, and never treats The Beyond as a hard dependency.
+        refreshBeyondSettings();
         WindSavedData data = WindSavedData.get(level);
         if (!WindDimensionBlacklist.contains(level)) data.tick(level);
+        // Update the optional external wind source after our authoritative tick.
+        com.macatmovie.livingwind.compat.CreateAtmosphericsWindCompat.serverTick(level);
 
         int interval = WindConfig.SYNC_INTERVAL_TICKS.get();
         if (interval > 0 && level.getGameTime() % interval == 0L && !level.players().isEmpty()) {
@@ -24,7 +29,16 @@ public final class ServerWindEvents {
         }
     }
 
+    private static void refreshBeyondSettings() {
+        com.macatmovie.livingwind.wind.BeyondEndWindCompat.configure(
+            net.neoforged.fml.ModList.get().isLoaded("the_beyond")
+                && WindConfig.BEYOND_END_WIND_ENABLED.get(),
+            WindConfig.BEYOND_BIOME_WIND_MULTIPLIER.get().floatValue(),
+            WindConfig.BEYOND_STORM_WIND_MULTIPLIER.get().floatValue());
+    }
+
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        refreshBeyondSettings();
         if (event.getEntity() instanceof ServerPlayer player) {
             ServerLevel level = player.serverLevel();
             WindSavedData data = WindSavedData.get(level);
@@ -33,6 +47,7 @@ public final class ServerWindEvents {
     }
 
     public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
+        refreshBeyondSettings();
         if (event.getEntity() instanceof ServerPlayer player) {
             ServerLevel level = player.serverLevel();
             WindSavedData data = WindSavedData.get(level);

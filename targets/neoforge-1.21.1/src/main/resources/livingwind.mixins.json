@@ -23,6 +23,7 @@
     "IrisIncludeGraphShaderMixin",
     "OculusIncludeGraphShaderMixin",
     "SwingingSignsSwayMixin",
+    "AmendmentsPendulumWindMixin",
     "SwingingLanternsWindMixin",
     "SwingingLanternsPhysicsWindLimitMixin",
     "SwingingLanternsExposureAccess",
@@ -31,6 +32,10 @@
     "WindblownFrameMixin",
     "WindblownShaderMixin",
     "InteractiveFoliageWindMixin",
+    "GrassierGrassShaderWindMixin",
+    "GrassierGrassDetachedBladeMixin",
+    "BeyondWindParticleMixin",
+    "InteractiveFoliageUnderwaterMixin",
     "InteractiveFoliageSwayShaderMixin",
     "InteractiveFoliageLegacyShaderMixin",
     "SmallShipsClientWindManagerMixin",
@@ -43,7 +48,10 @@
     "ChimesCopperAmbientMixin",
     "ChimesBambooAmbientMixin",
     "ChimesAmethystAmbientMixin",
-    "ChimesGlassAmbientMixin"
+    "ChimesGlassAmbientMixin",
+    "FallingLeavesPlusWindAccess",
+    "FallingLeavesPlusParticleMixin",
+    "FallingLeavesPlusSpawnMixin"
   ],
   "injectors": {
     "defaultRequire": 1
@@ -55,6 +63,9 @@
     "SableBlockChangeMixin",
     "SmallShipsWindManagerMixin",
     "TreasureBalloonsUpdateMixin",
-    "EntityWindMovementMixin"
+    "DelightOfFlightBalloonMixin",
+    "EntityWindMovementMixin",
+    "IcyHorseGliderWindMixin",
+    "SuperbWarfareAircraftWindMixin"
   ]
 }

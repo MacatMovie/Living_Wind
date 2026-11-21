@@ -33,7 +33,7 @@ public final class FabricSettingsScreen extends Screen {
     private static final int TOP = 36, BOTTOM = 39, ROW_HEIGHT = 26;
     private static final List<String> COMMON_COMPAT = List.of(
         "seasonalCompatibility", "createWindmills", "valkyrienSkies", "aeronautics",
-        "highSeas", "smallShips", "alekiShips", "treasureBalloons", "gliderWind");
+        "highSeas", "valkyrienSails", "smallShips", "alekiShips", "treasureBalloons", "tumbleweed", "gliderWind");
 
     // Forge 1.20.1 introduced these client integrations before they were
     // reorganized under compatibility in NeoForge 1.21.1. Keep their original
@@ -42,9 +42,9 @@ public final class FabricSettingsScreen extends Screen {
         "fancyWorldAnimations", "chimes", "swingingSigns", "swingingLanterns",
         "windblown", "interactiveFoliage", "supplementaries", "shaderBridge");
     private static final List<String> CLIENT_COMPAT_ORDER = List.of(
-        "seasonalCompatibility", "prettyRain", "particleRain", "particular",
+        "seasonalCompatibility", "prettyRain", "particleRain", "biomeParticleWeather", "scorchful", "particular",
         "advancedChimneys", "supplementaries", "swingingSigns", "swingingLanterns",
-        "chimes", "fancyWorldAnimations", "windblown", "interactiveFoliage", "shaderBridge");
+        "chimes", "fancyWorldAnimations", "windblown", "interactiveFoliage", "grassierGrass", "shaderBridge");
 
     private final Screen parent;
     // Root, or a category path with a root section (common / client).
@@ -176,6 +176,8 @@ public final class FabricSettingsScreen extends Screen {
         String tr = "livingwind.config.section." + key;
         if (I18n.exists(tr)) return I18n.get(tr);
         if (key.equals("valkyrienSkies")) return "Valkyrien Skies / Eureka / Clockwork";
+        if (key.equals("tumbleweed")) return "Tumbleweed";
+        if (key.equals("valkyrienSails")) return "Valkyrien Sails";
         if (key.equals("alekiShips")) return "Aleki's Nifty Ships";
         if (key.equals("fancyWorldAnimations")) return "Fancy World Animations";
         if (key.equals("seasonalCompatibility")) return "Seasonal Compatibility";

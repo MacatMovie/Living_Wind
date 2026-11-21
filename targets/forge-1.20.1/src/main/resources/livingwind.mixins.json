@@ -23,6 +23,7 @@
     "DynamicSurroundingsWindMixin",
     "DynamicSurroundingsParticleWindMixin",
     "SwingingSignsSwayMixin",
+    "AmendmentsPendulumWindMixin",
     "SwingingLanternsWindMixin",
     "SwingingLanternsPhysicsWindLimitMixin",
     "SwingingLanternsExposureAccess",
@@ -30,6 +31,9 @@
     "WindblownFrameMixin",
     "WindblownShaderMixin",
     "InteractiveFoliageWindMixin",
+    "GrassierGrassShaderWindMixin",
+    "GrassierGrassDetachedBladeMixin",
+    "InteractiveFoliageUnderwaterMixin",
     "InteractiveFoliageSwayShaderMixin",
     "InteractiveFoliageLegacyShaderMixin",
     "SmallShipsClientWindManagerMixin",
@@ -53,6 +57,11 @@
     "SmallShipsWindManagerMixin",
     "AlekiShipsWindModelsMixin",
     "TreasureBalloonsUpdateMixin",
-    "EntityWindMovementMixin"
+    "DelightOfFlightBalloonMixin",
+    "EntityWindMovementMixin",
+    "IcyHorseGliderWindMixin",
+    "TumbleweedWindMixin",
+    "SuperbWarfareAircraftWindMixin",
+    "ValkyrienSailsWindManagerMixin"
   ]
 }

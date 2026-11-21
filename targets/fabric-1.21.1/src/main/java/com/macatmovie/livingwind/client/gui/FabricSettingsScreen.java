@@ -42,9 +42,9 @@ public final class FabricSettingsScreen extends Screen {
         "fancyWorldAnimations", "chimes", "swingingSigns", "swingingLanterns",
         "windblown", "interactiveFoliage", "supplementaries", "shaderBridge");
     private static final List<String> CLIENT_COMPAT_ORDER = List.of(
-        "seasonalCompatibility", "prettyRain", "particleRain", "particular",
+        "seasonalCompatibility", "prettyRain", "particleRain", "biomeParticleWeather", "scorchful", "particular", "fallingLeavesPlus",
         "advancedChimneys", "supplementaries", "swingingSigns", "swingingLanterns",
-        "chimes", "fancyWorldAnimations", "windblown", "interactiveFoliage", "shaderBridge");
+        "chimes", "fancyWorldAnimations", "windblown", "interactiveFoliage", "grassierGrass", "shaderBridge");
 
     private final Screen parent;
     // Root, or a category path with a root section (common / client).
@@ -91,7 +91,7 @@ public final class FabricSettingsScreen extends Screen {
             } else if (!common && !groups.isEmpty()) {
                 // Presentation-only migration: never change setting.path or its
                 // on-disk JSON key, or old Forge-derived Fabric configs would reset.
-                if (LEGACY_CLIENT_COMPAT_ROOTS.contains(groups.get(0))) {
+                if (LEGACY_CLIENT_COMPAT_ROOTS.contains(groups.get(0)) || "fallingLeavesPlus".equals(groups.get(0))) {
                     groups.add(0, "compatibility");
                 } else if (groups.size() == 1 && "compatibility".equals(groups.get(0))) {
                     String section = legacyClientCompatSection(pieces[pieces.length - 1]);

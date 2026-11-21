@@ -244,10 +244,10 @@ public final class WindConfig {
             .defineInRange("seasonalWindIntensity", 1.0, 0.0, 2.0);
         b.pop();
 
-        b.comment("Optional directional wind for deployed gliders from Gliders, Reliable Gliders, and Paraglider. Independent of Entity Wind; only affects actively gliding local players.")
+        b.comment("Optional directional wind for deployed gliders from Gliders, Reliable Gliders, Paraglider, SkyLands and Icy's Better Horses. Independent of Entity Wind; affects actively gliding players and stabilizer-equipped horses.")
             .translation("livingwind.config.section.gliderWind")
             .push("gliderWind");
-        GLIDER_WIND_ENABLED = b.comment("Let wind push an actively gliding player. Handles headwinds, tailwinds and sideways drift; prevents stacking with ordinary player Entity Wind.")
+        GLIDER_WIND_ENABLED = b.comment("Let wind push actively gliding players and horses equipped with Icy's stabilizer. Handles headwinds, tailwinds and sideways drift without stacking normal Entity Wind.")
             .define("enabled", true);
         GLIDER_WIND_INFLUENCE = b.comment("Strength of the glider-only wind effect. 0 disables movement, 1 is balanced; higher values are stronger. The effect is smooth and capped.")
             .defineInRange("influence", 1.0, 0.0, 3.0);

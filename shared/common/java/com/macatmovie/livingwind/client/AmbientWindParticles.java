@@ -39,6 +39,10 @@ public final class AmbientWindParticles {
         int radius = ClientWindConfig.AMBIENT_RADIUS.get();
         BlockPos origin = player.blockPosition();
         boolean nether = level.dimension() == Level.NETHER;
+        boolean end = level.dimension() == Level.END;
+        // The Beyond's Migration Storm reaches End terrain that otherwise has no
+        // ambient emitters. Make its wind visible without increasing sample cost.
+        float endStormDensity = end ? 1.0f + 0.75f * Mth.clamp(level.getThunderLevel(1.0f), 0.0f, 1.0f) : 1.0f;
         boolean twilightForest = "twilightforest".equals(level.dimension().location().getNamespace());
         SeasonalWindCompat.Snapshot season = ClientWindConfig.SEASONAL_PARTICLES_ENABLED.get()
             ? SeasonalWindCompat.snapshot(level) : null;
@@ -46,7 +50,9 @@ public final class AmbientWindParticles {
         for (int i = 0; i < samples; i++) {
             // Most attempts sample exposed terrain/canopy tops. A smaller share samples the nearby
             // volume so leaf/plant particles can also originate from visible tree and plant faces.
-            boolean surfaceSample = !nether && random.nextFloat() < 0.68f;
+            // End islands are mostly open stone/rock rather than leaf/grass volumes.
+            // More surface attempts make the same bounded sample budget useful there.
+            boolean surfaceSample = !nether && random.nextFloat() < (end ? 0.85f : 0.68f);
             // The Twilight Forest canopy is frequently much higher than the player.
             // Half its surface attempts use the ground heightmap, which ignores leaves.
             // The usual shelter check still prevents pixels inside enclosed buildings.
@@ -85,7 +91,7 @@ public final class AmbientWindParticles {
             );
             float windActivity = (float) Math.pow(normalized, 1.45);
             float density = ClientWindConfig.AMBIENT_DENSITY_MULTIPLIER.get().floatValue();
-            float chance = kind.baseChance * density * (0.02f + windActivity * 2.98f);
+            float chance = kind.baseChance * density * endStormDensity * (0.02f + windActivity * 2.98f);
             if (season != null && !nether) {
                 String category = switch (kind) {
                     case LEAF -> "canopy";
@@ -142,7 +148,9 @@ public final class AmbientWindParticles {
             : Heightmap.Types.WORLD_SURFACE, x, z) - 1;
         if (Math.abs(y - origin.getY()) > 16) return null;
         BlockPos pos = new BlockPos(x, y, z);
-        return underCanopy || level.canSeeSky(pos.above()) ? pos : null;
+        // The End has no skylight. Its exposed island tops are still valid
+        // emitters even though canSeeSky() is not reliable in that dimension.
+        return underCanopy || level.dimension() == Level.END || level.canSeeSky(pos.above()) ? pos : null;
     }
 
     /**

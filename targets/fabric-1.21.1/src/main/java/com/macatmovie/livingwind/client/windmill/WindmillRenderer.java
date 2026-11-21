@@ -15,8 +15,9 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix4f;
 
-/** Animated head turns with the wind travel direction, while its 12 pitched wooden boards spin around the axle.
- * The crossed-plane stand is rendered by Minecraft's ordinary static block model instead. */
+/** Animated head turns the rotor into the incoming wind (tail downwind), while
+ * its 12 pitched wooden boards spin around the axle. The crossed-plane stand
+ * is rendered by Minecraft's ordinary static block model instead. */
 public final class WindmillRenderer implements BlockEntityRenderer<WindmillBlockEntity> {
     private static final ResourceLocation TAIL = LivingWind.id("textures/block/windmill_tail.png");
     private static final ResourceLocation WHEEL = LivingWind.id("textures/block/windmill_wheel.png");

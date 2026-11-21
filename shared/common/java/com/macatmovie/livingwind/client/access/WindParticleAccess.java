@@ -5,6 +5,9 @@ import org.jetbrains.annotations.Nullable;
 
 public interface WindParticleAccess {
     void livingwind$setParticleType(@Nullable ResourceLocation id);
+
+    void livingwind$setScorchfulStormDust(boolean stormDust);
+    boolean livingwind$isScorchfulStormDust();
     @Nullable ResourceLocation livingwind$getParticleType();
 
     // Particle position fields are protected; provide access through the existing mixin.
@@ -14,7 +17,13 @@ public interface WindParticleAccess {
 
     double livingwind$getVelocityX();
     double livingwind$getVelocityZ();
+    boolean livingwind$isOnGround();
     void livingwind$setHorizontalVelocity(double x, double z);
+
+    // Mark SkyLands' source-anchored vanilla cactus particles and Cloud Staff
+    // indicators once during creation; avoid world/block scans in particle ticks.
+    void livingwind$setSkylandsSourceAnchored(boolean anchored);
+    boolean livingwind$isSkylandsSourceAnchored();
 
     // A few bytes per particle, not a global per-particle map: retain the most recent
     // CONFIRMED sheltered position during brief cache misses (also safe with Async Particles).

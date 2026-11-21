@@ -56,6 +56,10 @@ public final class ClientWindConfig {
     public static final FabricConfigSpec.EnumValue<EclipticLeavesSource> ECLIPTIC_LEAVES_SOURCE;
     public static final FabricConfigSpec.BooleanValue PRETTY_RAIN_COMPAT;
     public static final FabricConfigSpec.BooleanValue PARTICLE_RAIN_COMPAT;
+    public static final FabricConfigSpec.BooleanValue BIOME_PARTICLE_WEATHER_COMPAT;
+    public static final FabricConfigSpec.DoubleValue BIOME_PARTICLE_WEATHER_MULTIPLIER;
+    public static final FabricConfigSpec.BooleanValue SCORCHFUL_DUST_COMPAT;
+    public static final FabricConfigSpec.DoubleValue SCORCHFUL_DUST_MULTIPLIER;
     public static final FabricConfigSpec.BooleanValue ADVANCED_CHIMNEYS_WIND_COMPAT;
     public static final FabricConfigSpec.DoubleValue PARTICLE_RAIN_WIND_MULTIPLIER;
     public static final FabricConfigSpec.DoubleValue PRETTY_RAIN_WIND_MULTIPLIER;
@@ -80,6 +84,8 @@ public final class ClientWindConfig {
     public static final FabricConfigSpec.BooleanValue SHELTER_LOW_COST;
     public static final FabricConfigSpec.BooleanValue SWINGING_SIGNS_COMPAT;
     public static final FabricConfigSpec.DoubleValue SWINGING_SIGNS_WIND_MULTIPLIER;
+    public static final FabricConfigSpec.BooleanValue AMENDMENTS_WIND_COMPAT;
+    public static final FabricConfigSpec.DoubleValue AMENDMENTS_WIND_MULTIPLIER;
     public static final FabricConfigSpec.BooleanValue SWINGING_LANTERNS_COMPAT;
     public static final FabricConfigSpec.DoubleValue SWINGING_LANTERNS_WIND_MULTIPLIER;
     public static final FabricConfigSpec.BooleanValue FWA_WIND_COMPAT;
@@ -90,6 +96,9 @@ public final class ClientWindConfig {
     public static final FabricConfigSpec.BooleanValue WINDBLOWN_WIND_COMPAT;
     public static final FabricConfigSpec.DoubleValue WINDBLOWN_WIND_MULTIPLIER;
     public static final FabricConfigSpec.BooleanValue INTERACTIVE_FOLIAGE_WIND_COMPAT;
+    public static final FabricConfigSpec.BooleanValue GRASSIER_GRASS_WIND_COMPAT;
+    public static final FabricConfigSpec.DoubleValue GRASSIER_GRASS_WIND_MULTIPLIER;
+    public static final FabricConfigSpec.DoubleValue GRASSIER_GRASS_WAVE_SPEED_MULTIPLIER;
     public static final FabricConfigSpec.DoubleValue FWA_WIND_IMPACT;
     public static final FabricConfigSpec.DoubleValue FWA_CHAIN_INTENSITY;
     public static final FabricConfigSpec.DoubleValue FWA_LANTERN_INTENSITY;
@@ -326,6 +335,40 @@ public final class ClientWindConfig {
             )
             .translation("livingwind.config.particleRainWindMultiplier")
             .defineInRange("particleRainWindMultiplier", 0.55, 0.0, 2.0);
+        b.comment("Biome Particle Weather (Impactful Weather) integration.")
+            .translation("livingwind.config.section.biomeParticleWeather")
+            .push("biomeParticleWeather");
+        BIOME_PARTICLE_WEATHER_COMPAT = b.comment(
+                "Steer Biome Particle Weather's rain, snow, blizzards, sandstorms and tumblebushes with Living Wind.",
+                "Respects particle blacklists and exposure; splashes, ripples, fireflies and stationary particles are unaffected.",
+                "Client-only optional compatibility. No dependency is required."
+            )
+            .translation("livingwind.config.biomeParticleWeatherCompat")
+            .define("biomeParticleWeatherWind", true);
+        BIOME_PARTICLE_WEATHER_MULTIPLIER = b.comment(
+                "Horizontal speed of Biome Particle Weather particles in Living Wind. 0 disables wind drift.",
+                "Leaves the mod's vertical physics, rendering, spawning and collision untouched."
+            )
+            .translation("livingwind.config.biomeParticleWeatherMultiplier")
+            .defineInRange("biomeParticleWeatherMultiplier", 1.0, 0.0, 3.0);
+        b.pop();
+        b.comment("Scorchful sandstorm dust wind (Fabric 1.20.1/1.21.1, NeoForge 1.21.1).")
+            .translation("livingwind.config.section.scorchful")
+            .push("scorchful");
+        SCORCHFUL_DUST_COMPAT = b.comment(
+                "Make Scorchful sandstorm dust follow Living Wind's synchronized direction and strength.",
+                "Disabling restores Scorchful's own horizontal dust motion. Does not affect sandstorm mechanics or fog.",
+                "Optional and client-only; no Scorchful dependency is required."
+            )
+            .translation("livingwind.config.scorchfulDustCompat")
+            .define("windDrivenSandstormDust", true);
+        SCORCHFUL_DUST_MULTIPLIER = b.comment(
+                "Horizontal Scorchful sandstorm dust movement multiplier. 0 removes wind drift.",
+                "Scorchful retains its own dust speed setting, vertical physics, spawning and rendering."
+            )
+            .translation("livingwind.config.scorchfulDustMultiplier")
+            .defineInRange("dustWindMultiplier", 1.0, 0.0, 3.0);
+        b.pop();
         FALLING_LEAVES_SOURCE = b.comment(
                 "Choose which mod generates falling tree-leaf particles when Particular is installed.",
                 "LIVING_WIND (default): only Living Wind. PARTICULAR: only Particular. BOTH: both.",
@@ -458,6 +501,17 @@ public final class ClientWindConfig {
             .defineInRange("windMultiplier", 1.0, 0.0, 3.0);
         b.pop();
 
+        b.comment("Amendments wall lantern and hanging sign pendulum animations (client-side only).")
+            .translation("livingwind.config.section.amendments")
+            .push("amendments");
+        AMENDMENTS_WIND_COMPAT = b.comment("Let Living Wind influence Amendments wall lanterns and hanging signs, preserving native collision, damping, and attachment rules.")
+            .translation("livingwind.config.amendmentsEnabled")
+            .define("enabled", true);
+        AMENDMENTS_WIND_MULTIPLIER = b.comment("Strength of wind-driven Amendments swinging. 0 removes added wind force; original collision swinging remains.")
+            .translation("livingwind.config.amendmentsMultiplier")
+            .defineInRange("windMultiplier", 1.0, 0.0, 3.0);
+        b.pop();
+
         b.comment("Optional Swinging Lanterns 2.0.4 integration; its physics, collisions and Create motion remain native.")
             .translation("livingwind.config.section.swingingLanterns")
             .push("swingingLanterns");
@@ -484,6 +538,22 @@ public final class ClientWindConfig {
             .translation("livingwind.config.interactiveFoliageWind")
             .define("enabled", true);
         b.pop();
+
+        b.push("compatibility");
+        b.comment("Optional Grassier Grass 1.4.5 shader/compute grass and plant wind. All other Grassier Grass animation and trails remain unchanged.")
+            .translation("livingwind.config.section.grassierGrass")
+            .push("grassierGrass");
+        GRASSIER_GRASS_WIND_COMPAT = b.comment("Drive Grassier Grass blade lean, plant sway, rolling noise field and flying grass blades using Living Wind direction and strength. OFF restores Grassier Grass's original wind. No hard dependency.")
+            .translation("livingwind.config.grassierGrassWindEnabled")
+            .define("enabled", true);
+        GRASSIER_GRASS_WIND_MULTIPLIER = b.comment("Grassier Grass bending and wind-driven detached blade density; 1.0 matches Living Wind strength, 0 disables wind bending (interaction trails remain).")
+            .translation("livingwind.config.grassierGrassWindMultiplier")
+            .defineInRange("windMultiplier", 1.0, 0.0, 5.0);
+        GRASSIER_GRASS_WAVE_SPEED_MULTIPLIER = b.comment("Rolling wind noise travel speed only; does not modify blade bend strength or flutter. 0 freezes the travelling field wave while allowing gust-induced bending.")
+            .translation("livingwind.config.grassierGrassWaveSpeedMultiplier")
+            .defineInRange("waveSpeedMultiplier", 1.0, 0.0, 5.0);
+        b.pop();
+        b.pop(); // compatibility; existing legacy client option paths are unchanged
 
         b.comment("Optional Supplementaries wind vane animation compatibility.")
             .translation("livingwind.config.section.supplementaries")

@@ -13,12 +13,45 @@ import net.minecraft.resources.ResourceLocation;
  */
 public final class BuiltinParticleBlacklist {
     public static final List<String> IDS = List.of(
+        // Scorchful: geyser water is source-driven, and its animated bat is
+        // not airborne sand. Only scorchful:dust_grain receives storm wind.
+        "scorchful:spurting_water",
+        "scorchful:bat",
         "minecraft:block_marker",
         "minecraft:elder_guardian",
         "minecraft:explosion_emitter",
         "minecraft:flash",
+        // Amendments: cauldron and hit/impact effects should remain localized.
+        "amendments:boiling_bubble",
+        "amendments:fluid_splash",
+        "amendments:fireball_explosion",
+        "amendments:fireball_explosion_emitter",
         "particlerain:streak",
         "particlerain:ground_fog",
+        // Biome Particle Weather: impact splashes and water-surface ripples
+        // must stay at the point of impact. Only falling rain / rain trails
+        // should be redirected by Living Wind's weather compatibility.
+        // The 1.20.1 Impactful Weather builds use a different namespace.
+        "biomeparticleweather:rain_ripple",
+        "biomeparticleweather:rain_splash",
+        "impactfulweather:rainsplash",
+        // Valkyrien Sails steers its wind streaks itself using the shared wind provider.
+        "vs_sails:wind_particle",
+        // Create: Atmospherics (aeronauticswinds) already steers these through its
+        // own wind field, or anchors them to water/ground/actor sources. Never
+        // stack Living Wind's generic per-particle acceleration on top.
+        "aeronauticswinds:streak",
+        "aeronauticswinds:rain_streak",
+        "aeronauticswinds:sea_ripple",
+        "aeronauticswinds:sea_foam",
+        "aeronauticswinds:sea_swash",
+        "aeronauticswinds:rain_splash",
+        "aeronauticswinds:wake_puff",
+        "aeronauticswinds:river_fleck",
+        "aeronauticswinds:river_foam",
+        "aeronauticswinds:firefly",
+        "aeronauticswinds:glider_wisp",
+        "aeronauticswinds:heat_shimmer",
         "minecraft:dripping_water",
         "cosycritters:bird",
         "cosycritters:hat_man",
@@ -208,6 +241,22 @@ public final class BuiltinParticleBlacklist {
         "subtle_effects:falling_snoring",
         "subtle_effects:command_block",
         "subtle_effects:beacon",
+        // Charged electricity is a localized electrical effect, not airborne material.
+        "subtle_effects:charged_electricity",
+        // SkyLands: tethered / scripted effects, source-centered cactus glints,
+        // autonomous fireflies, and attack particles must retain native motion.
+        // Large biome clouds and small ambient cloud puffs are steered separately.
+        "skylands:cactus_warm_pixel",
+        "skylands:cactus_cold_pixel",
+        "skylands:firefly",
+        "skylands:storm_cloud",
+        "skylands:wind",
+        "skylands:fast",
+        "skylands:empty",
+        "skylands:item_break",
+        "skylands:ice",
+        "skylands:temp_fire_particle",
+        "skylands:cloud_barrier_2",
         "subtle_effects:item_rarity",
         "subtle_effects:end_portal",
         "subtle_effects:end_crystal_magic",

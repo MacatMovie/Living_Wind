@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(ShaderInstance.class)
 public abstract class FabricInteractiveFoliageLegacyShaderMixin {
     @ModifyVariable(
-            method = "<init>(Lnet/minecraft/server/packs/resources/ResourceProvider;Lnet/minecraft/resources/ResourceLocation;Lcom/mojang/blaze3d/vertex/VertexFormat;)V",
+            method = "<init>(Lnet/minecraft/server/packs/resources/ResourceProvider;Ljava/lang/String;Lcom/mojang/blaze3d/vertex/VertexFormat;)V",
             at = @At("HEAD"), argsOnly = true, ordinal = 0, require = 0)
     private static ResourceProvider livingwind$wrapInteractiveFoliageLegacyShader(ResourceProvider provider) {
         return InteractiveFoliageWindCompat.wrapLegacyProvider(provider);

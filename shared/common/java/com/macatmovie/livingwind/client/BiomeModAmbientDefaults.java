@@ -5,7 +5,7 @@ import java.util.Map;
 import com.macatmovie.livingwind.client.AmbientEmitterBlocks.Kind;
 
 /**
- * Optional natural terrain and vegetation emitters for three biome mods.
+ * Optional natural terrain and vegetation emitters for biome mods.
  * Only names verified against the supplied mod jars are included. Missing blocks are safe:
  * the ambient sampler resolves them by registered block ID, not by loading optional classes.
  * Most modded tree leaves are already included via #minecraft:leaves.
@@ -88,6 +88,21 @@ public final class BiomeModAmbientDefaults {
             "yellow_chalk", "lime_chalk", "pink_chalk", "gray_chalk",
             "light_gray_chalk", "cyan_chalk", "purple_chalk", "blue_chalk",
             "brown_chalk", "green_chalk", "red_chalk", "black_chalk");
+
+        // The Beyond (NeoForge 1.21.1). These block IDs are from BeyondBlocks;
+        // include the biomes' actual natural ground and vegetation, not machines,
+        // liquids, portals or structure-only decorations. Vanilla End stone is
+        // registered separately in AmbientEmitterBlocks.
+        add(out, "the_beyond", Kind.DUST,
+            "engraved_end_stone", "bedazzled_end_stone",
+            "plate_block", "plated_end_stone", "soot_block", "gaussanite",
+            "nacre", "raked_nacre", "unstable_nacre", "rich_nacre",
+            "rich_raked_nacre", "pale_nacre", "pale_raked_nacre",
+            "pearl", "stardust");
+        add(out, "the_beyond", Kind.GRASS,
+            "zymote", "reaching_zymote", "creeping_zymote",
+            "vilet", "vile_growth", "obiroot_sprout", "obiroot_arm",
+            "perka_stalk", "bleeding_thorn", "blinding_thorn");
 
         return Map.copyOf(out);
     }

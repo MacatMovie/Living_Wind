@@ -58,6 +58,15 @@ public final class WindDimensionSettings {
         }
     }
 
+    /** Explicit admin choices take priority over The Beyond's optional End exception. */
+    public static boolean hasExplicitEndRule() {
+        if (overrides().containsKey("minecraft:the_end")) return true;
+        for (String entry : WindConfig.DIMENSION_BLACKLIST.get()) {
+            if ("minecraft:the_end".equalsIgnoreCase(entry.trim())) return true;
+        }
+        return false;
+    }
+
     /** Old Nether/End modes and blacklist remain valid for existing configs without migration. */
     public static Mode mode(ServerLevel level) {
         String id = level.dimension().location().toString();
@@ -74,6 +83,9 @@ public final class WindDimensionSettings {
             };
         }
         if (level.dimension() == Level.END) {
+            // Run the underlying directional simulation for The Beyond; its wind
+            // is only EXPOSED in the special biome or during End thunder.
+            if (BeyondEndWindCompat.scopedEnd(level)) return Mode.NORMAL;
             return switch (WindConfig.END_WIND_MODE.get()) {
                 case DISABLED -> Mode.DISABLED;
                 case VERY_WEAK -> Mode.VERY_WEAK;

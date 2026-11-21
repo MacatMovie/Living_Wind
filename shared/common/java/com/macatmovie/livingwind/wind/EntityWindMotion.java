@@ -1,12 +1,14 @@
 package com.macatmovie.livingwind.wind;
 
 import com.macatmovie.livingwind.api.WindApi;
+import com.macatmovie.livingwind.compat.IcyHorseGliderWindCompat;
 import com.macatmovie.livingwind.client.ClientWindState;
 import com.macatmovie.livingwind.config.WindConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.vehicle.Boat;
 import net.minecraft.tags.FluidTags;
@@ -50,6 +52,8 @@ public final class EntityWindMotion {
             maxDownwind = 0.24;
             groundFactor = 0.45; // Grounded items move less, airborne/floating items drift freely.
         } else if (entity instanceof Mob) {
+            // A deployed stabilizer uses dedicated Glider Wind: never stack Mob Wind.
+            if (entity instanceof AbstractHorse horse && IcyHorseGliderWindCompat.handlesMobWind(horse)) return;
             if (!WindConfig.ENTITY_WIND_MOBS.get() || entity.isInWaterOrBubble()) return;
             groundedMultiplier = WindConfig.ENTITY_WIND_MOB_GROUNDED_MULTIPLIER.get();
             airborneMultiplier = WindConfig.ENTITY_WIND_MOB_MULTIPLIER.get();

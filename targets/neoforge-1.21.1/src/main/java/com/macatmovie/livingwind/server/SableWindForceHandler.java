@@ -88,6 +88,7 @@ public final class SableWindForceHandler implements SubLevelObserver {
     private final boolean marineSailPhysicsInstalled =
             net.neoforged.fml.ModList.get().isLoaded("create_submarine")
             || net.neoforged.fml.ModList.get().isLoaded("deepseas")
+            || net.neoforged.fml.ModList.get().isLoaded("aeronauticswinds")
             || net.neoforged.fml.ModList.get().isLoaded("highseas")
             || net.neoforged.fml.ModList.get().isLoaded("create_high_seas");
     private boolean disabled;

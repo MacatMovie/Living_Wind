@@ -31,7 +31,8 @@ public record WindSyncPayload(
     boolean entityWindBoats,
     float entityWindBoatMultiplier,
     boolean gliderWindEnabled,
-    float gliderWindInfluence
+    float gliderWindInfluence,
+    float createAtmosphericsWindMultiplier
 ) implements CustomPacketPayload {
     public static final Type<WindSyncPayload> TYPE = new Type<>(LivingWind.id("wind_sync"));
 
@@ -42,7 +43,7 @@ public record WindSyncPayload(
                 buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
                 ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_LONG.decode(buf), buf.readBoolean(),
                 ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_INT.decode(buf),
-                buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readBoolean(), buf.readFloat()
+                buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readFloat()
             );
         }
 
@@ -71,6 +72,7 @@ public record WindSyncPayload(
             buf.writeFloat(value.entityWindBoatMultiplier());
             buf.writeBoolean(value.gliderWindEnabled());
             buf.writeFloat(value.gliderWindInfluence());
+            buf.writeFloat(value.createAtmosphericsWindMultiplier());
         }
     };
 
@@ -81,7 +83,8 @@ public record WindSyncPayload(
             | (WindConfig.SMALL_SHIPS_WIND_ENABLED.get() ? 16 : 0)
             | (WindConfig.TREASURE_BALLOONS_WIND_ENABLED.get() ? 32 : 0)
             | (windDisabled ? 64 : 0)
-            | (WindConfig.ENTITY_WIND_CHECK_SHELTER.get() ? 256 : 0);
+            | (WindConfig.ENTITY_WIND_CHECK_SHELTER.get() ? 256 : 0)
+            | (WindConfig.CREATE_ATMOSPHERICS_WIND_ENABLED.get() ? 512 : 0);
         return new WindSyncPayload(
             s.strength(), s.directionDegrees(), s.turbulence(), s.directionInstability(),
             s.gustStrength(), flags, s.gameTime(),
@@ -100,9 +103,16 @@ public record WindSyncPayload(
             WindConfig.ENTITY_WIND_ENABLED.get() && WindConfig.ENTITY_WIND_BOATS.get(),
             WindConfig.ENTITY_WIND_BOAT_MULTIPLIER.get().floatValue(),
             WindConfig.GLIDER_WIND_ENABLED.get(),
-            WindConfig.GLIDER_WIND_INFLUENCE.get().floatValue()
+            WindConfig.GLIDER_WIND_INFLUENCE.get().floatValue(),
+            WindConfig.CREATE_ATMOSPHERICS_WIND_MULTIPLIER.get().floatValue()
         );
     }
+
+    // Valkyrien Sails is a 1.20.1-only integration. Shared ClientWindState
+    // reads these accessors on every loader; 1.21.1 intentionally carries no
+    // Sails data and must not interpret its reused flags as Sails settings.
+    public boolean valkyrienSailsWindEnabled() { return false; }
+    public float valkyrienSailsWindMultiplier() { return 1.0f; }
 
     public boolean windDisabled() { return (flags & 64) != 0; }
     public boolean entityWindCheckShelter() { return (flags & 256) != 0; }
@@ -113,6 +123,7 @@ public record WindSyncPayload(
     public boolean smallShipsWindEnabled() { return (flags & 16) != 0; }
     /** Server-authoritative toggle, synchronized alongside Treasure Balloons settings. */
     public boolean highSeasWindEnabled() { return (flags & 8) != 0; }
+    public boolean createAtmosphericsWindEnabled() { return (flags & 512) != 0; }
 
     @Override
     public Type<? extends CustomPacketPayload> type() { return TYPE; }

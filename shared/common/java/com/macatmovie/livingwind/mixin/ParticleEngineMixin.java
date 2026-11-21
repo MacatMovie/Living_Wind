@@ -2,6 +2,7 @@ package com.macatmovie.livingwind.mixin;
 
 import com.macatmovie.livingwind.client.ParticularLeafCompat;
 import com.macatmovie.livingwind.client.AtmosphericsDustCompat;
+import com.macatmovie.livingwind.client.SkyLandsParticleWindCompat;
 import com.macatmovie.livingwind.client.access.WindParticleAccess;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
@@ -60,6 +61,12 @@ public abstract class ParticleEngineMixin {
         if (particle instanceof WindParticleAccess access) {
             ResourceLocation id = BuiltInRegistries.PARTICLE_TYPE.getKey(options.getType());
             access.livingwind$setParticleType(id);
+            // Scorchful also uses dust_grain for a scripted Heat Vision burst;
+            // only the larger (scale 10) sandstorm cloud should use ambient wind.
+            access.livingwind$setScorchfulStormDust(
+                com.macatmovie.livingwind.client.ParticleWindFilter.isScorchfulStormParticleOptions(options, id));
+            if (SkyLandsParticleWindCompat.sourceAnchoredAtSpawn(id, x, y, z, xSpeed, ySpeed, zSpeed))
+                access.livingwind$setSkylandsSourceAnchored(true);
         }
         ParticularLeafCompat.finishCreate((ParticleEngine) (Object) this, particle);
     }

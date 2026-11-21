@@ -41,6 +41,10 @@ public final class WindConfig {
     public static final ModConfigSpec.IntValue CREATE_WINDMILL_UPDATE_TICKS;
     public static final ModConfigSpec.BooleanValue SMALL_SHIPS_WIND_ENABLED;
     public static final ModConfigSpec.BooleanValue TREASURE_BALLOONS_WIND_ENABLED;
+    public static final ModConfigSpec.BooleanValue DELIGHT_OF_FLIGHT_BALLOON_WIND_ENABLED;
+    public static final ModConfigSpec.BooleanValue SUPERB_WARFARE_AIRCRAFT_WIND_ENABLED;
+    public static final ModConfigSpec.DoubleValue SUPERB_WARFARE_AIRCRAFT_WIND_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue DELIGHT_OF_FLIGHT_BALLOON_WIND_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue TREASURE_BALLOONS_WIND_MULTIPLIER;
 
     public static final ModConfigSpec.BooleanValue AERONAUTICS_WIND_ENABLED;
@@ -49,6 +53,11 @@ public final class WindConfig {
     public static final ModConfigSpec.BooleanValue AERONAUTICS_KINETIC_BEARING_DEBUG;
     public static final ModConfigSpec.DoubleValue AERONAUTICS_KINETIC_BEARING_MULTIPLIER;
     public static final ModConfigSpec.BooleanValue HIGH_SEAS_WIND_ENABLED;
+    public static final ModConfigSpec.BooleanValue BEYOND_END_WIND_ENABLED;
+    public static final ModConfigSpec.DoubleValue BEYOND_BIOME_WIND_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue BEYOND_STORM_WIND_MULTIPLIER;
+    public static final ModConfigSpec.BooleanValue CREATE_ATMOSPHERICS_WIND_ENABLED;
+    public static final ModConfigSpec.DoubleValue CREATE_ATMOSPHERICS_WIND_MULTIPLIER;
 
     public static final ModConfigSpec.BooleanValue GLIDER_WIND_ENABLED;
     public static final ModConfigSpec.DoubleValue GLIDER_WIND_INFLUENCE;
@@ -244,10 +253,10 @@ public final class WindConfig {
             .defineInRange("seasonalWindIntensity", 1.0, 0.0, 2.0);
         b.pop();
 
-        b.comment("Optional directional wind for deployed gliders from Gliders, Reliable Gliders, and Paraglider. Independent of Entity Wind; only affects actively gliding local players.")
+        b.comment("Optional directional wind for deployed gliders from Gliders, Reliable Gliders, Paraglider, SkyLands and Icy's Better Horses. Independent of Entity Wind; affects actively gliding players and stabilizer-equipped horses.")
             .translation("livingwind.config.section.gliderWind")
             .push("gliderWind");
-        GLIDER_WIND_ENABLED = b.comment("Let wind push an actively gliding player. Handles headwinds, tailwinds and sideways drift; prevents stacking with ordinary player Entity Wind.")
+        GLIDER_WIND_ENABLED = b.comment("Let wind push actively gliding players and horses equipped with Icy's stabilizer. Handles headwinds, tailwinds and sideways drift without stacking normal Entity Wind.")
             .define("enabled", true);
         GLIDER_WIND_INFLUENCE = b.comment("Strength of the glider-only wind effect. 0 disables movement, 1 is balanced; higher values are stronger. The effect is smooth and capped.")
             .defineInRange("influence", 1.0, 0.0, 3.0);
@@ -381,6 +390,31 @@ public final class WindConfig {
             .define("enabled", true);
         b.pop();
 
+        b.comment("The Beyond 1.0.x (NeoForge 1.21.1): calm End except a local breeze in Lustrous Echoes and wind during Migration Storms.")
+            .translation("livingwind.config.section.theBeyond")
+            .push("theBeyond");
+        BEYOND_END_WIND_ENABLED = b.comment("Give The Beyond's Lustrous Echoes biome a breeze and create wind during End thunderstorms. The End stays calm elsewhere; explicit dimension overrides always win. Disable to restore ordinary End settings.")
+            .translation("livingwind.config.theBeyondEnabled")
+            .define("enabled", true);
+        BEYOND_BIOME_WIND_MULTIPLIER = b.comment("Strength of the small Lustrous Echoes breeze during clear weather. 0 disables biome wind, but storms still work.")
+            .translation("livingwind.config.theBeyondBiomeMultiplier")
+            .defineInRange("biomeWindMultiplier", 1.0, 0.0, 3.0);
+        BEYOND_STORM_WIND_MULTIPLIER = b.comment("Strength of Living Wind during The Beyond's End thunder/Migration Storm. 0 disables storm wind, but the biome breeze remains.")
+            .translation("livingwind.config.theBeyondStormMultiplier")
+            .defineInRange("stormWindMultiplier", 1.0, 0.0, 3.0);
+        b.pop();
+
+        b.comment("Optional Create: Atmospherics (aeronauticswinds) wind-source integration. NeoForge 1.21.1 only; weather and ship physics remain native.")
+            .translation("livingwind.config.section.createAtmospherics")
+            .push("createAtmospherics");
+        CREATE_ATMOSPHERICS_WIND_ENABLED = b.comment("Use Living Wind's server-authoritative direction and strength for Create: Atmospherics' wind simulation. Disable to restore its own wind system. Existing independent weather remains intact.")
+            .translation("livingwind.config.createAtmosphericsWindEnabled")
+            .define("enabled", true);
+        CREATE_ATMOSPHERICS_WIND_MULTIPLIER = b.comment("Atmospherics wind conversion multiplier. 1.0 maps Living Wind strength 0.5 to about 6 m/s. Wind is capped at 55 m/s. Zero gives calm wind.")
+            .translation("livingwind.config.createAtmosphericsWindMultiplier")
+            .defineInRange("windMultiplier", 1.0, 0.0, 3.0);
+        b.pop();
+
         b.comment("Optional Small Ships 2.0 wind integration. The ships retain their sailing physics and use Living Wind's direction/strength instead of independently generated wind.")
             .translation("livingwind.config.section.smallShips")
             .push("smallShips");
@@ -397,6 +431,28 @@ public final class WindConfig {
             .define("enabled", true);
         TREASURE_BALLOONS_WIND_MULTIPLIER = b.comment("Strength of wind-driven Treasure Balloon drift. 1.0 is balanced; 0 disables drift. Does not affect popped balloons.")
             .translation("livingwind.config.treasureBalloonsWindMultiplier")
+            .defineInRange("windMultiplier", 1.0, 0.0, 5.0);
+        b.pop();
+
+        b.comment("Optional Delight o' Flight Phantom Membrane Balloon wind drift (Forge 1.20.1 / NeoForge 1.21.1). Has no effect without the other mod.")
+            .translation("livingwind.config.section.delightOfFlight")
+            .push("delightOfFlight");
+        DELIGHT_OF_FLIGHT_BALLOON_WIND_ENABLED = b.comment("Allow Phantom Membrane Balloons to drift horizontally with Living Wind while rising. Keeps the balloon's original vertical flight and item drops.")
+            .translation("livingwind.config.delightOfFlightBalloonWindEnabled")
+            .define("enabled", true);
+        DELIGHT_OF_FLIGHT_BALLOON_WIND_MULTIPLIER = b.comment("Horizontal balloon drift strength. 0 disables drift, 1.0 is balanced. Maximum drift is capped to prevent excessive movement.")
+            .translation("livingwind.config.delightOfFlightBalloonWindMultiplier")
+            .defineInRange("windMultiplier", 1.0, 0.0, 5.0);
+        b.pop();
+
+        b.comment("Optional Superb Warfare 0.8.9.2 fixed-wing aircraft wind integration (Forge 1.20.1 / NeoForge 1.21.1). No dependency on Superb Warfare.")
+            .translation("livingwind.config.section.superbWarfare")
+            .push("superbWarfare");
+        SUPERB_WARFARE_AIRCRAFT_WIND_ENABLED = b.comment("Allow Living Wind to gently accelerate Superb Warfare planes and jets horizontally while airborne. Does not change engine power, pitch or lift.")
+            .translation("livingwind.config.superbWarfareAircraftWindEnabled")
+            .define("enabled", true);
+        SUPERB_WARFARE_AIRCRAFT_WIND_MULTIPLIER = b.comment("Horizontal wind acceleration multiplier for Superb Warfare aircraft. 0 means no wind effect; 1.0 is subtle; acceleration is capped to avoid extreme gusts.")
+            .translation("livingwind.config.superbWarfareAircraftWindMultiplier")
             .defineInRange("windMultiplier", 1.0, 0.0, 5.0);
         b.pop();
 

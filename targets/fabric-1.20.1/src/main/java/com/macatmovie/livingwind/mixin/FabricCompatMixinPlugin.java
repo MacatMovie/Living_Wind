@@ -16,9 +16,13 @@ public final class FabricCompatMixinPlugin implements IMixinConfigPlugin {
         String mod = null;
         if (mixinClassName.endsWith("WindblownFrameMixin") || mixinClassName.endsWith("WindblownShaderMixin"))
             mod = "windblown";
+        else if (mixinClassName.endsWith("TumbleweedWindMixin")) mod = "tumbleweed";
+        else if (mixinClassName.endsWith("ValkyrienSailsWindManagerMixin")) mod = "vs_sails";
+        else if (mixinClassName.contains("GrassierGrass")) mod = "grassiergrass";
         else if (mixinClassName.contains("SwingingLanterns")) mod = "swinginglanterns";
         else if (mixinClassName.startsWith("com.macatmovie.livingwind.mixin.Chimes")) mod = "chimes";
         else if (mixinClassName.endsWith("SwingingSignsSwayMixin")) mod = "swingingsigns";
+        else if (mixinClassName.endsWith("AmendmentsPendulumWindMixin")) mod = "amendments";
         else if (mixinClassName.contains("OfficialParticleRain")) mod = "particlerain";
         else if (mixinClassName.contains("InteractiveFoliage")) mod = "mc2_interactivefoliage";
         else if (mixinClassName.endsWith("AmbientSoundsWindCategoryMixin")) mod = "ambientsounds";

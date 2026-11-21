@@ -35,9 +35,11 @@ public final class WindmillMotion {
         var windPos = frame.worldPosition();
         float strength = Mth.clamp(ClientWindState.strengthAt(windPos.getX(), windPos.getY(), windPos.getZ())
             * exposure, 0.0f, 2.0f);
-        // The user-facing windmill should point its head along the wind travel direction,
-        // not into the source. This flips the previous heading by exactly 180 degrees.
-        float targetYaw = WindMath.normalizeDegrees(90.0f - frame.localBearing(ClientWindState.directionDegrees()));
+        // The rotor is on the -X side of the unrotated model, opposite its tail.
+        // Aim the rotor INTO the incoming wind (180 degrees from the air's travel
+        // direction), leaving the tail downwind like a traditional farm windpump.
+        // Do not change WindVaneMotion: weather vanes have their own model orientation.
+        float targetYaw = WindMath.normalizeDegrees(270.0f - frame.localBearing(ClientWindState.directionDegrees()));
         long seed = mill.getBlockPos().asLong();
         double phase = ((seed ^ (seed >>> 17)) & 1023L) * (Math.PI * 2.0 / 1024);
         if (strength > 0.025f) {

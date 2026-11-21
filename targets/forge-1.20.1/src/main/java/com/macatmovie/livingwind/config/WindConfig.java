@@ -44,11 +44,19 @@ public final class WindConfig {
     public static final ForgeConfigSpec.DoubleValue VS_WIND_MAX_SPEED;
     public static final ForgeConfigSpec.IntValue VS_WIND_UPDATE_TICKS;
     public static final ForgeConfigSpec.BooleanValue VS_WIND_WITH_WEATHER2;
+    public static final ForgeConfigSpec.BooleanValue VALKYRIEN_SAILS_WIND_ENABLED;
+    public static final ForgeConfigSpec.DoubleValue VALKYRIEN_SAILS_WIND_MULTIPLIER;
     public static final ForgeConfigSpec.BooleanValue SMALL_SHIPS_WIND_ENABLED;
     public static final ForgeConfigSpec.BooleanValue ALEKI_SHIPS_WIND_ENABLED;
     public static final ForgeConfigSpec.DoubleValue ALEKI_SHIPS_WIND_SCALE;
     public static final ForgeConfigSpec.BooleanValue TREASURE_BALLOONS_WIND_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue DELIGHT_OF_FLIGHT_BALLOON_WIND_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue SUPERB_WARFARE_AIRCRAFT_WIND_ENABLED;
+    public static final ForgeConfigSpec.DoubleValue SUPERB_WARFARE_AIRCRAFT_WIND_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue DELIGHT_OF_FLIGHT_BALLOON_WIND_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue TREASURE_BALLOONS_WIND_MULTIPLIER;
+    public static final ForgeConfigSpec.BooleanValue TUMBLEWEED_WIND_ENABLED;
+    public static final ForgeConfigSpec.DoubleValue TUMBLEWEED_WIND_MULTIPLIER;
 
     public static final ForgeConfigSpec.BooleanValue GLIDER_WIND_ENABLED;
     public static final ForgeConfigSpec.DoubleValue GLIDER_WIND_INFLUENCE;
@@ -243,10 +251,10 @@ public final class WindConfig {
             .defineInRange("seasonalWindIntensity", 1.0, 0.0, 2.0);
         b.pop();
 
-        b.comment("Optional directional wind for deployed gliders from Gliders, Reliable Gliders, and Paraglider. Independent of Entity Wind; only affects actively gliding local players.")
+        b.comment("Optional directional wind for deployed gliders from Gliders, Reliable Gliders, Paraglider, SkyLands and Icy's Better Horses. Independent of Entity Wind; affects actively gliding players and stabilizer-equipped horses.")
             .translation("livingwind.config.section.gliderWind")
             .push("gliderWind");
-        GLIDER_WIND_ENABLED = b.comment("Let wind push an actively gliding player. Handles headwinds, tailwinds and sideways drift; prevents stacking with ordinary player Entity Wind.")
+        GLIDER_WIND_ENABLED = b.comment("Let wind push actively gliding players and horses equipped with Icy's stabilizer. Handles headwinds, tailwinds and sideways drift without stacking normal Entity Wind.")
             .define("enabled", true);
         GLIDER_WIND_INFLUENCE = b.comment("Strength of the glider-only wind effect. 0 disables movement, 1 is balanced; higher values are stronger. The effect is smooth and capped.")
             .defineInRange("influence", 1.0, 0.0, 3.0);
@@ -369,6 +377,17 @@ public final class WindConfig {
             .define("allowAlongsideWeather2", false);
         b.pop();
 
+        b.comment("Optional Valkyrien Sails wind provider (Forge/Fabric 1.20.1). Does not change sail physics, flags or retraction rules.")
+            .translation("livingwind.config.section.valkyrienSails")
+            .push("valkyrienSails");
+        VALKYRIEN_SAILS_WIND_ENABLED = b.comment("Use Living Wind for Valkyrien Sails wind direction and strength. Disable to restore its independent wind/weather providers.")
+            .translation("livingwind.config.valkyrienSailsWindEnabled")
+            .define("enabled", true);
+        VALKYRIEN_SAILS_WIND_MULTIPLIER = b.comment("Scale Living Wind for Valkyrien Sails. The resulting sail-wind strength is capped at 1.0 to preserve its force calculations.")
+            .translation("livingwind.config.valkyrienSailsWindMultiplier")
+            .defineInRange("windMultiplier", 1.0, 0.0, 3.0);
+        b.pop();
+
         b.comment("Optional Small Ships 2.0 wind integration. The ships retain their sailing physics and use Living Wind's direction/strength instead of independently generated wind.")
             .translation("livingwind.config.section.smallShips")
             .push("smallShips");
@@ -396,6 +415,39 @@ public final class WindConfig {
             .define("enabled", true);
         TREASURE_BALLOONS_WIND_MULTIPLIER = b.comment("Strength of wind-driven Treasure Balloon drift. 1.0 is balanced; 0 disables drift. Does not affect popped balloons.")
             .translation("livingwind.config.treasureBalloonsWindMultiplier")
+            .defineInRange("windMultiplier", 1.0, 0.0, 5.0);
+        b.pop();
+
+        b.comment("Optional Delight o' Flight Phantom Membrane Balloon wind drift (Forge 1.20.1 / NeoForge 1.21.1). Has no effect without the other mod.")
+            .translation("livingwind.config.section.delightOfFlight")
+            .push("delightOfFlight");
+        DELIGHT_OF_FLIGHT_BALLOON_WIND_ENABLED = b.comment("Allow Phantom Membrane Balloons to drift horizontally with Living Wind while rising. Keeps the balloon's original vertical flight and item drops.")
+            .translation("livingwind.config.delightOfFlightBalloonWindEnabled")
+            .define("enabled", true);
+        DELIGHT_OF_FLIGHT_BALLOON_WIND_MULTIPLIER = b.comment("Horizontal balloon drift strength. 0 disables drift, 1.0 is balanced. Maximum drift is capped to prevent excessive movement.")
+            .translation("livingwind.config.delightOfFlightBalloonWindMultiplier")
+            .defineInRange("windMultiplier", 1.0, 0.0, 5.0);
+        b.pop();
+
+        b.comment("Optional Tumbleweed v0.5.5 compatibility (Minecraft 1.20.1). No dependency on Tumbleweed.")
+            .translation("livingwind.config.section.tumbleweed")
+            .push("tumbleweed");
+        TUMBLEWEED_WIND_ENABLED = b.comment("Use Living Wind's direction and strength to roll Tumbleweed entities. Existing explicitly assigned custom wind is preserved.")
+            .translation("livingwind.config.tumbleweedWindEnabled")
+            .define("enabled", true);
+        TUMBLEWEED_WIND_MULTIPLIER = b.comment("Tumbleweed roll speed multiplier. 1.0 approximates original speed at Living Wind strength 1.0; 0 disables integration. Speed is capped.")
+            .translation("livingwind.config.tumbleweedWindMultiplier")
+            .defineInRange("windMultiplier", 1.0, 0.0, 5.0);
+        b.pop();
+
+        b.comment("Optional Superb Warfare 0.8.9.2 fixed-wing aircraft wind integration (Forge 1.20.1 / NeoForge 1.21.1). No dependency on Superb Warfare.")
+            .translation("livingwind.config.section.superbWarfare")
+            .push("superbWarfare");
+        SUPERB_WARFARE_AIRCRAFT_WIND_ENABLED = b.comment("Allow Living Wind to gently accelerate Superb Warfare planes and jets horizontally while airborne. Does not change engine power, pitch or lift.")
+            .translation("livingwind.config.superbWarfareAircraftWindEnabled")
+            .define("enabled", true);
+        SUPERB_WARFARE_AIRCRAFT_WIND_MULTIPLIER = b.comment("Horizontal wind acceleration multiplier for Superb Warfare aircraft. 0 means no wind effect; 1.0 is subtle; acceleration is capped to avoid extreme gusts.")
+            .translation("livingwind.config.superbWarfareAircraftWindMultiplier")
             .defineInRange("windMultiplier", 1.0, 0.0, 5.0);
         b.pop();
 

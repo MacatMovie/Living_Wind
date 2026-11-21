@@ -197,6 +197,75 @@ public final class AmbientEmitterBlocks {
     private static Map<String, Kind> buildDefaults() {
         Map<String, Kind> out = new HashMap<>(BASE_DEFAULTS);
         out.putAll(BiomeModAmbientDefaults.entries());
+        // Vanilla End surfaces. The End normally has no wind; these only emit when
+        // a dimension override or The Beyond's local/storm wind enables it.
+        out.put("minecraft:end_stone", Kind.DUST);
+        out.put("minecraft:end_stone_bricks", Kind.DUST);
+        out.put("minecraft:obsidian", Kind.DUST);
+        out.put("minecraft:purpur_block", Kind.DUST);
+        out.put("minecraft:purpur_pillar", Kind.DUST);
+        out.put("minecraft:chorus_plant", Kind.GRASS);
+        out.put("minecraft:chorus_flower", Kind.GRASS);
+        // SkyLands natural biome ground/terrain, validated against ModBlocks in
+        // the updated v0.9.5 source. This only affects optional ambient motes.
+        out.put("skylands:golden_grass_block", Kind.GRASS);
+        out.put("skylands:golden_grass", Kind.GRASS);
+        out.put("skylands:golden_short_grass", Kind.GRASS);
+        out.put("skylands:glaciated_grass_block", Kind.GRASS);
+        out.put("skylands:short_glaciated_grass", Kind.GRASS);
+        out.put("skylands:tall_glaciated_grass", Kind.GRASS);
+        out.put("skylands:arid_grass_block", Kind.GRASS);
+        out.put("skylands:arid_grass", Kind.GRASS);
+        out.put("skylands:lavic_skymetal_grass", Kind.GRASS);
+        out.put("skylands:short_lavic_grass", Kind.GRASS);
+        out.put("skylands:cherry_grass_block", Kind.GRASS);
+        out.put("skylands:cherry_grass", Kind.GRASS);
+        out.put("skylands:cherry_short_grass", Kind.GRASS);
+        out.put("skylands:swamp_grass_block", Kind.GRASS);
+        out.put("skylands:swamp_grass", Kind.GRASS);
+        out.put("skylands:swamp_mossy_skyrock", Kind.GRASS);
+        out.put("skylands:grimstone_mycelium", Kind.GRASS);
+        out.put("skylands:golden_mossy_skyrock", Kind.GRASS);
+        out.put("skylands:golden_mossy_tiled_skyrock", Kind.GRASS);
+        out.put("skylands:glaciated_mossy_skyrock", Kind.GRASS);
+        out.put("skylands:glaciated_mossy_skyrock_bricks", Kind.GRASS);
+        out.put("skylands:cherry_mossy_skyrock", Kind.GRASS);
+        out.put("skylands:cherry_mossy_tiled_skyrock", Kind.GRASS);
+        out.put("skylands:swamp_mossy_skyrock_bricks", Kind.GRASS);
+        out.put("skylands:mossy_sky_sandstone", Kind.GRASS);
+        out.put("skylands:mossy_sky_sandstone_bricks", Kind.GRASS);
+        out.put("skylands:skyrock", Kind.DUST);
+        out.put("skylands:cobbled_skyrock", Kind.DUST);
+        out.put("skylands:tiled_skyrock", Kind.DUST);
+        out.put("skylands:polished_skyrock", Kind.DUST);
+        out.put("skylands:glaciated_skyrock", Kind.DUST);
+        out.put("skylands:cobbled_glaciated_skyrock", Kind.DUST);
+        out.put("skylands:glaciated_skyrock_bricks", Kind.DUST);
+        out.put("skylands:polished_glaciated_skyrock", Kind.DUST);
+        out.put("skylands:chiseled_skyrock", Kind.DUST);
+        out.put("skylands:chiseled_glaciated_skyrock", Kind.DUST);
+        out.put("skylands:grimstone", Kind.DUST);
+        out.put("skylands:polished_grimstone", Kind.DUST);
+        out.put("skylands:grimstone_bricks", Kind.DUST);
+        out.put("skylands:lavic_skymetal", Kind.DUST);
+        out.put("skylands:polished_lavic_skymetal", Kind.DUST);
+        out.put("skylands:lavic_skymetal_bricks", Kind.DUST);
+        out.put("skylands:lavic_skymetal_tiles", Kind.DUST);
+        out.put("skylands:sky_sandstone", Kind.DUST);
+        out.put("skylands:polished_sky_sandstone", Kind.DUST);
+        out.put("skylands:sky_sandstone_bricks", Kind.DUST);
+        out.put("skylands:chiseled_sky_sandstone", Kind.DUST);
+        out.put("skylands:sky_sandstone_pillar_base", Kind.DUST);
+        out.put("skylands:shrine_floor", Kind.DUST);
+        out.put("skylands:shrine_tiles", Kind.DUST);
+        out.put("skylands:sky_sand", Kind.SAND);
+        out.put("skylands:sulfur_sand", Kind.SAND);
+        out.put("skylands:shrine_sand", Kind.SAND);
+        out.put("skylands:cristalizedice", Kind.SNOW);
+        out.put("skylands:golden_leaves", Kind.LEAF);
+        out.put("skylands:glaciated_leaves", Kind.LEAF);
+        out.put("skylands:celestial_tree_leaves", Kind.LEAF);
+        out.put("skylands:lavic_burnt_leaves", Kind.LEAF);
         return Map.copyOf(out);
     }
 

@@ -44,12 +44,14 @@ public final class ClientWindEvents {
             ClientWindState.setBiomeWeight(0.0f);
             ClientBiomeWindCache.reset();
             ClientWindState.tick();
+            com.macatmovie.livingwind.compat.CreateAtmosphericsWindCompat.clientTick(level);
             return;
         }
 
         ClientBiomeWindCache.tick(level, player, tickCounter);
         ClientWindState.tick();
         ClientWindState.updateAltitude(player.getBlockY(), level.dimension() == net.minecraft.world.level.Level.OVERWORLD);
+        com.macatmovie.livingwind.compat.CreateAtmosphericsWindCompat.clientTick(level);
         tickCounter++;
         if (tickCounter % 20 == 1) ParticleWindFilter.refresh();
         WindShelter.configure(ClientWindConfig.REDUCE_WIND_INDOORS.get(),

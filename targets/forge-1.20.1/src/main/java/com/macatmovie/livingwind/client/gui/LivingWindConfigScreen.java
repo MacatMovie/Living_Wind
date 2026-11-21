@@ -100,6 +100,10 @@ public final class LivingWindConfigScreen extends Screen {
         boolTooltip("Combine with Weather2 Wind", WindConfig.VS_WIND_WITH_WEATHER2.get(), WindConfig.VS_WIND_WITH_WEATHER2::set,
             "OFF: Living Wind will not add wind when Weather2 is installed, avoiding stacked wind sources. ON: both supply wind to VS. Turn off Weather2's VS integration to use only Living Wind.");
 
+        header("Valkyrien Sails");
+        bool("Use Living Wind for Valkyrien Sails", WindConfig.VALKYRIEN_SAILS_WIND_ENABLED.get(), WindConfig.VALKYRIEN_SAILS_WIND_ENABLED::set);
+        slider("Valkyrien Sails Wind Multiplier", WindConfig.VALKYRIEN_SAILS_WIND_MULTIPLIER.get(), WindConfig.VALKYRIEN_SAILS_WIND_MULTIPLIER::set, 0, 3);
+
         header("Small Ships 2.0");
         bool("Use Living Wind for Small Ships", WindConfig.SMALL_SHIPS_WIND_ENABLED.get(), WindConfig.SMALL_SHIPS_WIND_ENABLED::set);
 
@@ -110,6 +114,19 @@ public final class LivingWindConfigScreen extends Screen {
         header("Treasure Balloons");
         bool("Wind-Driven Treasure Balloons", WindConfig.TREASURE_BALLOONS_WIND_ENABLED.get(), WindConfig.TREASURE_BALLOONS_WIND_ENABLED::set);
         number("Treasure Balloon Wind Multiplier", WindConfig.TREASURE_BALLOONS_WIND_MULTIPLIER.get(), WindConfig.TREASURE_BALLOONS_WIND_MULTIPLIER::set, 0, 5);
+
+        header("Tumbleweed");
+        bool("Wind-Driven Tumbleweeds", WindConfig.TUMBLEWEED_WIND_ENABLED.get(), WindConfig.TUMBLEWEED_WIND_ENABLED::set);
+        number("Tumbleweed Wind Multiplier", WindConfig.TUMBLEWEED_WIND_MULTIPLIER.get(), WindConfig.TUMBLEWEED_WIND_MULTIPLIER::set, 0, 5);
+
+        header("Superb Warfare");
+        boolTooltip("Wind-Driven Aircraft", WindConfig.SUPERB_WARFARE_AIRCRAFT_WIND_ENABLED.get(), WindConfig.SUPERB_WARFARE_AIRCRAFT_WIND_ENABLED::set,
+            "Apply gentle horizontal Living Wind acceleration to Superb Warfare planes and jets while airborne. OFF restores original aircraft physics.");
+        slider("Aircraft Wind Multiplier", WindConfig.SUPERB_WARFARE_AIRCRAFT_WIND_MULTIPLIER.get(), WindConfig.SUPERB_WARFARE_AIRCRAFT_WIND_MULTIPLIER::set, 0, 5);
+
+        header("Delight o' Flight");
+        bool("Wind-Driven Phantom Membrane Balloons", WindConfig.DELIGHT_OF_FLIGHT_BALLOON_WIND_ENABLED.get(), WindConfig.DELIGHT_OF_FLIGHT_BALLOON_WIND_ENABLED::set);
+        number("Phantom Balloon Wind Multiplier", WindConfig.DELIGHT_OF_FLIGHT_BALLOON_WIND_MULTIPLIER.get(), WindConfig.DELIGHT_OF_FLIGHT_BALLOON_WIND_MULTIPLIER::set, 0, 5);
 
         header("Gliders / Reliable Gliders / Paraglider");
         boolTooltip("Wind Affects Gliding", WindConfig.GLIDER_WIND_ENABLED.get(), WindConfig.GLIDER_WIND_ENABLED::set,
@@ -216,6 +233,9 @@ public final class LivingWindConfigScreen extends Screen {
         header("Particle Rain");
         bool("Particle Rain v4 Wind", ClientWindConfig.PARTICLE_RAIN_COMPAT.get(), ClientWindConfig.PARTICLE_RAIN_COMPAT::set);
         number("Particle Rain v4 Strength", ClientWindConfig.PARTICLE_RAIN_WIND_MULTIPLIER.get(), ClientWindConfig.PARTICLE_RAIN_WIND_MULTIPLIER::set, 0, 2);
+        header("Biome Particle Weather");
+        bool("Biome Particle Weather Wind", ClientWindConfig.BIOME_PARTICLE_WEATHER_COMPAT.get(), ClientWindConfig.BIOME_PARTICLE_WEATHER_COMPAT::set);
+        number("Biome Particle Weather Wind Strength", ClientWindConfig.BIOME_PARTICLE_WEATHER_MULTIPLIER.get(), ClientWindConfig.BIOME_PARTICLE_WEATHER_MULTIPLIER::set, 0, 3);
         header("Particular");
         enumFallingLeavesSource();
         bool("Particular Leaf Density Follows Wind", ClientWindConfig.PARTICULAR_FALLING_LEAVES_COMPAT.get(), ClientWindConfig.PARTICULAR_FALLING_LEAVES_COMPAT::set);
@@ -251,6 +271,15 @@ public final class LivingWindConfigScreen extends Screen {
         header("Interactive Foliage");
         bool("Interactive Foliage Wind", ClientWindConfig.INTERACTIVE_FOLIAGE_WIND_COMPAT.get(), ClientWindConfig.INTERACTIVE_FOLIAGE_WIND_COMPAT::set);
 
+        header("Grassier Grass");
+        boolTooltip("Use Living Wind for Grassier Grass", ClientWindConfig.GRASSIER_GRASS_WIND_COMPAT.get(),
+            ClientWindConfig.GRASSIER_GRASS_WIND_COMPAT::set,
+            "Synchronize 3D grass and plant sway, rolling wind waves and detached blades with Living Wind. OFF restores native Grassier Grass wind.");
+        number("Grass Wind Strength Multiplier", ClientWindConfig.GRASSIER_GRASS_WIND_MULTIPLIER.get(),
+            ClientWindConfig.GRASSIER_GRASS_WIND_MULTIPLIER::set, 0, 5);
+        number("Grass Wave Speed Multiplier", ClientWindConfig.GRASSIER_GRASS_WAVE_SPEED_MULTIPLIER.get(),
+            ClientWindConfig.GRASSIER_GRASS_WAVE_SPEED_MULTIPLIER::set, 0, 5);
+
         header("Exposure");
         bool("Reduce Wind Indoors", ClientWindConfig.REDUCE_WIND_INDOORS.get(), ClientWindConfig.REDUCE_WIND_INDOORS::set);
         number("Shelter Effectiveness", ClientWindConfig.SHELTER_EFFECTIVENESS.get(), ClientWindConfig.SHELTER_EFFECTIVENESS::set, 0, 1);
@@ -265,7 +294,7 @@ public final class LivingWindConfigScreen extends Screen {
         final java.util.List<String> clientIntegrations = java.util.List.of(
             "Seasonal Compatibility (Particles)", "Pretty Rain", "Particle Rain", "Particular", "Advanced Chimneys",
             "Supplementaries", "Swinging Hanging Signs", "Swinging Lanterns", "Chimes", "Fancy World Animations",
-            "Windblown", "Interactive Foliage");
+            "Windblown", "Interactive Foliage", "Grassier Grass");
 
         String section = "";
         java.util.List<Row> hidden = new ArrayList<>();
@@ -297,7 +326,7 @@ public final class LivingWindConfigScreen extends Screen {
             }
             nav("Compatibility", () -> openPage("clientCompatibility"));
         } else if ("commonCompatibility".equals(page)) {
-            for (String integration : new String[] {"Seasonal Compatibility (Wind)", "Create Windmills", "Valkyrien Skies 2 / Eureka / Clockwork", "Gliders / Reliable Gliders / Paraglider", "Small Ships 2.0", "Aleki's Nifty Ships", "Treasure Balloons"}) {
+            for (String integration : new String[] {"Seasonal Compatibility (Wind)", "Create Windmills", "Valkyrien Skies 2 / Eureka / Clockwork", "Gliders / Reliable Gliders / Paraglider", "Valkyrien Sails", "Small Ships 2.0", "Aleki's Nifty Ships", "Treasure Balloons", "Tumbleweed", "Delight o' Flight", "Superb Warfare"}) {
                 nav(integration, () -> openPage(integration));
             }
         } else if ("clientCompatibility".equals(page)) {

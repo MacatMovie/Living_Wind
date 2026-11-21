@@ -12,7 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 
 /** 1.20.1 still uses channel/buffer packets, not 1.21.1 CustomPacketPayload. */
 public final class WindNetworking {
-    public static final ResourceLocation CHANNEL = LivingWind.id("wind_sync_v2");
+    public static final ResourceLocation CHANNEL = LivingWind.id("wind_sync_v3");
     private WindNetworking() {}
     public static void register() { /* No payload type registry on Minecraft 1.20.1. */ }
     public static void sendToLevel(ServerLevel level, WindSnapshot snapshot) {

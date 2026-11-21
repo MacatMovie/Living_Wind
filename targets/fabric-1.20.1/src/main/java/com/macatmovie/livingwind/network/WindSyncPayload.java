@@ -20,6 +20,7 @@ public record WindSyncPayload(
     float altitudeMaxMultiplier,
     float treasureBalloonsWindMultiplier,
     float alekiShipsWindScale,
+    float valkyrienSailsWindMultiplier,
     boolean entityWindPlayers,
     float entityWindClearWeatherMultiplier,
     float entityWindRainMultiplier,
@@ -36,7 +37,7 @@ public record WindSyncPayload(
         return new WindSyncPayload(
             buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(),
             buf.readVarInt(), buf.readVarLong(), buf.readBoolean(),
-            buf.readVarInt(), buf.readVarInt(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readResourceLocation()
+            buf.readVarInt(), buf.readVarInt(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readBoolean(), buf.readFloat(), buf.readResourceLocation()
         );
     }
 
@@ -55,6 +56,7 @@ public record WindSyncPayload(
         buf.writeFloat(altitudeMaxMultiplier);
         buf.writeFloat(treasureBalloonsWindMultiplier);
         buf.writeFloat(alekiShipsWindScale);
+        buf.writeFloat(valkyrienSailsWindMultiplier);
         buf.writeBoolean(entityWindPlayers);
         buf.writeFloat(entityWindClearWeatherMultiplier);
         buf.writeFloat(entityWindRainMultiplier);
@@ -72,6 +74,7 @@ public record WindSyncPayload(
         int flags = (s.windyPeriod() ? 1 : 0) | (s.stormFront() ? 2 : 0)
             | (WindConfig.CREATE_WINDMILLS_ENABLED.get() ? 4 : 0)
             | (WindConfig.SMALL_SHIPS_WIND_ENABLED.get() ? 16 : 0)
+            | (WindConfig.VALKYRIEN_SAILS_WIND_ENABLED.get() ? 512 : 0)
             | (WindConfig.TREASURE_BALLOONS_WIND_ENABLED.get() ? 32 : 0)
             | (WindConfig.ALEKI_SHIPS_WIND_ENABLED.get() ? 128 : 0)
             | (windDisabled ? 64 : 0)
@@ -86,6 +89,7 @@ public record WindSyncPayload(
             WindConfig.ALTITUDE_MAX_MULTIPLIER.get().floatValue(),
             WindConfig.TREASURE_BALLOONS_WIND_MULTIPLIER.get().floatValue(),
             WindConfig.ALEKI_SHIPS_WIND_SCALE.get().floatValue(),
+            WindConfig.VALKYRIEN_SAILS_WIND_MULTIPLIER.get().floatValue(),
             WindConfig.ENTITY_WIND_ENABLED.get() && WindConfig.ENTITY_WIND_PLAYERS.get(),
             WindConfig.ENTITY_WIND_CLEAR_WEATHER_MULTIPLIER.get().floatValue(),
             WindConfig.ENTITY_WIND_RAIN_MULTIPLIER.get().floatValue(),
@@ -106,6 +110,7 @@ public record WindSyncPayload(
     public boolean stormFront() { return (flags & 2) != 0; }
     public boolean createWindmillsEnabled() { return (flags & 4) != 0; }
     public boolean treasureBalloonsWindEnabled() { return (flags & 32) != 0; }
+    public boolean valkyrienSailsWindEnabled() { return (flags & 512) != 0; }
     public boolean smallShipsWindEnabled() { return (flags & 16) != 0; }
     public boolean alekiShipsWindEnabled() { return (flags & 128) != 0; }
 }

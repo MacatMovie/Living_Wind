@@ -30,7 +30,7 @@ import org.jetbrains.annotations.Nullable;
 public final class LivingWindConfigurationSectionScreen extends ConfigurationScreen.ConfigurationSectionScreen {
     // UI-only grouping: keep the existing TOML paths untouched for existing worlds.
     private static final List<String> COMMON_COMPAT = List.of(
-        "seasonalCompatibility", "createWindmills", "aeronautics", "highSeas", "smallShips", "treasureBalloons", "gliderWind"
+        "fallingLeavesPlus", "theBeyond", "seasonalCompatibility", "createWindmills", "aeronautics", "highSeas", "createAtmospherics", "smallShips", "treasureBalloons", "delightOfFlight", "superbWarfare", "gliderWind"
     );
     private record SectionInfo(Map<String, Object> specs, Set<? extends Entry> entries, Component title) {}
     private final Map<String, SectionInfo> commonSections = new LinkedHashMap<>();
@@ -176,13 +176,16 @@ public final class LivingWindConfigurationSectionScreen extends ConfigurationScr
         if ((("volume".equals(key) || "directionalWindVolume".equals(key)) && context.keylist().contains("windAudio"))
                 || ("windImpact".equals(key) && context.keylist().contains("fancyWorldAnimations"))
                 || ("forceMultiplier".equals(key) && context.keylist().contains("aeronautics"))
-                || ("windMultiplier".equals(key) && context.keylist().contains("treasureBalloons"))
+                || ("windMultiplier".equals(key) && (context.keylist().contains("treasureBalloons")
+                    || context.keylist().contains("delightOfFlight")
+                    || context.keylist().contains("superbWarfare")
+                    || context.keylist().contains("createAtmospherics")))
                 || ("strengthFluctuation".equals(key) && context.keylist().contains("weather"))
                 || (context.keylist().contains("entityWind")
                     && ("clearWeatherMultiplier".equals(key) || "rainMultiplier".equals(key)
                         || "thunderMultiplier".equals(key)))) {
             final boolean percent = "strengthFluctuation".equals(key);
-            final double maxVolume = percent ? 1.0
+            final double maxVolume = context.keylist().contains("createAtmospherics") ? 3.0 : percent ? 1.0
                     : "windImpact".equals(key) ? 12.0
                     : ("forceMultiplier".equals(key) || "windMultiplier".equals(key)
                         || (context.keylist().contains("entityWind")

@@ -3,6 +3,7 @@ package com.macatmovie.livingwind.client;
 import com.macatmovie.livingwind.LivingWind;
 import com.macatmovie.livingwind.api.ParticleWindApi;
 import com.macatmovie.livingwind.client.access.WindParticleAccess;
+import com.macatmovie.livingwind.client.ScorchfulDustCompat;
 import com.macatmovie.livingwind.config.ClientWindConfig;
 import com.macatmovie.livingwind.wind.WindMath;
 import java.util.ArrayList;
@@ -41,6 +42,10 @@ public final class ParticleWindFilter {
     private static volatile float force = 0.12f;
     private static volatile boolean prettyRainCompat = true;
     private static volatile boolean particleRainCompat = true;
+    private static volatile boolean biomeParticleWeatherCompat = true;
+    private static volatile boolean scorchfulDustCompat = true;
+    private static volatile float scorchfulDustMultiplier = 1.0f;
+    private static volatile float biomeParticleWeatherMultiplier = 1.0f;
     private static volatile float particleRainWindMultiplier = 0.55f;
     private static volatile float prettyRainWindMultiplier = 0.55f;
     private static final ResourceLocation PARTICULAR_LEAVES_MARKER = new ResourceLocation("particular", "oak_leaf");
@@ -95,6 +100,10 @@ public final class ParticleWindFilter {
         force = ClientWindConfig.PARTICLE_WIND_FORCE.get().floatValue();
         prettyRainCompat = ClientWindConfig.PRETTY_RAIN_COMPAT.get();
         particleRainCompat = ClientWindConfig.PARTICLE_RAIN_COMPAT.get();
+        biomeParticleWeatherCompat = ClientWindConfig.BIOME_PARTICLE_WEATHER_COMPAT.get();
+        scorchfulDustCompat = ClientWindConfig.SCORCHFUL_DUST_COMPAT.get();
+        scorchfulDustMultiplier = ClientWindConfig.SCORCHFUL_DUST_MULTIPLIER.get().floatValue();
+        biomeParticleWeatherMultiplier = ClientWindConfig.BIOME_PARTICLE_WEATHER_MULTIPLIER.get().floatValue();
         particleRainWindMultiplier = ClientWindConfig.PARTICLE_RAIN_WIND_MULTIPLIER.get().floatValue();
         prettyRainWindMultiplier = ClientWindConfig.PRETTY_RAIN_WIND_MULTIPLIER.get().floatValue();
         fallingLeavesSource = ClientWindConfig.FALLING_LEAVES_SOURCE.get();
@@ -172,8 +181,62 @@ public final class ParticleWindFilter {
             && !isTaggedImmune(id) && passesConfiguredFilter(id);
     }
 
+    /** Dedicated BPW movement replaces its horizontal argument instead of stacking generic wind. */
+    public static boolean allowsBiomeParticleWeatherSteering(@Nullable ResourceLocation id, @Nullable Particle particle) {
+        return enabled && biomeParticleWeatherCompat && ClientWindState.hasServerState()
+            && !ClientWindState.dimensionWindDisabled()
+            && BiomeParticleWeatherWindCompat.isWeatherParticle(id)
+            && particle != null
+            && !BuiltinParticleClassBlacklist.contains(particle)
+            && !ParticleWindApi.isRuntimeImmune(id) && !ParticleWindApi.isRuntimeImmune(particle)
+            && !isTaggedImmune(id) && passesConfiguredFilter(id);
+    }
+
+    /** Scorchful's scale-10 storm dust, not any other dust effect. */
+    public static boolean isScorchfulStormParticleOptions(
+            net.minecraft.core.particles.ParticleOptions options, @Nullable ResourceLocation id) {
+        return ScorchfulDustCompat.isSandstormDust(id)
+            && options instanceof net.minecraft.core.particles.DustParticleOptionsBase dust
+            && dust.getScale() >= 2.5f;
+    }
+
+    /** Scorchful sandstorm dust receives a single, optional wind source. */
+    public static boolean allowsScorchfulDustSteering(@Nullable ResourceLocation id, @Nullable Particle particle) {
+        return enabled && scorchfulDustCompat && ClientWindState.hasServerState()
+            && !ClientWindState.dimensionWindDisabled()
+            && ScorchfulDustCompat.isSandstormDust(id)
+            && particle != null && !BuiltinParticleClassBlacklist.contains(particle)
+            && !ParticleWindApi.isRuntimeImmune(id) && !ParticleWindApi.isRuntimeImmune(particle)
+            && !isTaggedImmune(id) && passesConfiguredFilter(id);
+    }
+
+    public static float scorchfulDustMultiplier() {
+        return scorchfulDustMultiplier;
+    }
+
+    public static float biomeParticleWeatherMultiplier() {
+        return biomeParticleWeatherMultiplier;
+    }
+
+    /** Honor entries in the existing particle wind response multiplier editor. */
+    public static float biomeParticleWeatherParticleResponse(@Nullable ResourceLocation id) {
+        return customResponse(id);
+    }
+
+    /** Shared response map, including user overrides, for capped SkyLands clouds. */
+    public static float skylandsParticleResponse(@Nullable ResourceLocation id) {
+        return customResponse(id);
+    }
+
     public static boolean shouldAffect(@Nullable ResourceLocation id, @Nullable Particle particle) {
         if (!enabled) return false;
+        if (particle instanceof WindParticleAccess access && access.livingwind$isSkylandsSourceAnchored()) return false;
+        // Dedicated BPW directional movement is applied in Particle.move. Even when
+        // disabled, never superimpose generic Living Wind on its hardcoded weather motion.
+        if (BiomeParticleWeatherWindCompat.isWeatherParticle(id)) return false;
+        // Scorchful dust uses its own fixed native X-axis drift. A dedicated
+        // optional hook replaces that drift; generic wind would double it.
+        if (ScorchfulDustCompat.isSandstormDust(id)) return false;
         // JNE's self-propelled glacier particles have a replacement movement path.
         // Never add generic wind on top, even when the user excludes that special path.
         if (JadensNetherExpansionParticleCompat.isJneAtmosphericParticle(id)) return false;
@@ -184,6 +247,12 @@ public final class ParticleWindFilter {
         // registry or directly add particle instances, so an ID blacklist alone
         // cannot catch them. Uses a class-name cache; no optional mod is loaded.
         if (BuiltinParticleClassBlacklist.contains(particle)) return false;
+        // Grassier Grass creates its own detached grass blade particles directly,
+        // without an ID. Their direction and glide already come from the shared
+        // shader wind. Never add generic particle drift on top (even if the
+        // Grassier Grass integration is switched off).
+        if (particle != null && particle.getClass().getName().equals(
+                "com.leonardoinc22.shortgrass.client.render.GrassBladeParticle")) return false;
         // Official Particle Rain 4.x drives its weather particles through its own wind manager.
         // Never apply a second generic push, whether the optional integration is on or off.
         // Most of its v4 effects are directly constructed, so their particle IDs are unavailable.

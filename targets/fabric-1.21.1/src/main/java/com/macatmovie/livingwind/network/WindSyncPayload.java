@@ -108,6 +108,12 @@ public record WindSyncPayload(
         );
     }
 
+    // Valkyrien Sails is a 1.20.1-only integration. Shared ClientWindState
+    // reads these accessors on every loader; 1.21.1 intentionally carries no
+    // Sails data and must not interpret its reused flags as Sails settings.
+    public boolean valkyrienSailsWindEnabled() { return false; }
+    public float valkyrienSailsWindMultiplier() { return 1.0f; }
+
     public boolean windDisabled() { return (flags & 64) != 0; }
     public boolean entityWindCheckShelter() { return (flags & 256) != 0; }
     public boolean windyPeriod() { return (flags & 1) != 0; }

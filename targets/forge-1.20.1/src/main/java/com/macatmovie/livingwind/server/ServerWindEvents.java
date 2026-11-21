@@ -24,6 +24,8 @@ public final class ServerWindEvents {
         WindSavedData data = WindSavedData.get(level);
         if (!WindDimensionBlacklist.contains(level)) data.tick(level);
         ValkyrienSkiesWindBridge.tick(level);
+        if (net.minecraftforge.fml.ModList.get().isLoaded("vs_sails"))
+            com.macatmovie.livingwind.compat.ValkyrienSailsWindCompat.serverTick(level);
 
         int interval = WindConfig.SYNC_INTERVAL_TICKS.get();
         if (interval > 0 && level.getGameTime() % interval == 0L && !level.players().isEmpty()) {

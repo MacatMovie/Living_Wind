@@ -31,6 +31,7 @@ public final class LivingWind {
         modBus.addListener(WindNetworking::register);
         NeoForge.EVENT_BUS.addListener(ServerWindCommands::register);
         NeoForge.EVENT_BUS.addListener(ServerWindEvents::onLevelTick);
+        NeoForge.EVENT_BUS.addListener(com.macatmovie.livingwind.compat.CreateAtmosphericsWindCompat::onLevelUnload);
         NeoForge.EVENT_BUS.addListener(ServerWindEvents::onPlayerLogin);
         NeoForge.EVENT_BUS.addListener(ServerWindEvents::onPlayerChangedDimension);
         // Register after the regular wind tick so the Sable snapshot sees the

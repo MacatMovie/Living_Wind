@@ -60,6 +60,19 @@ public final class BuiltinParticleResponseMultipliers {
         Map.entry(ResourceLocation.tryParse("minecraft:cloud"), 0.35f),
         Map.entry(ResourceLocation.tryParse("streamsreflowing:stream_splash"), 0.20f),
         Map.entry(ResourceLocation.tryParse("streamsreflowing:stream_foam"), 0.20f),
+        // Cold breath should drift gently rather than being carried away at full wind strength.
+        Map.entry(ResourceLocation.tryParse("particular:breath"), 0.25f),
+        // Amendments: projectile trails may drift slightly without losing their source.
+        Map.entry(ResourceLocation.tryParse("amendments:fireball_trail"), 0.25f),
+        Map.entry(ResourceLocation.tryParse("amendments:dragon_fireball_trail"), 0.25f),
+        // SkyLands port (mod ID skylands, not the former flying_stuff):
+        // clouds are steered by a capped position-aware adapter instead of
+        // stacking a full generic wind shove onto their own long-lived drift.
+        Map.entry(ResourceLocation.tryParse("skylands:cloud_barrier_3"), 0.50f),
+        Map.entry(ResourceLocation.tryParse("skylands:cloud"), 0.50f),
+        Map.entry(ResourceLocation.tryParse("skylands:cloud_smoke"), 0.35f),
+        Map.entry(ResourceLocation.tryParse("skylands:cloud_smoke_1"), 0.35f),
+        Map.entry(ResourceLocation.tryParse("skylands:fire_leaf"), 0.60f),
         Map.entry(ResourceLocation.tryParse("particular:oak_leaf"), 2.5f),
         Map.entry(ResourceLocation.tryParse("particular:birch_leaf"), 2.5f),
         Map.entry(ResourceLocation.tryParse("particular:spruce_leaf"), 2.5f),

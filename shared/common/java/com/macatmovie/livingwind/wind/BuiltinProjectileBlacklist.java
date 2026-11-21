@@ -75,7 +75,12 @@ public final class BuiltinProjectileBlacklist {
         "cataclysm:ancient_desert_stele",
         "cataclysm:octo_ink",
         "cataclysm:water_spear",
-        "cataclysm:lightning_spear"
+        "cataclysm:lightning_spear",
+        // SkyLands' scripted magical bolts: avoid changing the authored attack paths.
+        // Ice arrows, ice bombs, smoke flowers and grape shots remain eligible
+        // for the normal projectile wind option, like vanilla arrows or throws.
+        "skylands:eye_ofts_projectile",
+        "skylands:fire_wave"
     );
     private static final Set<String> LOOKUP = Set.copyOf(IDS);
 

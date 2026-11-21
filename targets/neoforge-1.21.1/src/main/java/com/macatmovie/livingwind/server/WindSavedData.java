@@ -7,6 +7,7 @@ import com.macatmovie.livingwind.wind.GustPulse;
 import com.macatmovie.livingwind.wind.WindMath;
 import com.macatmovie.livingwind.wind.WeatherWindProfiles;
 import com.macatmovie.livingwind.wind.WindSnapshot;
+import com.macatmovie.livingwind.wind.BeyondEndWindCompat;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -782,6 +783,9 @@ public final class WindSavedData extends SavedData {
     }
 
     private static boolean supportsWeather(ServerLevel level) {
+        // The Beyond explicitly synchronizes rain and thunder in the End;
+        // recognize its Migration Storm without altering any vanilla End world.
+        if (BeyondEndWindCompat.scopedEnd(level)) return true;
         // The End has skylight but no weather. Keep the Nether and End independent of
         // any rain/thunder timers inherited from the dimension's level data.
         return level.dimension() != net.minecraft.world.level.Level.NETHER

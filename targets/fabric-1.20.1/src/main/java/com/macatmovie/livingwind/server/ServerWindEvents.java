@@ -15,6 +15,8 @@ public final class ServerWindEvents {
         if (!WindDimensionBlacklist.contains(level)) data.tick(level);
         // Server-thread update only: VS owns the actual physics simulation.
         ValkyrienSkiesWindBridge.tick(level);
+        if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("vs_sails"))
+            com.macatmovie.livingwind.compat.ValkyrienSailsWindCompat.serverTick(level);
         int interval = WindConfig.SYNC_INTERVAL_TICKS.get();
         if (interval > 0 && level.getGameTime() % interval == 0L && !level.players().isEmpty())
             WindNetworking.sendToLevel(level, WindApi.get(level));

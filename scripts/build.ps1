@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Position=0)][string]$Target,
     [switch]$Clean,
     [switch]$All,
@@ -144,13 +144,25 @@ function Build-Target([string]$Name) {
 
         Write-Host "`n=== $Name | Java $javaVersion | Gradle $gradleVersion ===" -ForegroundColor Cyan
         Write-Host "Java home: $javaHome" -ForegroundColor DarkGray
+        $javacExe = Join-Path $javaHome 'bin\javac.exe'
+        if (-not (Test-Path $javacExe)) { throw "JDK compiler not found: $javacExe" }
+        $javacVersion = (& $javacExe -version 2>&1) | Out-String
+        Write-Host ("Selected JDK compiler: " + $javacVersion.Trim()) -ForegroundColor DarkGray
 
         Push-Location $dir
         try {
             $gradle = Get-Gradle $gradleVersion
             & $gradle --stop | Out-Host
 
-            $gradleArgs = @('--console=plain', '--no-daemon', '--no-watch-fs')
+            # Use the JDK chosen above for BOTH Gradle and Java compilation.
+            # Without this, Gradle may auto-select a different installed Java 21
+            # compiler, even when JAVA_HOME points at the intended installation.
+            $gradleArgs = @(
+                '--console=plain', '--no-daemon', '--no-watch-fs',
+                '--max-workers=2',
+                '-Dorg.gradle.java.installations.auto-detect=false',
+                '-Dorg.gradle.java.installations.fromEnv=JAVA_HOME'
+            )
             if ($Clean) { $gradleArgs += 'clean' }
             $gradleArgs += 'build'
 

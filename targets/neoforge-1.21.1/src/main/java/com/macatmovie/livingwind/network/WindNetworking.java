@@ -3,6 +3,8 @@ package com.macatmovie.livingwind.network;
 import com.macatmovie.livingwind.client.ClientWindState;
 import com.macatmovie.livingwind.wind.WindSnapshot;
 import com.macatmovie.livingwind.wind.WindDimensionBlacklist;
+import com.macatmovie.livingwind.wind.BeyondEndWindCompat;
+import com.macatmovie.livingwind.api.WindApi;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -13,13 +15,14 @@ public final class WindNetworking {
     private WindNetworking() {}
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("6");
+        PayloadRegistrar registrar = event.registrar("7");
         registrar.playToClient(
             WindSyncPayload.TYPE,
             WindSyncPayload.STREAM_CODEC,
             (payload, context) -> {
                 ClientWindState.accept(payload);
                 ClientWindState.setHighSeasWindEnabled(payload.highSeasWindEnabled());
+                com.macatmovie.livingwind.compat.CreateAtmosphericsWindCompat.onWindSync(payload);
             }
         );
     }
@@ -39,7 +42,13 @@ public final class WindNetworking {
 
     public static void sendToPlayer(ServerPlayer player, WindSnapshot snapshot) {
         boolean blocked = WindDimensionBlacklist.contains(player.serverLevel());
-        WindSnapshot effective = blocked ? WindDimensionBlacklist.calm(player.serverLevel().getGameTime()) : withLocalWeather(player, snapshot);
+        // The Beyond's clear-weather breeze is biome-scoped. Send each player
+        // their OWN position-aware wind rather than broadcasting the same
+        // dimension-wide snapshot (which is calm outside End storms).
+        WindSnapshot effective = blocked ? WindDimensionBlacklist.calm(player.serverLevel().getGameTime())
+            : BeyondEndWindCompat.scopedEnd(player.serverLevel())
+                ? WindApi.getAt(player.serverLevel(), player.blockPosition())
+                : withLocalWeather(player, snapshot);
         PacketDistributor.sendToPlayer(player, WindSyncPayload.from(effective, blocked));
     }
 }

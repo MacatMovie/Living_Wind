@@ -7,6 +7,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceProvider;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Vector4f;
 import org.slf4j.LoggerFactory;
 
@@ -81,6 +83,19 @@ public final class InteractiveFoliageWindCompat {
         return ClientWindConfig.INTERACTIVE_FOLIAGE_WIND_COMPAT.get()
                 && ClientWindState.hasServerState()
                 && Minecraft.getInstance().level != null;
+    }
+
+    /**
+     * Applies while the IF compatibility option is enabled. IF bakes exposure
+     * into foliage meshes, possibly before server wind has been received, so
+     * this uses the configured preference rather than the live sync state.
+     * Returning zero prevents atmospheric wind
+     * on seagrass, kelp and waterlogged vegetation, while leaving their native
+     * calm sway, pushing and rendering untouched.
+     */
+    public static boolean excludeSubmergedFoliage(BlockState state) {
+        return state != null && ClientWindConfig.INTERACTIVE_FOLIAGE_WIND_COMPAT.get()
+                && state.getFluidState().is(FluidTags.WATER);
     }
 
     public static Vector4f adjustWeather(Vector4f original) {

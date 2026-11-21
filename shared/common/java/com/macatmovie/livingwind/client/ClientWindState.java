@@ -34,6 +34,8 @@ public final class ClientWindState {
     private static volatile boolean createWindmillsEnabled;
     private static volatile boolean highSeasWindEnabled;
     private static volatile boolean smallShipsWindEnabled;
+    private static volatile boolean valkyrienSailsWindEnabled;
+    private static volatile float valkyrienSailsWindMultiplier = 1f;
     private static volatile boolean alekiShipsWindEnabled;
     private static volatile float alekiShipsWindScale = 0.2f;
     private static volatile boolean treasureBalloonsWindEnabled;
@@ -76,6 +78,8 @@ public final class ClientWindState {
         stormFront = payload.stormFront();
         createWindmillsEnabled = payload.createWindmillsEnabled();
         smallShipsWindEnabled = payload.smallShipsWindEnabled();
+        valkyrienSailsWindEnabled = payload.valkyrienSailsWindEnabled();
+        valkyrienSailsWindMultiplier = Mth.clamp(payload.valkyrienSailsWindMultiplier(), 0f, 3f);
         treasureBalloonsWindEnabled = payload.treasureBalloonsWindEnabled();
         treasureBalloonsWindMultiplier = payload.treasureBalloonsWindMultiplier();
 
@@ -131,7 +135,8 @@ public final class ClientWindState {
         altitudeMultiplier = 1.0f;
         biomeWeight = biomeWeightTarget = 0.0f;
         playerInOverworld = false;
-        windyPeriod = stormFront = createWindmillsEnabled = highSeasWindEnabled = smallShipsWindEnabled = alekiShipsWindEnabled = treasureBalloonsWindEnabled = false;
+        windyPeriod = stormFront = createWindmillsEnabled = highSeasWindEnabled = smallShipsWindEnabled = alekiShipsWindEnabled = treasureBalloonsWindEnabled = valkyrienSailsWindEnabled = false;
+        valkyrienSailsWindMultiplier = 1f;
         treasureBalloonsWindMultiplier = 0.0f;
         alekiShipsWindScale = 0.2f;
         hasServerState = false;
@@ -175,6 +180,8 @@ public final class ClientWindState {
     public static boolean highSeasWindEnabled() { return hasServerState && !dimensionWindDisabled && highSeasWindEnabled; }
     public static boolean treasureBalloonsWindEnabled() { return hasServerState && !dimensionWindDisabled && treasureBalloonsWindEnabled; }
     public static float treasureBalloonsWindMultiplier() { return treasureBalloonsWindMultiplier; }
+    public static boolean valkyrienSailsWindEnabled() { return hasServerState && !dimensionWindDisabled && valkyrienSailsWindEnabled; }
+    public static float valkyrienSailsWindMultiplier() { return valkyrienSailsWindMultiplier; }
     public static boolean smallShipsWindEnabled() { return hasServerState && !dimensionWindDisabled && smallShipsWindEnabled; }
     /** Forge 1.20.1-only: Nifty Ships uses server-synced wind in place of local boat recalculation. */
     public static boolean alekiShipsWindEnabled() { return hasServerState && !dimensionWindDisabled && alekiShipsWindEnabled; }

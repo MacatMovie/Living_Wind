@@ -1,0 +1,22 @@
+{
+  "client": [
+    "AmendmentsPendulumWindMixin",
+    "InteractiveFoliageSwayShaderMixin",
+    "FabricInteractiveFoliageLegacyShaderMixin",
+    "SupplementariesWindVaneMixin"
+  ],
+  "mixins": [],
+  "superseded": [
+    "FallingLeavesPlusParticleMixin",
+    "FallingLeavesPlusWindAccess",
+    "FallingLeavesPlusSpawnMixin",
+    "ChimesIronRendererMixin",
+    "ChimesCopperRendererMixin",
+    "ChimesBambooRendererMixin",
+    "ChimesAmethystRendererMixin",
+    "ChimesGlassRendererMixin",
+    "FabricSwingingLanternsWindMixin",
+    "FabricWindblownFrameMixin",
+    "FabricInteractiveFoliageShelterMixin"
+  ]
+}

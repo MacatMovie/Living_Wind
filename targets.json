@@ -18,5 +18,41 @@
     "family": "fabric-1.21.1",
     "java": 21,
     "gradle": "8.14.4"
+  },
+  "neoforge-26.1.x": {
+    "family": "neoforge-26.1.x",
+    "java": 25,
+    "gradle": "9.2.1",
+    "status": "migration-pass-2-awaiting-compile"
+  },
+  "fabric-26.1.x": {
+    "family": "fabric-26.1.x",
+    "java": 25,
+    "gradle": "9.5.1",
+    "status": "migration-pass-2-awaiting-compile"
+  },
+  "neoforge-26.2.x": {
+    "family": "neoforge-26.2.x",
+    "java": 25,
+    "gradle": "9.2.1",
+    "status": "migration-pass-2-awaiting-compile"
+  },
+  "fabric-26.2.x": {
+    "family": "fabric-26.2.x",
+    "java": 25,
+    "gradle": "9.5.1",
+    "status": "migration-pass-2-awaiting-compile"
+  },
+  "neoforge-26.3.x": {
+    "family": "neoforge-26.3.x",
+    "java": 25,
+    "gradle": "9.2.1",
+    "status": "migration-pass-2-awaiting-compile"
+  },
+  "fabric-26.3.x": {
+    "family": "fabric-26.3.x",
+    "java": 25,
+    "gradle": "9.5.1",
+    "status": "migration-pass-2-awaiting-compile"
   }
 }

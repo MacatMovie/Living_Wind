@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "livingwind:block/wind_vane_base"
+    }
+  }
+}

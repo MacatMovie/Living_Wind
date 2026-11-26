@@ -2,7 +2,7 @@
 
 Living Wind is a synchronized wind system for Minecraft, featuring changing wind direction, strength, and gusts. Other mods can read its wind values to drive their own movement, physics, animations, and particle effects.
 
-**Supported versions:** Forge 1.20.1, Fabric 1.20.1, NeoForge 1.21.1, and Fabric 1.21.1. The examples below describe the public API in Living Wind **v1.4.0**. Use the JAR for your Minecraft version and mod loader.
+The examples below describe the public API in Living Wind **v1.4.0**. Use the JAR for your Minecraft version and mod loader.
 
 ## For mod developers
 

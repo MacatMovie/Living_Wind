@@ -14,6 +14,12 @@ $map = [ordered]@{
     'B' = 'neoforge-1.21.1'
     'C' = 'fabric-1.20.1'
     'D' = 'fabric-1.21.1'
+    'E' = 'neoforge-26.1.x'
+    'F' = 'fabric-26.1.x'
+    'G' = 'neoforge-26.2.x'
+    'H' = 'fabric-26.2.x'
+    'I' = 'neoforge-26.3.x'
+    'J' = 'fabric-26.3.x'
 }
 
 # Accept A, A,C, A C, or AC. Each letter builds one target.
@@ -22,7 +28,7 @@ $targets = New-Object System.Collections.Generic.List[string]
 $invalid = New-Object System.Collections.Generic.List[string]
 
 foreach ($token in $tokens) {
-    if ($token -notmatch '^[A-D]+$') {
+    if ($token -notmatch '^[A-J]+$') {
         $invalid.Add($token)
         continue
     }
@@ -35,7 +41,7 @@ foreach ($token in $tokens) {
 # Refuse an invalid selection instead of silently building only part of it.
 if ($targets.Count -eq 0 -or $invalid.Count -gt 0) {
     Write-Host ""
-    Write-Host "Choose A, B, C, or D (multiple letters are allowed)." -ForegroundColor Red
+    Write-Host "Choose A through J (multiple letters are allowed)." -ForegroundColor Red
     if ($invalid.Count -gt 0) {
         Write-Host ("Unknown selection(s): " + ($invalid -join ', ')) -ForegroundColor Red
     }

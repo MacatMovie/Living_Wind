@@ -1,0 +1,41 @@
+{
+  "client": [
+    "PrettyRainShrubMixin",
+    "OculusCommonUniformsMixin",
+    "IrisCommonUniformsMixin",
+    "AtmosphericsWindStreakMixin",
+    "AmbiWindSoundMixin",
+    "EuphoriaUniformsMixin",
+    "EuphoriaAutoShaderMixin",
+    "IrisIncludeGraphShaderMixin",
+    "OculusIncludeGraphShaderMixin",
+    "AmendmentsPendulumWindMixin",
+    "SupplementariesWindVaneMixin",
+    "HighSeasWindVaneSmoothingMixin",
+    "BeyondWindParticleMixin",
+    "InteractiveFoliageSwayShaderMixin",
+    "InteractiveFoliageLegacyShaderMixin",
+    "SmallShipsClientWindManagerMixin"
+  ],
+  "mixins": [
+    "CreateWindmillBearingMixin",
+    "AeronauticsKineticBearingMixin",
+    "HighSeasWindManagerMixin",
+    "SableBlockChangeMixin",
+    "SmallShipsWindManagerMixin",
+    "TreasureBalloonsUpdateMixin",
+    "DelightOfFlightBalloonMixin",
+    "IcyHorseGliderWindMixin",
+    "SuperbWarfareAircraftWindMixin"
+  ],
+  "superseded": [
+    "FallingLeavesPlusParticleMixin",
+    "FallingLeavesPlusWindAccess",
+    "FallingLeavesPlusSpawnMixin",
+    "ChimesIronRendererMixin",
+    "ChimesCopperRendererMixin",
+    "ChimesBambooRendererMixin",
+    "ChimesAmethystRendererMixin",
+    "ChimesGlassRendererMixin"
+  ]
+}

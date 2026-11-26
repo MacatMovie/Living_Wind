@@ -20,7 +20,7 @@ set "LATEST=%~dp0logs\build-all-latest.log"
 echo ============================================================
 echo Living Wind - BUILD ALL
 echo ============================================================
-echo Forge 1.20.1 + NeoForge 1.21.1 + Fabric 1.20.1 + Fabric 1.21.1
+echo 10 targets: existing 4 builds + NeoForge and Fabric 26.1.x, 26.2.x, 26.3.x
 echo Live output is enabled.
 echo Log: %LOG%
 echo Finished jars: %~dp0dist

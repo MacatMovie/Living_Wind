@@ -1,0 +1,54 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.148'
+    id 'idea'
+}
+// Legacy Sable and Simple Clouds compile dependencies are not used on 26.x.
+
+version = mod_version
+group = mod_group_id
+base { archivesName = "LivingWind-NeoForge-${minecraft_display_version}" }
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+// Shared, byte-identical Living Wind sources/resources used by both maintained targets.
+sourceSets {
+    main {
+        java.srcDir file('../../shared/26x/26.2/java')
+        resources.srcDir file('../../shared/26x/resources')
+    }
+}
+neoForge {
+    version = project.neo_version
+    runs {
+        client { client() }
+        server { server(); programArgument '--nogui' }
+        configureEach { logLevel = org.slf4j.event.Level.INFO }
+    }
+    mods { "${mod_id}" { sourceSet(sourceSets.main) } }
+}
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+        minecraft_version: minecraft_version,
+        minecraft_version_range: minecraft_version_range,
+        neo_version: neo_version,
+        loader_version_range: loader_version_range,
+        mod_id: mod_id,
+        mod_name: mod_name,
+        mod_license: mod_license,
+        mod_version: mod_version,
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+jar {
+    archiveFileName = "LivingWind-NeoForge-${minecraft_display_version}-v${mod_version}.jar"
+}
+idea { module { downloadSources = true; downloadJavadoc = true } }
+
+// Migration diagnostics: avoid javac truncating cascading API errors at 100.
+tasks.withType(JavaCompile).configureEach { options.compilerArgs.addAll(["-Xmaxerrs", "1000", "-Xdiags:verbose"]) }

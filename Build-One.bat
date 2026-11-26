@@ -20,8 +20,14 @@ echo   A) Forge    1.20.1
 echo   B) NeoForge 1.21.1
 echo   C) Fabric   1.20.1
 echo   D) Fabric   1.21.1
+echo   E) Neoforge 26.1.x
+echo   F) Fabric   26.1.x
+echo   G) Neoforge 26.2.x
+echo   H) Fabric   26.2.x
+echo   I) Neoforge 26.3.x
+echo   J) Fabric   26.3.x
 echo.
-echo Enter A-D, or combine letters to select multiple targets.
+echo Enter A-J, or combine letters to select multiple targets.
 echo Example: A,C
 echo.
 

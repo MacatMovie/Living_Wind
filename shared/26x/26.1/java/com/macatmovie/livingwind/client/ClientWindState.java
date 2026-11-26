@@ -1,0 +1,239 @@
+package com.macatmovie.livingwind.client;
+
+import com.macatmovie.livingwind.network.WindSyncPayload;
+import com.macatmovie.livingwind.wind.WindMath;
+import com.macatmovie.livingwind.wind.EntityWindWeather;
+import net.minecraft.world.level.Level;
+import com.macatmovie.livingwind.wind.WindBiomeModifiers;
+import net.minecraft.util.Mth;
+
+/**
+ * Thread-readable client state. Particle hooks only read primitive volatile fields here and never
+ * touch level/chunk state, keeping the per-particle path small and friendlier to async particle mods.
+ */
+public final class ClientWindState {
+    private static volatile float targetStrength;
+    private static volatile float targetDirection;
+    private static volatile float currentStrength;
+    private static volatile float currentDirection;
+    private static volatile float turbulence;
+    private static volatile float directionInstability;
+    private static volatile float gustStrength;
+    private static volatile float exposure = 1.0f;
+    private static volatile float altitudeMultiplier = 1.0f;
+    private static volatile float biomeWeight;
+    private static volatile float biomeWeightTarget;
+    private static volatile boolean playerInOverworld;
+    private static volatile boolean altitudeScalingEnabled = true;
+    private static volatile int altitudeMinY = 64;
+    private static volatile int altitudeMaxY = 192;
+    private static volatile float altitudeMinMultiplier = 1.0f;
+    private static volatile float altitudeMaxMultiplier = 1.35f;
+    private static volatile boolean windyPeriod;
+    private static volatile boolean stormFront;
+    private static volatile boolean createWindmillsEnabled;
+    private static volatile boolean highSeasWindEnabled;
+    private static volatile boolean smallShipsWindEnabled;
+    private static volatile boolean valkyrienSailsWindEnabled;
+    private static volatile float valkyrienSailsWindMultiplier = 1f;
+    private static volatile boolean alekiShipsWindEnabled;
+    private static volatile float alekiShipsWindScale = 0.2f;
+    private static volatile boolean treasureBalloonsWindEnabled;
+    private static volatile float treasureBalloonsWindMultiplier;
+    private static volatile boolean entityWindCheckShelter = true;
+    private static volatile float entityWindClearWeatherMultiplier = 1.0f;
+    private static volatile float entityWindRainMultiplier = 1.0f;
+    private static volatile float entityWindThunderMultiplier = 1.0f;
+    private static volatile boolean gliderWindEnabled;
+    private static volatile float gliderWindInfluence;
+    private static volatile boolean entityWindPlayers;
+    private static volatile float entityWindPlayerMultiplier;
+    private static volatile float entityWindPlayerGroundedMultiplier;
+    private static volatile boolean entityWindBoats;
+    private static volatile float entityWindBoatMultiplier;
+    private static volatile boolean hasServerState;
+    private static volatile boolean dimensionWindDisabled;
+
+    private ClientWindState() {}
+
+    public static void accept(WindSyncPayload payload) {
+        entityWindCheckShelter = payload.entityWindCheckShelter();
+        entityWindClearWeatherMultiplier = payload.entityWindClearWeatherMultiplier();
+        entityWindRainMultiplier = payload.entityWindRainMultiplier();
+        entityWindThunderMultiplier = payload.entityWindThunderMultiplier();
+        gliderWindEnabled = payload.gliderWindEnabled();
+        gliderWindInfluence = payload.gliderWindInfluence();
+        entityWindPlayers = payload.entityWindPlayers();
+        entityWindPlayerMultiplier = payload.entityWindPlayerMultiplier();
+        entityWindPlayerGroundedMultiplier = payload.entityWindPlayerGroundedMultiplier();
+        entityWindBoats = payload.entityWindBoats();
+        entityWindBoatMultiplier = payload.entityWindBoatMultiplier();
+        dimensionWindDisabled = payload.windDisabled();
+        targetStrength = dimensionWindDisabled ? 0.0f : payload.strength();
+        targetDirection = WindMath.normalizeDegrees(payload.directionDegrees());
+        turbulence = dimensionWindDisabled ? 0.0f : payload.turbulence();
+        directionInstability = dimensionWindDisabled ? 0.0f : payload.directionInstability();
+        gustStrength = dimensionWindDisabled ? 0.0f : payload.gustStrength();
+        windyPeriod = payload.windyPeriod();
+        stormFront = payload.stormFront();
+        createWindmillsEnabled = payload.createWindmillsEnabled();
+        smallShipsWindEnabled = payload.smallShipsWindEnabled();
+        valkyrienSailsWindEnabled = payload.valkyrienSailsWindEnabled();
+        valkyrienSailsWindMultiplier = Mth.clamp(payload.valkyrienSailsWindMultiplier(), 0f, 3f);
+        treasureBalloonsWindEnabled = payload.treasureBalloonsWindEnabled();
+        treasureBalloonsWindMultiplier = payload.treasureBalloonsWindMultiplier();
+
+        altitudeScalingEnabled = payload.altitudeScalingEnabled();
+        altitudeMinY = payload.altitudeMinY();
+        altitudeMaxY = payload.altitudeMaxY();
+        altitudeMinMultiplier = payload.altitudeMinMultiplier();
+        altitudeMaxMultiplier = payload.altitudeMaxMultiplier();
+        if (!hasServerState || dimensionWindDisabled) {
+            currentStrength = targetStrength;
+            currentDirection = targetDirection;
+        }
+        hasServerState = true;
+    }
+
+    public static void tick() {
+        if (!hasServerState) return;
+        currentStrength = Mth.lerp(0.10f, currentStrength, targetStrength);
+        biomeWeight = Mth.lerp(0.15f, biomeWeight, biomeWeightTarget);
+        float delta = WindMath.shortestDeltaDegrees(currentDirection, targetDirection);
+        currentDirection = WindMath.normalizeDegrees(currentDirection + delta * 0.10f);
+    }
+
+    public static boolean entityWindCheckShelter() { return entityWindCheckShelter; }
+    /** Evaluated only during enabled client-predicted entity movement. */
+    public static double entityWindWeatherMultiplier(Level level) {
+        return EntityWindWeather.interpolate(entityWindClearWeatherMultiplier,
+            entityWindRainMultiplier, entityWindThunderMultiplier,
+            level.getRainLevel(1.0f), level.getThunderLevel(1.0f));
+    }
+    public static boolean entityWindPlayers() { return entityWindPlayers && hasServerState && !dimensionWindDisabled; }
+    public static float entityWindPlayerMultiplier() { return entityWindPlayerMultiplier; }
+    public static float entityWindPlayerGroundedMultiplier() { return entityWindPlayerGroundedMultiplier; }
+    public static boolean entityWindBoats() { return entityWindBoats && hasServerState && !dimensionWindDisabled; }
+    public static float entityWindBoatMultiplier() { return entityWindBoatMultiplier; }
+
+    public static void reset() {
+        entityWindCheckShelter = true;
+        entityWindClearWeatherMultiplier = 1.0f;
+        entityWindRainMultiplier = 1.0f;
+        entityWindThunderMultiplier = 1.0f;
+        gliderWindEnabled = false;
+        gliderWindInfluence = 0.0f;
+        entityWindPlayers = false;
+        entityWindPlayerMultiplier = 0.0f;
+        entityWindPlayerGroundedMultiplier = 0.0f;
+        entityWindBoats = false;
+        entityWindBoatMultiplier = 0.0f;
+        targetStrength = currentStrength = 0.0f;
+        targetDirection = currentDirection = 0.0f;
+        turbulence = directionInstability = gustStrength = 0.0f;
+        exposure = 1.0f;
+        altitudeMultiplier = 1.0f;
+        biomeWeight = biomeWeightTarget = 0.0f;
+        playerInOverworld = false;
+        windyPeriod = stormFront = createWindmillsEnabled = highSeasWindEnabled = smallShipsWindEnabled = alekiShipsWindEnabled = treasureBalloonsWindEnabled = valkyrienSailsWindEnabled = false;
+        valkyrienSailsWindMultiplier = 1f;
+        treasureBalloonsWindMultiplier = 0.0f;
+        alekiShipsWindScale = 0.2f;
+        hasServerState = false;
+        dimensionWindDisabled = false;
+    }
+
+    public static void setExposure(float value) { exposure = Mth.clamp(value, 0.0f, 1.0f); }
+    public static void setBiomeWeight(float weight) {
+        biomeWeightTarget = Mth.clamp(weight, 0.0f, 1.0f);
+    }
+    public static float biomeWeight() { return biomeWeight; }
+    public static void updateAltitude(int y, boolean overworld) {
+        playerInOverworld = overworld;
+        if (!altitudeScalingEnabled || !overworld) {
+            altitudeMultiplier = 1.0f;
+            return;
+        }
+        if (altitudeMaxY <= altitudeMinY) {
+            altitudeMultiplier = altitudeMaxMultiplier;
+            return;
+        }
+        float progress = Mth.clamp((y - altitudeMinY) / (float) (altitudeMaxY - altitudeMinY), 0.0f, 1.0f);
+        altitudeMultiplier = Mth.lerp(progress, altitudeMinMultiplier, altitudeMaxMultiplier);
+    }
+    public static float strength() { return currentStrength; }
+    public static float targetStrength() { return targetStrength; }
+    public static float directionDegrees() { return currentDirection; }
+    public static float targetDirectionDegrees() { return targetDirection; }
+    public static float turbulence() { return turbulence; }
+    public static float directionInstability() { return directionInstability; }
+    public static float gustStrength() { return gustStrength; }
+    public static float exposure() { return exposure; }
+    public static float altitudeMultiplier() { return altitudeMultiplier; }
+    public static boolean windyPeriod() { return windyPeriod; }
+    public static boolean stormFront() { return stormFront; }
+    public static boolean createWindmillsEnabled() { return hasServerState && !dimensionWindDisabled && createWindmillsEnabled; }
+    public static boolean hasServerState() { return hasServerState; }
+    public static boolean gliderWindEnabled() { return hasServerState && !dimensionWindDisabled && gliderWindEnabled; }
+    public static float gliderWindInfluence() { return gliderWindInfluence; }
+    public static boolean dimensionWindDisabled() { return dimensionWindDisabled; }
+    public static boolean highSeasWindEnabled() { return hasServerState && !dimensionWindDisabled && highSeasWindEnabled; }
+    public static boolean treasureBalloonsWindEnabled() { return hasServerState && !dimensionWindDisabled && treasureBalloonsWindEnabled; }
+    public static float treasureBalloonsWindMultiplier() { return treasureBalloonsWindMultiplier; }
+    public static boolean valkyrienSailsWindEnabled() { return hasServerState && !dimensionWindDisabled && valkyrienSailsWindEnabled; }
+    public static float valkyrienSailsWindMultiplier() { return valkyrienSailsWindMultiplier; }
+    public static boolean smallShipsWindEnabled() { return hasServerState && !dimensionWindDisabled && smallShipsWindEnabled; }
+    /** Forge 1.20.1-only: Nifty Ships uses server-synced wind in place of local boat recalculation. */
+    public static boolean alekiShipsWindEnabled() { return hasServerState && !dimensionWindDisabled && alekiShipsWindEnabled; }
+    public static void setAlekiShipsWindEnabled(boolean enabled) { alekiShipsWindEnabled = enabled; }
+    /** Server-synced strength conversion, Forge Nifty Ships client only. */
+    public static float alekiShipsWindScale() { return alekiShipsWindScale; }
+    public static void setAlekiShipsWindScale(float scale) { alekiShipsWindScale = Mth.clamp(scale, 0.0f, 1.0f); }
+    // Maintained as a platform-neutral no-op in Forge. NeoForge's synced flag is
+    // consumed through a small method in its platform-specific networking code.
+    public static void setHighSeasWindEnabled(boolean enabled) { highSeasWindEnabled = enabled; }
+    public static float altitudeStrength() {
+        if (dimensionWindDisabled) return 0.0f;
+        return WindBiomeModifiers.apply(currentStrength * altitudeMultiplier, biomeWeight);
+    }
+    /** Native particle altitude conventions, but with the biome sampled at the particle. */
+    public static float particleStrengthAt(double x, double z) {
+        if (dimensionWindDisabled || !hasServerState) return 0.0f;
+        return WindBiomeModifiers.apply(currentStrength * altitudeMultiplier,
+            ClientBiomeWindCache.glacierWeightAt(x, z));
+    }
+    /** Atmospheric reading before biome adjustments, for external integrations that need it. */
+    public static float baseAltitudeStrength() { return currentStrength * altitudeMultiplier; }
+    /** Position-specific biome reading using a main-thread-populated cache, safe on particle workers. */
+    public static float strengthAt(double x, double y, double z) {
+        if (dimensionWindDisabled || !hasServerState) return 0.0f;
+        return WindBiomeModifiers.apply(baseStrengthAtAltitude((int) Math.floor(y), playerInOverworld),
+            ClientBiomeWindCache.glacierWeightAt(x, z));
+    }
+    public static float windXAt(double x, double y, double z) {
+        return WindMath.windX(strengthAt(x, y, z), currentDirection);
+    }
+    public static float windZAt(double x, double y, double z) {
+        return WindMath.windZ(strengthAt(x, y, z), currentDirection);
+    }
+
+    /** Sample altitude at a moving instrument's actual world Y rather than at
+     * the observing player. Static effects retain their existing cached value. */
+    public static float strengthAtAltitude(int y, boolean overworld) {
+        if (dimensionWindDisabled) return 0.0f;
+        return WindBiomeModifiers.apply(baseStrengthAtAltitude(y, overworld), biomeWeight);
+    }
+    private static float baseStrengthAtAltitude(int y, boolean overworld) {
+        if (!altitudeScalingEnabled || !overworld) return currentStrength;
+        if (altitudeMaxY <= altitudeMinY) return currentStrength * altitudeMaxMultiplier;
+        float progress = Mth.clamp((y - altitudeMinY) / (float) (altitudeMaxY - altitudeMinY), 0.0f, 1.0f);
+        return currentStrength * Mth.lerp(progress, altitudeMinMultiplier, altitudeMaxMultiplier);
+    }
+    public static float localStrength() { return altitudeStrength() * exposure; }
+    public static float globalWindX() { return WindMath.windX(currentStrength, currentDirection); }
+    public static float globalWindZ() { return WindMath.windZ(currentStrength, currentDirection); }
+    public static float altitudeWindX() { return WindMath.windX(altitudeStrength(), currentDirection); }
+    public static float altitudeWindZ() { return WindMath.windZ(altitudeStrength(), currentDirection); }
+    public static float localWindX() { return WindMath.windX(localStrength(), currentDirection); }
+    public static float localWindZ() { return WindMath.windZ(localStrength(), currentDirection); }
+}

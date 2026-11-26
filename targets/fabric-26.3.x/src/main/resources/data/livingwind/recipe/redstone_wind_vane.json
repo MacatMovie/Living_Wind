@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [
+    "STS",
+    "TVT",
+    "STS"
+  ],
+  "key": {
+    "S": "minecraft:stone",
+    "T": "minecraft:redstone_torch",
+    "V": "livingwind:wind_vane"
+  },
+  "result": {
+    "id": "livingwind:redstone_wind_vane",
+    "count": 1
+  }
+}

@@ -99,6 +99,8 @@ function Collect-TargetJars([string]$Name) {
     $mcLine = $properties | Where-Object { $_ -match '^minecraft_version\s*=' } | Select-Object -First 1
     if (-not $versionLine -or -not $mcLine) { throw "Missing mod_version or minecraft_version for $Name" }
     $modVersion = ($versionLine -split '=', 2)[1].Trim()
+    $displayLine = $properties | Where-Object { $_ -match '^minecraft_display_version\s*=' } | Select-Object -First 1
+    if ($displayLine) { $mcLine = $displayLine }
     $mcVersion = ($mcLine -split '=', 2)[1].Trim()
     $releaseVersion = if ($modVersion.StartsWith('v')) { $modVersion } else { "v$modVersion" }
     $unprefixedVersion = $releaseVersion.Substring(1)
@@ -189,7 +191,7 @@ function Build-Target([string]$Name) {
 }
 
 try {
-    $allTargets = @('forge-1.20.1', 'neoforge-1.21.1', 'fabric-1.20.1', 'fabric-1.21.1')
+    $allTargets = @('forge-1.20.1', 'neoforge-1.21.1', 'fabric-1.20.1', 'fabric-1.21.1', 'neoforge-26.1.x', 'fabric-26.1.x', 'neoforge-26.2.x', 'fabric-26.2.x', 'neoforge-26.3.x', 'fabric-26.3.x')
 
     if ($CollectOnly) {
         Write-Host "Rebuilding dist from existing target build outputs (no compilation)..." -ForegroundColor Cyan

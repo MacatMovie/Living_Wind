@@ -1,0 +1,50 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.macatmovie.livingwind.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "ParticleEngineMixin",
+    "ParticleMixin",
+    "OfficialParticleRainWindMixin",
+    "OfficialParticleRainSnowWindMixin",
+    "OfficialParticleRainDataAccess",
+    "AmbientSoundsWindCategoryMixin",
+    "SwingingSignsSwayMixin",
+    "SwingingLanternsWindMixin",
+    "SwingingLanternsExposureAccess",
+    "SwingingLanternsPhysicsWindLimitMixin",
+    "WindblownFrameMixin",
+    "WindblownShaderMixin",
+    "GrassierGrassShaderWindMixin",
+    "GrassierGrassDetachedBladeMixin",
+    "InteractiveFoliageWindMixin",
+    "InteractiveFoliageUnderwaterMixin",
+    "FallingLeavesPlus26SpawnMixin",
+    "FallingLeavesPlus26WindMixin",
+    "Chimes26StateMixin",
+    "ChimesIronAmbientMixin",
+    "Chimes26IronExtractMixin",
+    "Chimes26IronModelMixin",
+    "ChimesCopperAmbientMixin",
+    "Chimes26CopperExtractMixin",
+    "Chimes26CopperModelMixin",
+    "ChimesBambooAmbientMixin",
+    "Chimes26BambooExtractMixin",
+    "Chimes26BambooModelMixin",
+    "ChimesAmethystAmbientMixin",
+    "Chimes26AmethystExtractMixin",
+    "Chimes26AmethystModelMixin",
+    "ChimesGlassAmbientMixin",
+    "Chimes26GlassExtractMixin",
+    "Chimes26GlassModelMixin",
+    "AmendmentsPendulumWindMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "EntityWindMovementMixin",
+    "IcyHorseGliderWindMixin"
+  ]
+}

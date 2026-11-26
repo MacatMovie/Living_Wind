@@ -1,0 +1,9 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "livingwind:block/redstone_windmill_stand"
+      }
+    }
+  ]
+}
